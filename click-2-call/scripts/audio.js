@@ -86,20 +86,20 @@ function requestAudio(crocApiKey, addressToCall) {
 			// The DOM audio element used for playing the remote party's audio.
 			audioSession.remoteAudioElement = $('.receive-audio')[0];
 			
+			// Set up ring tone frequency to Great Britain. 
+			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
+			
+			// Set up ring tone timing to Great Britain.
+			var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
+			
+			// Create an instance of the ring tone object.
+			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
+			
 			/* 
 			 * The event handler to fire when a provisional response has been 
 			 * received to a new media session request.
 			 */
 			audioSession.onProvisional = function () {
-				
-				// Set up ring tone frequency to Great Britain. 
-				var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
-				
-				// Set up ring tone timing to Great Britain.
-				var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
-				
-				// Create an instance of the ring tone object.
-				ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
 				
 				// Start the ring tone.
 				ringtone.start();
@@ -125,6 +125,11 @@ function requestAudio(crocApiKey, addressToCall) {
 			 * remote party or the network.
 			 */
 			audioSession.onClose = function () {
+				
+				// Make sure ringtone has stopped
+				if (ringtone) {
+					ringtone.stop();
+				}
 				
 				// Stop duration of call
 				clearInterval(setCallDuration);
@@ -161,6 +166,12 @@ function requestAudio(crocApiKey, addressToCall) {
 		 * the network.
 		 */
 		onDisconnected: function () {
+			
+			// Make sure it stops the ring tone.
+			if (ringtone) {
+				ringtone.stop();
+			}
+			
 			// Allow calls to be made on click
 			crocObjectConnected = false;
 			
