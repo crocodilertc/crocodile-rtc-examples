@@ -1,0 +1,510 @@
+.widget_videocall {
+	background: #e7eceb;
+	box-shadow: 0px 0px 10px 1px #8c8c8c;
+	border-radius: 10px;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	-o-border-radius: 10px;
+	height: 333px;
+	overflow: hidden;
+	position: absolute;
+	width: 501px;
+	z-index: 100;
+}
+
+.widget_videocall .ui_content {
+	position:absolute;
+	top:0;
+	bottom:0;
+	left:0;
+	right:0;
+}
+
+.widget_videocall .ui_content .tpl_content {
+	width:100%;
+	height:100%;
+	background:#000;
+	overflow:hidden;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+}
+
+.widget_videocall .ui_container .tpl_title {
+	display: none;
+}
+
+.wrapper_video_content {
+	display: block;
+	position: absolute;
+	width:auto;
+	height:auto;
+	left:0;
+	right:0;
+	bottom:8px;
+	top:8px;
+}
+
+.tpl_remotevideo {
+	background: #000;
+	border-radius: 0px 0px 10px 10px;
+	-moz-border-radius: 0px 0px 10px 10px;
+	-webkit-border-radius: 0px 0px 10px 10px;
+	position: absolute;
+	height:100%;
+	width: 100% !important;
+	z-index: 101;
+}
+
+.btn_hidden {
+	display: none;
+}
+
+/*	============================================================
+	wrapper title bar
+	============================================================	*/
+
+.wrapper_title_bar {
+	border-radius: 10px 10px 0px 0px;
+	-moz-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	-o-border-radius: 10px 10px 0px 0px;
+	display: block;
+	height: 84px;
+	position: absolute;
+	top: -42px;
+	width: 100%;
+	z-index: 102;
+	transition: top 1s 1s;
+	-moz-transition: top 1s 1s;
+	-webkit-transition: top 1s 1s;
+	-o-transition: top 1s 1s;
+}
+
+.wrapper_title_bar:hover {
+	top: 0px;
+	-moz-transition-delay: 0s !important;
+	-webkit-transition-delay: 0s !important;
+	-o-transition-delay: 0s !important;
+}
+
+.wrapper_title_bar .content {
+	background: #ffffff; /* Old browsers */
+	background: -moz-linear-gradient(top,  #ffffff 0%, #e7eceb 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e7eceb)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #ffffff 0%,#e7eceb 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e7eceb',GradientType=0 ); /* IE6-9 */
+	border-radius: 10px 10px 0px 0px;
+	-moz-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	-o-border-radius: 10px 10px 0px 0px;
+	color: #1a3e36;
+	display: block;
+	font-size: 13px;
+	height: 42px;
+	position: absolute;
+	top: 0px;
+	width: 100%;
+}
+
+.wrapper_title_bar_shown {
+	background: #ffffff; /* Old browsers */
+	background: -moz-linear-gradient(top,  #ffffff 0%, #e7eceb 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e7eceb)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #ffffff 0%,#e7eceb 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e7eceb',GradientType=0 ); /* IE6-9 */
+	border-radius: 10px 10px 0px 0px;
+	-moz-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	-o-border-radius: 10px 10px 0px 0px;
+	color: #1a3e36;
+	display: block;
+	font-size: 13px;
+	height: 42px;
+	position: absolute;
+	top: 0px;
+	width: 100%;
+	z-index: 102;
+}
+
+.videocall_info_bar {
+	display: block;
+	padding: 12px 0px 0px 13px;
+	position: absolute;
+}
+
+.videocall_info_bar .ui_uri {
+	font-weight: bold;
+}
+
+.ui_toolbar {
+	display: block;
+	position: absolute;
+	right: 13px;
+	top: 7px;
+}
+
+.ui_toolbar .ui_action {
+	background: url(../images/icons.png) no-repeat #FFF;
+	border: 1px solid #e4e4e4;
+	border-radius: 3px;
+	cursor: pointer;
+	display: inline-block;
+	height: 26px;
+	margin-left: 5px;
+	width: 26px;
+}
+
+.ui_toolbar .ui_action:hover {
+	border: 1px solid #c2d3cf;
+}
+
+.ui_toolbar .btn_minimize {
+	background-position: -55px -341px;
+}
+
+.ui_toolbar .btn_fullscreen {
+	background-position: -82px -341px;
+}
+
+.ui_toolbar .btn_close {
+	background-position: -109px -341px;
+}
+
+/*	============================================================
+	wrapper local video
+	============================================================	*/
+
+.wrapper_local_video {
+	display: block;
+	position: absolute;
+	left: 13px;
+	bottom: 7px;
+	z-index: 105;
+}
+
+.tpl_localvideo {
+	background: #000;
+	border: 3px solid #409f89;
+	border-radius: 3px 3px 0px 3px;
+	display: block;
+	height: 69px;
+	height: 69px;
+	width: 69px;
+}
+
+.btn_localvideo {
+	bottom: 7px;
+	display: block;
+	height: 21px;
+	left: 13px;
+	position: absolute;
+	width: 21px;
+	z-index: 106;
+}
+
+.btn_localvideo .ui_text {
+	background:url(../images/icons.png) no-repeat -190px -143px;
+	display: block;
+	height: 21px;
+	width: 21px;
+}
+
+.enabled_local_video .tpl_localvideo {
+	display: block;
+}
+
+.disabled_local_video .tpl_localvideo {
+	display: none;
+}
+
+.disabled_local_video .enabled_picture, 
+.disabled_local_video .disabled_picture {
+	display: none;
+}
+
+.disabled_picture {
+	background: url(../images/icons.png) no-repeat -190px -1px #000;
+	display: block;
+	height: 69px;
+	left: 3px;
+	opacity: 0.5;
+	position: absolute;
+	top: 3px;
+	width: 69px;
+}
+
+/*	============================================================
+	wrapper video controls
+	============================================================	*/
+
+.wrapper_video_controls {
+	border-radius: 0px 0px 10px 10px;
+	bottom: 0px;
+	position: absolute;
+	left: 0px;
+	width: 100%;
+	z-index: 103;
+}
+
+.enabled_local_video .btn_localvideo {
+	background: #409f89;
+	border-radius: 0px 2px 2px 0px;
+	padding: 3px 3px 3px 0px;
+	position: absolute;
+	bottom: 7px;
+	left: 88px;
+	width: 21px;
+	height: 21px;
+}
+
+.enabled_local_video .btn_localvideo .ui_text {
+	background:url(../images/icons.png) no-repeat -190px -143px #398f7b;
+	border-bottom: 1px solid #9ec8be;
+	border-top: 1px solid #2b6c5d;
+	border-radius: 2px;
+	height: 19px;
+}
+
+.wrapper_video_controls .ui_bar {
+	height: 124px;
+	bottom: -42px;
+	display: block;
+	position: absolute;
+	transition: bottom 1s 1s;
+	-moz-transition: bottom 1s 1s;
+	-webkit-transition: bottom 1s 1s;
+	-o-transition: bottom 1s 1s;
+	width: 100%;
+	z-index: 104;
+}
+
+.ui_bar:hover {
+	bottom: 0px;
+	-moz-transition-delay: 0s !important;
+	-webkit-transition-delay: 0s !important;
+	-o-transition-delay: 0s !important;
+}
+
+.ui_bar-shown {
+	height: 42px;
+	bottom: 0px;
+	display: block;
+	position: absolute;
+	width: 100%;
+	z-index: 104;
+}
+
+.wrapper_video_controls .ui_group {
+	background: rgba(0, 0, 0, .3);
+	bottom: 0px;
+	display: block;
+	height: 42px;
+	position: absolute;
+	width: 100%;
+}
+
+.wrapper_video_controls .ui_group .ui_action {
+	border-radius: 3px;
+	bottom: 7px;
+	height: 28px;
+	position: absolute;
+	width: 40px;
+}
+
+.wrapper_video_controls .ui_group .ui_action .ui_text {
+	border-radius: 4px;
+	display:block;
+	height: 28px;
+	width: 40px;
+}
+
+.wrapper_video_controls .ui_group .btn_disabled:hover {
+	background: inherit; 
+	border-bottom: 0px solid #616164;
+	padding-bottom: 1px;
+}
+
+.wrapper_video_controls .ui_group .btn_localvideo, 
+.wrapper_video_controls .ui_group .btn_transfer, 
+.wrapper_video_controls .ui_group .btn_hold, 
+.wrapper_video_controls .ui_group .btn_mute, 
+.wrapper_video_controls .ui_group .btn_unmute, 
+.wrapper_video_controls .ui_group .btn_pausevideo, 
+.wrapper_video_controls .ui_group .btn_changemedia_audio, 
+.wrapper_video_controls .ui_group .btn_endcall, 
+.wrapper_video_controls .ui_group .btn_startchat {
+	display: block;
+}
+
+.wrapper_video_controls .ui_group .btn_mute, 
+.wrapper_video_controls .ui_group .btn_endcall, 
+.wrapper_video_controls .ui_group .btn_startchat {
+	display: block;
+}
+
+/*	buttons positioning	*/
+
+.wrapper_video_controls .ui_group .btn_transfer {
+	right: 223px;
+}
+
+.wrapper_video_controls .ui_group .btn_hold {
+	right: 181px;
+}
+
+.wrapper_video_controls .ui_group .btn_mute {
+	right: 139px;
+}
+
+.wrapper_video_controls .ui_group .btn_pausevideo {
+	right: 97px;
+}
+
+.wrapper_video_controls .ui_group .btn_endcall {
+	right: 55px;
+}
+
+.wrapper_video_controls .ui_group .btn_startchat {
+	right: 13px;
+}
+
+/*	enabled buttons background	*/
+
+.wrapper_video_controls .ui_group .btn_transfer {
+	background: url(../images/icons.png) no-repeat -1px -170px;
+	border-bottom: 1px solid rgba(0,0,0, .0);
+}
+
+.wrapper_video_controls .ui_group .btn_hold {
+	background: url(../images/icons.png) no-repeat -42px -170px;
+	border-bottom: 1px solid rgba(0,0,0, .0);
+}
+
+.wrapper_video_controls .ui_group .btn_mute {
+	background: url(../images/icons.png) no-repeat -83px -170px;
+	border-bottom: 1px solid rgba(0,0,0, .0);
+}
+
+.wrapper_video_controls .ui_group .btn_pausevideo {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+	border-bottom: 1px solid rgba(0,0,0, .0);
+}
+
+.wrapper_video_controls .ui_group .btn_endcall {
+	background: url(../images/icons.png) no-repeat -165px -170px;
+	border-bottom: 1px solid rgba(0,0,0, .0);
+}
+
+.wrapper_video_controls .ui_group .btn_startchat {
+	background: url(../images/icons.png) no-repeat -206px -170px;
+	border-bottom: 1px solid rgba(0,0,0, .0);
+}
+
+/*	selected buttons background	*/
+
+.wrapper_video_controls .ui_group .btn_transfer.selected,
+.wrapper_video_controls .ui_group .btn_transfer.selected:hover {
+	background: url(../images/icons.png) no-repeat -1px -199px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #616164;
+}
+
+.wrapper_video_controls .ui_group .btn_hold.selected,
+.wrapper_video_controls .ui_group .btn_hold.selected:hover {
+	background: url(../images/icons.png) no-repeat -42px -199px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #616164;
+}
+
+.wrapper_video_controls .ui_group .btn_mute.selected,
+.wrapper_video_controls .ui_group .btn_mute.selected:hover {
+	background: url(../images/icons.png) no-repeat -83px -199px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #616164;
+}
+
+.wrapper_video_controls .ui_group .btn_pausevideo.selected,
+.wrapper_video_controls .ui_group .btn_pausevideo.selected:hover {
+	background: url(../images/icons.png) no-repeat -124px -199px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #616164;
+}
+
+.wrapper_video_controls .ui_group .btn_endcall.selected,
+.wrapper_video_controls .ui_group .btn_endcall.selected:hover {
+	background: url(../images/icons.png) no-repeat -165px -199px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #616164;
+}
+
+.wrapper_video_controls .ui_group .btn_startchat.selected,
+.wrapper_video_controls .ui_group .btn_startchat.selected:hover {
+	background: url(../images/icons.png) no-repeat -206px -199px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #616164;
+}
+
+/*	disabled buttons background	*/
+
+.wrapper_video_controls .ui_group .btn_transfer.disabled,
+.wrapper_video_controls .ui_group .btn_transfer.disabled:hover {
+	background: url(../images/icons.png) no-repeat -1px -228px;
+}
+
+.wrapper_video_controls .ui_group .btn_hold.disabled,
+.wrapper_video_controls .ui_group .btn_hold.disabled:hover {
+	background: url(../images/icons.png) no-repeat -42px -228px;
+}
+
+.wrapper_video_controls .ui_group .btn_mute.disabled,
+.wrapper_video_controls .ui_group .btn_mute.disabled:hover {
+	background: url(../images/icons.png) no-repeat -83px -228px;
+}
+
+.wrapper_video_controls .ui_group .btn_pausevideo.disabled,
+.wrapper_video_controls .ui_group .btn_pausevideo.disabled:hover {
+	background: url(../images/icons.png) no-repeat -124px -228px;
+}
+
+.wrapper_video_controls .ui_group .btn_endcall.disabled,
+.wrapper_video_controls .ui_group .btn_endcall.disabled:hover {
+	background: url(../images/icons.png) no-repeat -165px -228px;
+}
+
+.wrapper_video_controls .ui_group .btn_startchat.disabled,
+.wrapper_video_controls .ui_group .btn_startchat.disabled:hover {
+	background: url(../images/icons.png) no-repeat -206px -228px;
+}
+
+/*	enabled hover buttons background	*/
+
+.wrapper_video_controls .ui_group .btn_transfer:hover {
+	background: url(../images/icons.png) no-repeat -1px -170px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #5f5e61;
+}
+
+.wrapper_video_controls .ui_group .btn_hold:hover {
+	background: url(../images/icons.png) no-repeat -42px -170px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #5f5e61;
+}
+
+.wrapper_video_controls .ui_group .btn_mute:hover {
+	background: url(../images/icons.png) no-repeat -83px -170px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #5f5e61;
+}
+
+.wrapper_video_controls .ui_group .btn_pausevideo:hover {
+	background: url(../images/icons.png) no-repeat -124px -170px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #5f5e61;
+}
+
+.wrapper_video_controls .ui_group .btn_endcall:hover {
+	background: url(../images/icons.png) no-repeat -165px -170px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #5f5e61;
+}
+
+.wrapper_video_controls .ui_group .btn_startchat:hover {
+	background: url(../images/icons.png) no-repeat -206px -170px rgba(255, 255, 255, .1);
+	border-bottom: 1px solid #5f5e61;
+}

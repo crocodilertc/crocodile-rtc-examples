@@ -1,0 +1,21 @@
+{
+  "curly": true,
+  "eqeqeq": true,
+  "immed": true,
+  "latedef": true,
+  "newcap": true,
+  "noarg": true,
+  "sub": true,
+  "undef": false,
+  "unused": false,
+  "boss": true,
+  "eqnull": true,
+  "browser": true,
+  "jquery": true,
+  "globals": {
+    "callDurationAudio": true,
+    "setDuration": true,
+    "crocObjectConnected": true,
+    "formatDuration": true
+  }
+}

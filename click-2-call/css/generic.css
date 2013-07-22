@@ -1,0 +1,158 @@
+/* Generic styles */
+.ui_text {
+	cursor: pointer;
+}
+
+/* Input Controls */
+.ui-resizable-e {
+	position:absolute;
+	right:0;
+	top:0;
+	bottom:5px;
+	width:5px;
+	cursor:e-resize;
+}
+
+.ui-resizable-s {
+	position:absolute;
+	right:5px;
+	left:0;
+	bottom:-5px;
+	height:5px;
+	cursor:s-resize;
+}
+
+.ui-resizable-se {
+	position:absolute;
+	right:0;
+	bottom:-5px;
+	height:10px;
+	width:10px;
+	cursor:se-resize;
+}
+
+.ui_selected {
+	background:rgb(33,100,59) !important;
+	box-shadow:inset 0 1em 0 rgba(200,200,200,0.5),
+		0 0 5px #000 !important;
+	color:white !important;
+	text-shadow:0 0 5px #000 !important;
+}
+
+.ui_fullscreen {
+	position:fixed !important;
+	top:0 !important;
+	bottom:0 !important;
+	left:0 !important;
+	right:0 !important;
+	width:auto !important;
+	height:auto !important;
+}
+
+.ui_communicator_logo {
+	position:absolute;
+	right:1em;
+	top:1em;
+	height:60px;
+	width:100px;
+	background-image:url('../images/logo.png');
+	background-size:100%;
+	background-repeat:no-repeat;
+}
+
+.ui_communicator_logo_dark {
+	background-image:url('../images/logo_dark.png');
+}
+
+.page_wrapper {
+	background-image:url('../images/background-1.jpg');
+	background-color:#FFF;
+}
+
+.ui_hidden {
+	opacity:0 !important;
+	display:none !important;
+}
+
+.display_animated {
+	-webkit-transition:opacity 0.25s;
+	transition:opacity 0.25s;
+}
+
+.disabled,
+.has_no_webrtc .requires_webrtc,
+.has_no_audio .requires_webrtc_audio,
+.has_no_video .requires_webrtc_video,
+.has_no_websockets .requires_websockets {
+	opacity:0.25;
+}
+
+.scheme_icons {
+	background-image:url('../images/icons.png');
+}
+
+.btn_small,
+.btn_audio_small,
+.btn_video_small,
+.btn_chat_small {
+	height: 26px;
+	width: 40px;
+}
+
+.btn_audio_small {
+	background: url(../images/icons.png) no-repeat -160px -257px #409f89;
+}
+
+.btn_video_small {
+	background: url(../images/icons.png) no-repeat -123px -172px #409f89
+}
+
+.btn_chat_small {
+	background: url(../images/icons.png) no-repeat -206px -171px #409f89;
+}
+
+.ui_title_toolbar {
+	position: absolute;
+	top: 7px;
+	right: 13px;
+}
+
+.ui_title_toolbar .ui_input_button {
+	background: #FFF;
+	border: 1px solid #e4e4e4;
+	border-radius: 4px;
+	display: block;
+	float: left;
+	height: 26px;
+	margin-left: 2px;
+	width: 26px;
+
+}
+
+.ui_title_toolbar .ui_input_button:hover {
+	border: 1px solid #c2d3cf;
+}
+
+.ui_title_toolbar .selected,
+.ui_title_toolbar .selected:hover {
+	border: 1px solid #409f89;
+}
+
+.ui_title_toolbar .ui_text {
+	background: url(../images/icons.png) no-repeat;
+	display: block;
+	float: left;
+	width: 26px;
+	height: 26px;
+	text-indent: -9999px;
+}
+
+.ui_title_toolbar .btn_settings .ui_text {
+	background-position: -1px -341px;
+}
+.ui_title_toolbar .btn_logout .ui_text {
+	background-position: -28px -341px;
+}
+.ui_title_toolbar .btn_close .ui_text {
+	background-position: -109px -341px;
+}
