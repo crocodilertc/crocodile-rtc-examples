@@ -85,15 +85,14 @@ body {
 	transition: right 2s;
 	outline: none;
 }
-/* .tab-wrapper-video:focus {
-    right: 532px;
-} */
 .tab-logo {
 	width: 23px;
 	height: 16px;
 	position: relative;
 	top: 3px;
 	z-index: 1030;
+	cursor: pointer;
+	pointer-events: none;
 }
 .side-tab {
 	padding: 10px 5px 0;
@@ -105,6 +104,7 @@ body {
 	background-color: #000000;
 	color: #FFFFFF;
 	font-size: 20px;
+	cursor: pointer;
 }
 .side-tab  p {
 	margin: 0;
@@ -172,9 +172,6 @@ body {
 	-moz-transition: left 2s;
 	transition: left 2s;
 }
-/* .tab-wrapper.audio-left-tab:focus {
-	left: 400px;
-} */
 .side-tab-content.audio-content-left {
 	left: -407px;
 }
@@ -209,10 +206,6 @@ body {
 	left: 100px;
 	top: 33px;
 }
-/* .audio-tab-bottom:focus {
-	outline: none;
-	bottom: 0px;
-} */
 .side-tab-content.audio-bottom-content {
 	top: 0px;
 	left: 0px;
@@ -241,14 +234,6 @@ body {
 	left: 100px;
 	top: 33px;
 }
-/* .video-tab-bottom:focus {
-    bottom:  0px;
-    outline: none;
-} */
-/* .video-tab-bottom-light-on:focus {
-    bottom:  0px;
-    outline: none;
-} */
 .side-tab-content-video.video-bottom-content {
 	top: 0px;
 	left: 0px;
@@ -269,14 +254,6 @@ body {
 	-moz-transition: top 2s;
 	transition: top 2s;
 }
-/* .video-top-tab:focus {
-	top: 372px;
-	outline: none;
-}
-.video-top-tab-light-on:focus {
-	top: 366px;
-	outline: none;
-} */
 .side-tab.video-top-side-tab {
 	left:  0px;
 	top: -20px;
@@ -309,14 +286,6 @@ body {
 	left: 100px;
 	top: 12px;
 }
-/* .audio-tab-top:focus {
-	top:  200px;
-	outline: none;
-}
-.audio-tab-top-light-on:focus {
-	top:  194px;
-	outline: none;
-} */
 .side-tab-content.audio-top-content {
 	top: -260px;
 	left: 0px;
