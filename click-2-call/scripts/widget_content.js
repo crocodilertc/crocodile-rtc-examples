@@ -6,7 +6,7 @@
 	audioWidgetHtml += '<div class="warning-light">';
 	audioWidgetHtml += '<div class="warning-light-circle"></div>';
 	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<img class="tab-logo" src="images/croc-logo.png"></img>';
+	audioWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
 	audioWidgetHtml += '<div class="side-tab rotate-vertical">';
 	audioWidgetHtml += '<p>Call Now</p>';
 	audioWidgetHtml += '</div>';
@@ -69,7 +69,7 @@
 	videoWidgetHtml += '<div class="warning-light">';
 	videoWidgetHtml += '<div class="warning-light-circle"></div>';
 	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<img class="tab-logo" src="images/croc-logo.png"></img>';
+	videoWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
 	videoWidgetHtml += '<div class="side-tab rotate-vertical">';
 	videoWidgetHtml += '<p>Call Now</p>';
 	videoWidgetHtml += '</div>';
