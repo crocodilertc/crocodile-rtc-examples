@@ -49,7 +49,7 @@ This will create a click-2-call tab on the right hand side of your web page. You
 * The _apiKey_ property requires an API key registered to the Crocodile network. To register go to [https://www.crocodilertc.net/](https://www.crocodilertc.net/)
 * The _addresssToCall_ property requires the address of a registered user for free calls. To make calls to non-registered numbers you will need to add balance to your API key.
 
-[examples]: https://www.crocodilertc.net/examples
+[examples]: https://demos.crocodilertc.net/download/
 [node]: http://nodejs.org/
 
 ## Documentation

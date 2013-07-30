@@ -1,4 +1,7 @@
 /* Default right tab styling */
+.tab-container {
+	font-family: proxima-nova-condensed,sans-serif;
+}
 .tab-wrapper {
 	width: 30px;
 	height: 195px; /* 200px = side tab + tab content */
