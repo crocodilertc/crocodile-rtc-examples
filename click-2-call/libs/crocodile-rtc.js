@@ -1,11 +1,11 @@
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-06-27
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-08-01
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
 * Incorporates the following third-party open source software:
 *
 * JsSIP (http://www.jssip.net/)
-*  Copyright (c) 2012-2013 JosÃ© Luis MillÃ¡n - Versatica
+*  Copyright (c) 2012-2013 José Luis Millán - Versatica
 *  License: MIT
 *
 * JSJaC (https://github.com/sstrigler/JSJaC)
@@ -270,6 +270,7 @@ JsSIP.C= {
     REQUEST_TIMEOUT:          'Request Timeout',
     SIP_FAILURE_CODE:         'SIP Failure Code',
     INVALID_TARGET:           'Invalid Target',
+    INVALID_REFER_TO_TARGET:  'Invalid Refer-To Target',
     INTERNAL_ERROR:           'Internal Error',
 
     // SIP error causes
@@ -292,7 +293,8 @@ JsSIP.C= {
     NO_ACK:                   'No ACK',
     USER_DENIED_MEDIA_ACCESS: 'User Denied Media Access',
     BAD_MEDIA_DESCRIPTION:    'Bad Media Description',
-    RTP_TIMEOUT:              'RTP Timeout'
+    RTP_TIMEOUT:              'RTP Timeout',
+    SESSION_TIMER:            'Session Timer Expired'
   },
 
   SIP_ERROR_CAUSES: {
@@ -318,6 +320,14 @@ JsSIP.C= {
   REGISTER:   'REGISTER',
   UPDATE:     'UPDATE',
   SUBSCRIBE:  'SUBSCRIBE',
+  REFER:      'REFER',
+
+  // SIP Extensions
+  SIP_EXTENSIONS: {
+    TIMER: 'timer',             // RFC 4028
+    TARGET_DIALOG: 'tdialog',   // RFC 4538
+    GRUU: 'gruu'
+  },
 
   /* SIP Response Reasons
    * DOC: http://www.iana.org/assignments/sip-parameters
@@ -440,6 +450,17 @@ Exceptions= {
       this.code = 3;
       this.name = 'INVALID_STATE_ERROR';
       this.status = status;
+    };
+    exception.prototype = new Error();
+    return exception;
+  }()),
+
+  RemoteSupportError: (function(){
+    var exception = function(option) {
+      this.code = 4;
+      this.name = 'REMOTE_SUPPORT_ERROR';
+      this.option = option;
+      this.message = 'Remote UA does not support method/extension: ' + option;
     };
     exception.prototype = new Error();
     return exception;
@@ -910,6 +931,37 @@ function parseHeader(message, data, headerStart, headerEnd) {
       message.setHeader('proxy-authenticate', headerValue);
       parsed = message.parseHeader('proxy-authenticate');
       break;
+    case 'session-expires':
+    case 'x':
+      message.setHeader('session-expires', headerValue);
+      parsed = message.parseHeader('session-expires');
+      break;
+    case 'min-se':
+      message.setHeader('min-se', headerValue);
+      parsed = message.parseHeader('min-se');
+      break;
+    case 'supported':
+    case 'k':
+      message.setHeader('supported', headerValue);
+      parsed = message.parseHeader('supported');
+      break;
+    case 'require':
+      message.setHeader('require', headerValue);
+      parsed = message.parseHeader('require');
+      break;
+    case 'allow':
+      message.setHeader('allow', headerValue);
+      parsed = message.parseHeader('allow');
+      break;
+    case 'refer-to':
+    case 'r':
+      message.setHeader('refer-to', headerValue);
+      parsed = message.parseHeader('refer-to');
+      break;
+    case 'target-dialog':
+      message.setHeader('target-dialog', headerValue);
+      parsed = message.parseHeader('target-dialog');
+      break;
     default:
       // Do not parse this header.
       message.setHeader(headerName, headerValue);
@@ -1032,7 +1084,8 @@ OutgoingRequest = function(method, ruri, ua, params, extraHeaders, body) {
     to,
     from,
     call_id,
-    cseq;
+    cseq,
+    supported;
 
   params = params || {};
 
@@ -1092,6 +1145,17 @@ OutgoingRequest = function(method, ruri, ua, params, extraHeaders, body) {
   cseq = params.cseq || Math.floor(Math.random() * 10000);
   this.cseq = cseq;
   this.setHeader('cseq', cseq + ' ' + method);
+
+  // Allow
+  if (method !== JsSIP.C.CANCEL && method !== JsSIP.C.ACK) {
+    this.setHeader('allow', JsSIP.Utils.getAllowedMethods(ua));
+  }
+
+  // Supported
+  if (method !== JsSIP.C.ACK) {
+    supported = JsSIP.Utils.getSupportedExtensions(ua, params.extra_supported);
+    this.setHeader('supported', supported.join(','));
+  }
 };
 
 OutgoingRequest.prototype = {
@@ -1119,7 +1183,6 @@ OutgoingRequest.prototype = {
       msg += this.extraHeaders[idx] +'\r\n';
     }
 
-    msg += 'Supported: ' +  JsSIP.UA.C.SUPPORTED +'\r\n';
     msg += 'User-Agent: ' + JsSIP.C.USER_AGENT +'\r\n';
 
     if(this.body) {
@@ -1376,6 +1439,8 @@ IncomingRequest.prototype.reply = function(code, reason, extraHeaders, body, onS
     response += extraHeaders[idx] +'\r\n';
   }
 
+  response += 'User-Agent: ' + JsSIP.C.USER_AGENT +'\r\n';
+
   if(body) {
     length = JsSIP.Utils.str_utf8_length(body);
     response += 'Content-Type: application/sdp\r\n';
@@ -1425,6 +1490,7 @@ IncomingRequest.prototype.reply_sl = function(code, reason) {
   response += 'From: ' + this.getHeader('From') + '\r\n';
   response += 'Call-ID: ' + this.call_id + '\r\n';
   response += 'CSeq: ' + this.cseq + ' ' + this.method + '\r\n';
+  response += 'User-Agent: ' + JsSIP.C.USER_AGENT +'\r\n';
   response += 'Content-Length: ' + 0 + '\r\n\r\n';
 
   this.transport.send(response);
@@ -2456,16 +2522,34 @@ JsSIP.Transactions = Transactions;
  * @param {Enum} state JsSIP.Dialog.C.STATUS_EARLY / JsSIP.Dialog.C.STATUS_CONFIRMED
  */
 (function(JsSIP) {
-var Dialog,
+var DialogId, Dialog,
   LOG_PREFIX = JsSIP.name +' | '+ 'DIALOG' +' | ',
   C = {
     // Dialog states
     STATUS_EARLY:       1,
-    STATUS_CONFIRMED:   2
+    STATUS_CONFIRMED:   2,
+
+    DEFAULT_MIN_SE: 90
   };
 
+DialogId = function (call_id, local_tag, remote_tag) {
+  this.call_id = call_id;
+  this.local_tag = local_tag;
+  this.remote_tag = remote_tag;
+};
+DialogId.prototype.toString = function () {
+  return this.call_id + this.local_tag + this.remote_tag;
+};
+DialogId.prototype.toTargetDialogHeader = function () {
+  // See RFC 4538
+  // Note: the remote/local labels are from the perspective of the recipient
+  return this.call_id +
+      ';remote-tag=' + this.local_tag +
+      ';local-tag=' + this.remote_tag;
+};
+
 // RFC 3261 12.1
-Dialog = function(session, message, type, state) {
+Dialog = function(owner, message, type, state) {
   var contact;
 
   if(!message.hasHeader('contact')) {
@@ -2478,20 +2562,16 @@ Dialog = function(session, message, type, state) {
   } else {
     // Create confirmed dialog if state is not defined
     state = state || C.STATUS_CONFIRMED;
+    if (message.method === JsSIP.C.INVITE) {
+      this.last_invite_tx = message.server_transaction;
+    }
   }
 
   contact = message.parseHeader('contact');
 
   // RFC 3261 12.1.1
   if(type === 'UAS') {
-    this.id = {
-      call_id: message.call_id,
-      local_tag: message.to_tag,
-      remote_tag: message.from_tag,
-      toString: function() {
-        return this.call_id + this.local_tag + this.remote_tag;
-      }
-    };
+    this.id = new DialogId(message.call_id, message.to_tag, message.from_tag);
     this.state = state;
     this.remote_seqnum = message.cseq;
     this.local_uri = message.parseHeader('to').uri;
@@ -2501,14 +2581,7 @@ Dialog = function(session, message, type, state) {
   }
   // RFC 3261 12.1.2
   else if(type === 'UAC') {
-    this.id = {
-      call_id: message.call_id,
-      local_tag: message.from_tag,
-      remote_tag: message.to_tag,
-      toString: function() {
-        return this.call_id + this.local_tag + this.remote_tag;
-      }
-    };
+    this.id = new DialogId(message.call_id, message.from_tag, message.to_tag);
     this.state = state;
     this.local_seqnum = message.cseq;
     this.local_uri = message.parseHeader('from').uri;
@@ -2517,8 +2590,16 @@ Dialog = function(session, message, type, state) {
     this.route_set = message.getHeaderAll('record-route').reverse();
   }
 
-  this.session = session;
-  session.ua.dialogs[this.id.toString()] = this;
+  // Session timer state (RFC 4028)
+  this.session_timer = {
+      localRefresher: true,
+      interval: null,
+      min_interval: C.DEFAULT_MIN_SE,
+      timer_id: null
+  };
+
+  this.owner = owner;
+  owner.ua.dialogs[this.id.toString()] = this;
   console.log(LOG_PREFIX +'new ' + type + ' dialog created with status ' + (this.state === C.STATUS_EARLY ? 'EARLY': 'CONFIRMED'));
 };
 
@@ -2538,9 +2619,14 @@ Dialog.prototype = {
     }
   },
 
+  isConfirmed: function() {
+    return this.state === C.STATUS_CONFIRMED;
+  },
+
   terminate: function() {
     console.log(LOG_PREFIX +'dialog ' + this.id.toString() + ' deleted');
-    delete this.session.ua.dialogs[this.id.toString()];
+    this.clearSessionRefreshTimer();
+    delete this.owner.ua.dialogs[this.id.toString()];
   },
 
   /**
@@ -2558,17 +2644,34 @@ Dialog.prototype = {
 
     cseq = (method === JsSIP.C.CANCEL || method === JsSIP.C.ACK) ? this.local_seqnum : this.local_seqnum += 1;
 
+    // Add Session Timer headers (RFC 4028)
+    if (method === JsSIP.C.INVITE || method === JsSIP.C.UPDATE) {
+      var min_se = this.session_timer.min_interval;
+      var interval = this.session_timer.interval;
+
+      if (min_se > C.DEFAULT_MIN_SE) {
+        extraHeaders.push('Min-SE: ' + min_se);
+      }
+
+      if (interval !== null) {
+        var expires = min_se > interval ? min_se : interval;
+        var refresher = this.session_timer.localRefresher ? 'uac' : 'uas';
+        extraHeaders.push('Session-Expires: ' + expires + ';refresher=' + refresher);
+      }
+    }
+
     request = new JsSIP.OutgoingRequest(
       method,
       this.remote_target,
-      this.session.ua, {
+      this.owner.ua, {
         'cseq': cseq,
         'call_id': this.id.call_id,
         'from_uri': this.local_uri,
         'from_tag': this.id.local_tag,
         'to_uri': this.remote_uri,
         'to_tag': this.id.remote_tag,
-        'route_set': this.route_set
+        'route_set': this.route_set,
+        'extra_supported': JsSIP.Utils.getSessionExtensions(this.owner, method)
       }, extraHeaders);
 
     request.dialog = this;
@@ -2587,7 +2690,7 @@ Dialog.prototype = {
 
     if(!this.remote_seqnum) {
       this.remote_seqnum = request.cseq;
-    } else if(request.method !== JsSIP.C.INVITE && request.cseq < this.remote_seqnum) {
+    } else if(request.cseq < this.remote_seqnum) {
         //Do not try to reply to an ACK request.
         if (request.method !== JsSIP.C.ACK) {
           request.reply(500);
@@ -2598,22 +2701,16 @@ Dialog.prototype = {
     }
 
     switch(request.method) {
-      // RFC3261 14.2 Modifying an Existing Session -UAS BEHAVIOR-
       case JsSIP.C.INVITE:
-        if(request.cseq < this.remote_seqnum) {
-          if(this.state === C.STATUS_EARLY) {
-            retryAfter = (Math.random() * 10 | 0) + 1;
-            request.reply(500, null, ['Retry-After:'+ retryAfter]);
-          } else {
-            request.reply(500);
-          }
+        // RFC3261 14.2 Modifying an Existing Session -UAS BEHAVIOR-
+        if(this.last_invite_tx &&
+            this.last_invite_tx.state === JsSIP.Transactions.C.STATUS_PROCEEDING) {
+          retryAfter = (Math.random() * 10 | 0) + 1;
+          request.reply(500, null, ['Retry-After:'+ retryAfter]);
           return false;
         }
-        // RFC3261 14.2
-        if(this.state === C.STATUS_EARLY) {
-          request.reply(491);
-          return false;
-        }
+        // Cache the transaction to check next time
+        this.last_invite_tx = request.server_transaction;
         break;
       case JsSIP.C.UPDATE:
         // RFC3311 5.2
@@ -2646,7 +2743,7 @@ Dialog.prototype = {
       return;
     }
 
-    if(!this.session.receiveRequest(request)) {
+    if(!this.owner.receiveRequest(request)) {
       return;
     }
 
@@ -2660,10 +2757,118 @@ Dialog.prototype = {
         }
         break;
     }
+  },
+
+  updateMinSessionExpires: function (interval) {
+    if (interval > this.session_timer.min_interval) {
+      this.session_timer.min_interval = interval;
+    }
+  },
+
+  /**
+   * Configures the appropriate session timer timeout and behaviour, based
+   * on the provided session expires interval and whether the local endpoint
+   * is responsible for refreshes.
+   * @param {Number} interval The session expires interval (in seconds).
+   * @param {Boolean} localRefresher
+   */
+  setSessionRefreshTimer: function () {
+    var localRefresher = this.session_timer.localRefresher;
+    var interval = this.session_timer.interval;
+    var timeout;
+    var action;
+    var self = this;
+
+    if (localRefresher) {
+      timeout = interval / 2;
+      action = function () {
+        self.session_timer.timer_id = null;
+        self.owner.emit('refresh', self.owner, {});
+      };
+    } else {
+      timeout = interval - Math.max(interval / 3, 32);
+      action = function () {
+        self.session_timer.timer_id = null;
+        self.owner.sendBye({
+          status_code: 408,
+          reason_phrase: JsSIP.C.causes.SESSION_TIMER
+        });
+        self.owner.ended('system', null, JsSIP.C.causes.SESSION_TIMER);
+      };
+    }
+
+    this.session_timer.timer_id = window.setTimeout(action, timeout * 1000);
+  },
+
+  clearSessionRefreshTimer: function () {
+    if (this.session_timer.timer_id !== null) {
+      window.clearTimeout(this.session_timer.timer_id);
+      this.session_timer.timer_id = null;
+    }
+  },
+
+  disableSessionRefresh: function () {
+    this.session_timer.interval = null;
+    this.clearSessionRefreshTimer();
+  },
+
+  /**
+   * Should only be called when we receive, or are about to send, a 2xx response
+   * to a method that acts as a session refresher (currently INVITE and UPDATE).
+   * @param message The received message (may be request or response)
+   */
+  processSessionTimerHeaders: function (message) {
+    if (message.hasHeader('min-se')) {
+      this.updateMinSessionExpires(message.parseHeader('min-se'));
+    }
+
+    if (!message.hasHeader('session-expires')) {
+      this.disableSessionRefresh();
+      return;
+    }
+
+    this.clearSessionRefreshTimer();
+
+    var se = message.parseHeader('session-expires');
+    var localRefresher = true;
+
+    if (message instanceof JsSIP.IncomingRequest) {
+      // Session timer requested
+      // Refresher parameter is optional at this stage
+      if (se.params && se.params.refresher) {
+        localRefresher = se.params.refresher === 'uas';
+      }
+    } else if (message instanceof JsSIP.IncomingResponse) {
+      // Session timer enabled
+      // Refresher parameter is required at this stage
+      localRefresher = se.params.refresher === 'uac';
+    } else {
+      throw new TypeError('Unexpected message type');
+    }
+
+    this.session_timer.interval = se.interval;
+    this.session_timer.localRefresher = localRefresher;
+
+    this.setSessionRefreshTimer();
+  },
+
+  /**
+   * Adds the Session-Expires header to the provided extra headers array.
+   * Should only be used for a 2xx response to a method that acts as a session
+   * refresher (currently INVITE and UPDATE).
+   * @param extraHeaders
+   */
+  addSessionTimerResponseHeaders: function (extraHeaders) {
+    var interval = this.session_timer.interval;
+    if (interval) {
+      var refresher = this.session_timer.localRefresher ? 'uas' : 'uac';
+      extraHeaders.push('Session-Expires: ' + interval + ';refresher=' + refresher);
+    }
   }
 };
 
 Dialog.C = C;
+JsSIP.DialogId = DialogId;
 JsSIP.Dialog = Dialog;
 }(JsSIP));
 
@@ -2848,6 +3053,13 @@ InDialogRequestSender.prototype = {
   receiveResponse: function(response) {
     // RFC3261 14.1. Terminate the dialog if a 408 or 481 is received from a re-Invite.
     if (response.status_code === 408 || response.status_code === 481) {
+      if (this.request.method !== JsSIP.C.BYE) {
+        // Send a BYE as per section 12.2.1.2.
+        this.applicant.session.sendBye({
+          status_code: response.status_code,
+          reason_phrase: response.reason_phrase
+        });
+      }
       this.applicant.session.ended('remote', response, JsSIP.C.causes.DIALOG_ERROR);
     }
     this.applicant.receiveResponse(response);
@@ -2917,7 +3129,6 @@ Registrator.prototype = {
     options = options || {};
     extraHeaders = options.extraHeaders || [];
     extraHeaders.push('Contact: '+ this.contact + ';expires=' + this.expires);
-    extraHeaders.push('Allow: '+ JsSIP.Utils.getAllowedMethods(this.ua));
 
     this.request = new JsSIP.OutgoingRequest(JsSIP.C.REGISTER, this.registrar, this.ua, {
         'to_uri': this.to_uri,
@@ -3534,20 +3745,7 @@ DTMF.prototype.send = function(tone, options) {
     this.tone = tone;
   }
 
-  // Check duration
-  if (options.duration && !JsSIP.Utils.isDecimal(options.duration)) {
-    throw new TypeError('Invalid tone duration: '+ options.duration);
-  } else if (!options.duration) {
-    options.duration = C.DEFAULT_DURATION;
-  } else if (options.duration < C.MIN_DURATION) {
-    console.warn(LOG_PREFIX +'"duration" value is lower than the minimum allowed, setting it to '+ C.MIN_DURATION+ ' milliseconds');
-    options.duration = C.MIN_DURATION;
-  } else if (options.duration > C.MAX_DURATION) {
-    console.warn(LOG_PREFIX +'"duration" value is greater than the maximum allowed, setting it to '+ C.MAX_DURATION +' milliseconds');
-    options.duration = C.MAX_DURATION;
-  } else {
-    options.duration = Math.abs(options.duration);
-  }
+  // Duration is checked/corrected in RTCSession
   this.duration = options.duration;
 
   // Set event handlers
@@ -3662,6 +3860,634 @@ DTMF.C = C;
 return DTMF;
 }(JsSIP));
 
+var Reinvite        = /**
+ * @fileoverview Reinvite
+ */
+
+/**
+ * @param {JsSIP} JsSIP - The JsSIP namespace
+ * @returns {function} The Reinvite constructor
+ */
+(function(JsSIP) {
+  
+  var Reinvite,
+    LOG_PREFIX = JsSIP.name +' | '+ 'REINVITE' +' | ';
+  
+  /**
+   * @class Reinvite
+   * @param {JsSIP.RTCSession} session
+   */
+  Reinvite = function(session) {
+    var events = [
+    'succeeded',
+    'failed',
+    'completed'
+    ];
+  
+    this.session = session;
+    this.direction = null;
+    this.status = JsSIP.RTCSession.C.STATUS_NULL;
+    this.timers = {};
+  
+    this.initEvents(events);
+  };
+  Reinvite.prototype = new JsSIP.EventEmitter();
+  
+  
+  Reinvite.prototype.send = function(sdp, options) {
+    var request_sender, event, eventHandlers, extraHeaders;
+  
+    if (sdp === undefined) {
+      throw new TypeError('Not enough arguments');
+    }
+  
+    this.direction = 'outgoing';
+  
+    // Check RTCSession Status
+    if (this.session.status !== JsSIP.RTCSession.C.STATUS_CONFIRMED) {
+      throw new JsSIP.Exceptions.InvalidStateError(this.session.status);
+    }
+  
+    // Get options
+    options = options || {};
+    extraHeaders = options.extraHeaders ? options.extraHeaders.slice() : [];
+    eventHandlers = options.eventHandlers || {};
+  
+    // Set event handlers
+    for (event in eventHandlers) {
+      this.on(event, eventHandlers[event]);
+    }
+  
+    extraHeaders.push('Contact: '+ this.session.contact);
+    if (sdp) {
+      extraHeaders.push('Content-Type: application/sdp');
+    }
+  
+    this.request = this.session.dialog.createRequest(JsSIP.C.INVITE, extraHeaders);
+  
+    this.request.body = sdp;
+  
+    request_sender = new RequestSender(this);
+  
+    this.session.emit('reinvite', this.session, {
+      originator: 'local',
+      reinvite: this,
+      request: this.request
+    });
+  
+    request_sender.send();
+    this.status = JsSIP.RTCSession.C.STATUS_INVITE_SENT;
+  };
+  
+  /**
+   * @private
+   */
+  Reinvite.prototype.receiveResponse = function(response) {
+    var code = response.status_code;
+    var cause;
+
+    switch (this.status) {
+    case JsSIP.RTCSession.C.STATUS_CONFIRMED:
+    case JsSIP.RTCSession.C.STATUS_CANCELED:
+      // Looks like a retransmission
+      // Double-check that the session has not been terminated
+      if (this.session.status === JsSIP.RTCSession.C.STATUS_CONFIRMED) {
+        console.info(LOG_PREFIX +'Retransmitting ACK');
+        this.session.sendACK();
+      }
+      return;
+    }
+
+    if (code >= 100 && code < 200) {
+      // Ignore provisional responses.
+      this.status = JsSIP.RTCSession.C.STATUS_1XX_RECEIVED;
+      return;
+    }
+
+    if (code >= 200 && code < 300) {
+      this.status = JsSIP.RTCSession.C.STATUS_CONFIRMED;
+      // Double-check that the session has not been terminated
+      if (this.session.status === JsSIP.RTCSession.C.STATUS_CONFIRMED) {
+        this.session.sendACK();
+        console.log(LOG_PREFIX +'re-INVITE ACK sent', Date.now());
+
+        this.session.dialog.processSessionTimerHeaders(response);
+
+        this.emit('succeeded', this, {
+          originator: 'remote',
+          response: response,
+          sdp: response.body
+        });
+      }
+    } else {
+      // Rejecting a reinvite only rejects the change to the session.
+      // The session itself is still valid.
+      this.status = JsSIP.RTCSession.C.STATUS_CANCELED;
+      // Ack sent by transaction layer 
+      cause = JsSIP.Utils.sipErrorCause(response.status_code);
+      this.emit('failed', this, {
+        originator: 'remote',
+        response: response,
+        cause: cause
+      });
+    }
+
+    this.emit('completed', this, {
+      originator: 'local'
+    });
+  };
+  
+  /**
+   * @private
+   */
+  Reinvite.prototype.receiveAck = function() {
+    this.status = JsSIP.RTCSession.C.STATUS_CONFIRMED;
+    console.log(LOG_PREFIX +'re-INVITE ACK received', Date.now());
+    if (this.timers.invite2xxTimer) {
+      window.clearTimeout(this.timers.invite2xxTimer);
+      delete this.timers.invite2xxTimer;
+    }
+    if (this.timers.ackTimer) {
+      window.clearTimeout(this.timers.ackTimer);
+      delete this.timers.ackTimer;
+    }
+    this.emit('completed', this, {
+      originator: 'remote'
+    });
+  };
+  
+  /**
+   * @private
+   */
+  Reinvite.prototype.onRequestTimeout = function() {
+    this.status = JsSIP.RTCSession.C.STATUS_TERMINATED;
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.REQUEST_TIMEOUT
+    });
+  };
+  
+  /**
+   * @private
+   */
+  Reinvite.prototype.onTransportError = function() {
+    switch (this.status) {
+    case JsSIP.RTCSession.C.STATUS_CONFIRMED:
+    case JsSIP.RTCSession.C.STATUS_CANCELED:
+    case JsSIP.RTCSession.C.STATUS_TERMINATED:
+      // Transport closed before the transaction terminated, but we were done anyway
+      return;
+    }
+
+    this.status = JsSIP.RTCSession.C.STATUS_TERMINATED;
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.CONNECTION_ERROR
+    });
+  };
+  
+  /**
+   * @private
+   */
+  Reinvite.prototype.init_incoming = function(request) {
+    var sdp = null,
+      contentType = request.getHeader('Content-Type');
+  
+    this.direction = 'incoming';
+    this.request = request;
+    this.status = JsSIP.RTCSession.C.STATUS_INVITE_RECEIVED;
+  
+    if (request.body && contentType === 'application/sdp') {
+      sdp = request.body;
+    }
+  
+    this.session.emit('reinvite', this.session, {
+      originator: 'remote',
+      reinvite: this,
+      request: request,
+      sdp: sdp
+    });
+  };
+  
+  /**
+   * @private
+   */
+  Reinvite.prototype.successResponseSent = function(request, extraHeaders, body) {
+    var self = this.session,
+      retransmissions = 1,
+      timeout = JsSIP.Timers.T1;
+
+    /**
+     * RFC3261 13.3.1.4
+     * Response retransmissions cannot be accomplished by transaction layer
+     *  since it is destroyed when receiving the first 2xx answer
+     */
+    this.timers.invite2xxTimer = window.setTimeout(function invite2xxRetransmission() {
+        if (self.status !== JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK) {
+          return;
+        }
+
+        console.log(LOG_PREFIX +'Retransmitting 2xx:', retransmissions++);
+        request.reply(200, null, extraHeaders, body);
+
+        if (timeout < JsSIP.Timers.T2) {
+          timeout = timeout * 2;
+          if (timeout > JsSIP.Timers.T2) {
+            timeout = JsSIP.Timers.T2;
+          }
+        }
+        self.timers.invite2xxTimer = window.setTimeout(invite2xxRetransmission,
+          timeout
+        );
+      },
+      timeout
+    );
+    console.log(LOG_PREFIX +'re-INVITE response sent', Date.now());
+
+    /**
+     * RFC3261 14.2
+     * If a UAS generates a 2xx response and never receives an ACK,
+     *  it SHOULD generate a BYE to terminate the dialog.
+     */
+    this.timers.ackTimer = window.setTimeout(function() {
+        if(self.status === JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK) {
+          console.log(LOG_PREFIX + 'no ACK received, terminating the call');
+          if (self.timers.invite2xxTimer) {
+            window.clearTimeout(self.timers.invite2xxTimer);
+            delete self.timers.invite2xxTimer;
+          }
+          self.session.sendBye();
+          self.session.ended('remote', null, JsSIP.C.causes.NO_ACK);
+        }
+      },
+      JsSIP.Timers.TIMER_H
+    );
+  };
+
+  /**
+   * Indicates that the incoming SDP is valid
+   * Only valid for incoming reINVITEs
+   */
+  Reinvite.prototype.sdpValid = function() {
+    var self = this,
+      request = this.request,
+      expires = null,
+      no_answer_timeout = self.session.ua.configuration.no_answer_timeout;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "sdpValid" for an outgoing reINVITE');
+    }
+
+    this.status = JsSIP.RTCSession.C.STATUS_WAITING_FOR_ANSWER;
+
+    //Get the Expires header value if exists
+    if(request.hasHeader('expires')) {
+      expires = request.getHeader('expires') * 1000;
+    }
+
+    // Schedule a provisional response for 1 second's time - this will be
+    // cancelled if the application calls the accept() or reject() method first.
+    this.timers.provisionalResponse = window.setTimeout(function () {
+      // Start sending provisional responses while we await a final answer
+      request.reply(180, null, ['Contact: ' + self.session.contact]);
+      delete self.timers.provisionalResponse;
+    }, 1000);
+
+    if (expires && expires < no_answer_timeout) {
+      // Set expiresTimer (see RFC3261 13.3.1)
+      this.timers.answer = window.setTimeout(function() {
+          request.reply(487);
+          self.emit('failed', self, {
+            originator: 'system',
+            cause: JsSIP.C.causes.EXPIRES
+          });
+        }, expires
+      );
+    } else {
+      // Set userNoAnswerTimer
+      this.timers.answer = window.setTimeout(function() {
+          request.reply(480);
+          self.emit('failed', self, {
+            originator: 'local',
+            cause: JsSIP.C.causes.NO_ANSWER
+          });
+        }, no_answer_timeout
+      );
+    }
+  };
+
+  /**
+   * Indicates that the incoming SDP is invalid
+   * Only valid for incoming reINVITEs
+   */
+  Reinvite.prototype.sdpInvalid = function() {
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "sdpInvalid" for an outgoing reINVITE');
+    }
+  
+    this.request.reply(488);
+    this.status = JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK;
+    this.emit('failed', this, {
+      originator: 'remote',
+      cause: JsSIP.C.causes.BAD_MEDIA_DESCRIPTION
+    });
+  };
+
+  /**
+   * Accept the incoming reINVITE
+   * Only valid for incoming reINVITEs
+   */
+  Reinvite.prototype.accept = function(options) {
+    options = options || {};
+  
+    var self = this,
+      request = this.request,
+      extraHeaders = options.extraHeaders || [],
+      sdp = options.sdp;
+  
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "accept" for an outgoing reINVITE');
+    }
+  
+    if (this.timers.provisionalResponse) {
+      window.clearTimeout(this.timers.provisionalResponse);
+      delete this.timers.provisionalResponse;
+    }
+    if (this.timers.answer) {
+      window.clearTimeout(this.timers.answer);
+      delete this.timers.answer;
+    }
+  
+    this.session.dialog.processSessionTimerHeaders(request);
+    this.session.dialog.addSessionTimerResponseHeaders(extraHeaders);
+
+    extraHeaders.push('Contact: ' + self.session.contact);
+    extraHeaders.push('Allow: '+ JsSIP.Utils.getAllowedMethods(self.session.ua));
+    extraHeaders.push('Content-Type: application/sdp');
+
+    var replyFailed = function () {
+      self.session.onTransportError();
+      self.onTransportError();
+    };
+
+    request.reply(200, null, extraHeaders,
+      sdp,
+      this.successResponseSent.bind(this, request, extraHeaders, sdp),
+      replyFailed
+    );
+    this.status = JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK;
+  };
+  
+  /**
+   * Reject the incoming reINVITE
+   * Only valid for incoming reINVITEs
+   *
+   * @param {Number} status_code
+   * @param {String} [reason_phrase]
+   */
+  Reinvite.prototype.reject = function(options) {
+    options = options || {};
+  
+    var
+      status_code = options.status_code || 480,
+      reason_phrase = options.reason_phrase,
+      extraHeaders = options.extraHeaders || [];
+  
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "reject" for an outgoing reINVITE');
+    }
+  
+    if (status_code < 300 || status_code >= 700) {
+      throw new TypeError('Invalid status_code: '+ status_code);
+    }
+
+    if (this.timers.provisionalResponse) {
+      window.clearTimeout(this.timers.provisionalResponse);
+      delete this.timers.provisionalResponse;
+    }
+    if (this.timers.answer) {
+      window.clearTimeout(this.timers.answer);
+      delete this.timers.answer;
+    }
+  
+    this.request.reply(status_code, reason_phrase, extraHeaders);
+    this.status = JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK;
+  };
+  
+  Reinvite.C = C;
+  return Reinvite;
+}(JsSIP));
+
+var Update          = /**
+ * @fileoverview Update
+ */
+
+/**
+ * @param {JsSIP} JsSIP - The JsSIP namespace
+ * @returns {function} The Update constructor
+ */
+(function(JsSIP) {
+  
+  var Update;
+  
+  /**
+   * @class Update
+   * @param {JsSIP.RTCSession} session
+   */
+  Update = function(session) {
+    var events = [
+    'succeeded',
+    'failed'
+    ];
+  
+    this.session = session;
+    this.direction = null;
+    this.accepted = null;
+  
+    this.initEvents(events);
+  };
+  Update.prototype = new JsSIP.EventEmitter();
+  
+  
+  Update.prototype.send = function(options) {
+    var request_sender, event, eventHandlers, extraHeaders, sdp;
+  
+    this.direction = 'outgoing';
+  
+    // Check RTCSession Status
+    if (this.session.status !== JsSIP.RTCSession.C.STATUS_CONFIRMED &&
+        this.session.status !== JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK) {
+      throw new JsSIP.Exceptions.InvalidStateError(this.session.status);
+    }
+  
+    // Get Update options
+    options = options || {};
+    extraHeaders = options.extraHeaders ? options.extraHeaders.slice() : [];
+    eventHandlers = options.eventHandlers || {};
+    sdp = options.sdp;
+  
+    // Set event handlers
+    for (event in eventHandlers) {
+      this.on(event, eventHandlers[event]);
+    }
+  
+    extraHeaders.push('Contact: '+ this.session.contact);
+    if (sdp) {
+      extraHeaders.push('Content-Type: application/sdp');
+    }
+  
+    this.request = this.session.dialog.createRequest(JsSIP.C.UPDATE, extraHeaders);
+  
+    this.request.body = sdp;
+  
+    request_sender = new RequestSender(this);
+  
+    this.session.emit('update', this.session, {
+      originator: 'local',
+      update: this,
+      request: this.request
+    });
+  
+    request_sender.send();
+  };
+  
+  /**
+   * @private
+   */
+  Update.prototype.receiveResponse = function(response) {
+    var cause;
+  
+    // Double-check that the session has not been terminated
+    if (this.session.status !== JsSIP.RTCSession.C.STATUS_CONFIRMED) {
+      return;
+    }
+
+    switch(true) {
+      case /^1[0-9]{2}$/.test(response.status_code):
+        // Ignore provisional responses.
+        break;
+  
+      case /^2[0-9]{2}$/.test(response.status_code):
+        this.session.dialog.processSessionTimerHeaders(response);
+        this.emit('succeeded', this, {
+          originator: 'remote',
+          response: response
+        });
+        break;
+  
+      default:
+        cause = JsSIP.Utils.sipErrorCause(response.status_code);
+        this.emit('failed', this, {
+          originator: 'remote',
+          response: response,
+          cause: cause
+        });
+        break;
+    }
+  };
+  
+  /**
+   * @private
+   */
+  Update.prototype.onRequestTimeout = function() {
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.REQUEST_TIMEOUT
+    });
+  };
+  
+  /**
+   * @private
+   */
+  Update.prototype.onTransportError = function() {
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.CONNECTION_ERROR
+    });
+  };
+  
+  /**
+   * @private
+   * @returns {Boolean} true if a 2xx response was sent, false otherwise
+   */
+  Update.prototype.init_incoming = function(request) {
+    this.direction = 'incoming';
+    this.request = request;
+  
+    this.session.emit('update', this.session, {
+      originator: 'remote',
+      update: this,
+      request: request
+    });
+
+    if (this.accepted === null) {
+      // No response sent yet
+      // Just accept empty UPDATEs (for session timer refreshes)
+      var contentType = request.getHeader('content-type');
+      if(contentType || request.body) {
+        this.reject({status_code: 488});
+      } else {
+        this.accept();
+      }
+    }
+
+    return this.accepted;
+  };
+  
+  /**
+   * Accept the incoming Update
+   * Only valid for incoming Updates
+   */
+  Update.prototype.accept = function(options) {
+    options = options || {};
+
+    var
+      extraHeaders = options.extraHeaders || [],
+      body = options.body;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "accept" for an outgoing update');
+    }
+
+    this.session.dialog.processSessionTimerHeaders(this.request);
+    this.session.dialog.addSessionTimerResponseHeaders(extraHeaders);
+
+    this.request.reply(200, null, extraHeaders, body);
+    this.accepted = true;
+  };
+
+  /**
+   * Reject the incoming Update
+   * Only valid for incoming Updates
+   *
+   * @param {Number} status_code
+   * @param {String} [reason_phrase]
+   */
+  Update.prototype.reject = function(options) {
+    options = options || {};
+
+    var
+      status_code = options.status_code || 480,
+      reason_phrase = options.reason_phrase,
+      extraHeaders = options.extraHeaders || [],
+      body = options.body;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "reject" for an outgoing update');
+    }
+
+    if (status_code < 300 || status_code >= 700) {
+      throw new TypeError('Invalid status_code: '+ status_code);
+    }
+
+    this.request.reply(status_code, reason_phrase, extraHeaders, body);
+    this.accepted = false;
+  };
+
+  return Update;
+}(JsSIP));
+
+
 
 var RTCSession,
   LOG_PREFIX = JsSIP.name +' | '+ 'RTC SESSION' +' | ',
@@ -3685,14 +4511,21 @@ RTCSession = function(ua) {
   'failed',
   'started',
   'ended',
-  'newDTMF'
+  'newDTMF',
+  'reinvite',
+  'refresh',
+  'update'
   ];
 
   this.ua = ua;
   this.status = C.STATUS_NULL;
+  this.lastReinvite = null;
   this.dialog = null;
   this.earlyDialogs = {};
   this.rtcMediaHandler = null;
+  this.tones = null;
+  this.allowed = null;
+  this.supported = null;
 
   // Session Timers
   this.timers = {
@@ -3702,7 +4535,7 @@ RTCSession = function(ua) {
     userNoAnswerTimer: null
   };
 
-  // Session info
+  // Session info (public properties)
   this.direction = null;
   this.local_identity = null;
   this.remote_identity = null;
@@ -3849,10 +4682,11 @@ RTCSession.prototype.answer = function(options) {
 
     // rtcMediaHandler.createAnswer succeeded
     answerCreationSucceeded = function(body) {
-      var
+      var supported,
         // run for reply success callback
         replySucceeded = function() {
-          var retransmissions = 1;
+          var retransmissions = 1,
+            timeout = JsSIP.Timers.T1;
           self.status = C.STATUS_WAITING_FOR_ACK;
 
           /**
@@ -3861,22 +4695,24 @@ RTCSession.prototype.answer = function(options) {
            *  since it is destroyed when receiving the first 2xx answer
            */
           self.timers.invite2xxTimer = window.setTimeout(function invite2xxRetransmission() {
-              var timeout = JsSIP.Timers.T1 * (Math.pow(2, retransmissions));
-
-              if((retransmissions * JsSIP.Timers.T1) <= JsSIP.Timers.T2) {
-                console.log(LOG_PREFIX +'Retransmitting 2xx:', retransmissions);
-                retransmissions += 1;
-
-                request.reply(200, null, ['Contact: '+ self.contact], body);
-
-                self.timers.invite2xxTimer = window.setTimeout(invite2xxRetransmission,
-                  timeout
-                );
-              } else {
-                window.clearTimeout(self.timers.invite2xxTimer);
+              if (self.status !== JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK) {
+                return;
               }
+
+              console.log(LOG_PREFIX +'Retransmitting 2xx:', retransmissions++);
+              request.reply(200, null, ['Contact: '+ self.contact], body);
+
+              if (timeout < JsSIP.Timers.T2) {
+                timeout = timeout * 2;
+                if (timeout > JsSIP.Timers.T2) {
+                  timeout = JsSIP.Timers.T2;
+                }
+              }
+              self.timers.invite2xxTimer = window.setTimeout(invite2xxRetransmission,
+                timeout
+              );
             },
-            JsSIP.Timers.T1
+            timeout
           );
 
           /**
@@ -3904,7 +4740,10 @@ RTCSession.prototype.answer = function(options) {
         };
 
       extraHeaders.push('Contact: ' + self.contact);
-      extraHeaders.push('Allow: '+ JsSIP.Utils.getAllowedMethods(self.ua, true));
+      extraHeaders.push('Allow: '+ JsSIP.Utils.getAllowedMethods(self.ua));
+      supported = JsSIP.Utils.getSupportedExtensions(self.ua,
+          JsSIP.Utils.getSessionExtensions(self, JsSIP.C.INVITE));
+      extraHeaders.push('Supported: ' + supported.join(','));
 
       request.reply(200, null, extraHeaders,
         body,
@@ -3938,6 +4777,9 @@ RTCSession.prototype.answer = function(options) {
 
   window.clearTimeout(this.timers.userNoAnswerTimer);
 
+  this.dialog.processSessionTimerHeaders(request);
+  this.dialog.addSessionTimerResponseHeaders(extraHeaders);
+
   if (sdp) {
     // Use the application-provided SDP
     answerCreationSucceeded(sdp);
@@ -3958,12 +4800,12 @@ RTCSession.prototype.answer = function(options) {
  * @param {Object} [options]
  */
 RTCSession.prototype.sendDTMF = function(tones, options) {
-  var timer, interToneGap,
-    possition = 0,
-    self = this,
-    ready = true;
+  var duration, interToneGap,
+    position = 0,
+    self = this;
 
   options = options || {};
+  duration = options.duration || null;
   interToneGap = options.interToneGap || null;
 
   if (tones === undefined) {
@@ -3976,11 +4818,27 @@ RTCSession.prototype.sendDTMF = function(tones, options) {
   }
 
   // Check tones
-  if (!tones || (typeof tones !== 'string' && typeof tones !== 'number') || !tones.toString().match(/^[0-9A-D#*]+$/i)) {
+  if (!tones || (typeof tones !== 'string' && typeof tones !== 'number') || !tones.toString().match(/^[0-9A-D#*,]+$/i)) {
     throw new TypeError('Invalid tones: '+ tones);
   }
 
   tones = tones.toString();
+
+  // Check duration
+  if (duration && !JsSIP.Utils.isDecimal(duration)) {
+    throw new TypeError('Invalid tone duration: '+ duration);
+  } else if (!duration) {
+    duration = DTMF.C.DEFAULT_DURATION;
+  } else if (duration < DTMF.C.MIN_DURATION) {
+    console.warn(LOG_PREFIX +'"duration" value is lower than the minimum allowed, setting it to '+ DTMF.C.MIN_DURATION+ ' milliseconds');
+    duration = DTMF.C.MIN_DURATION;
+  } else if (duration > DTMF.C.MAX_DURATION) {
+    console.warn(LOG_PREFIX +'"duration" value is greater than the maximum allowed, setting it to '+ DTMF.C.MAX_DURATION +' milliseconds');
+    duration = DTMF.C.MAX_DURATION;
+  } else {
+    duration = Math.abs(duration);
+  }
+  options.duration = duration;
 
   // Check interToneGap
   if (interToneGap && !JsSIP.Utils.isDecimal(interToneGap)) {
@@ -3994,32 +4852,168 @@ RTCSession.prototype.sendDTMF = function(tones, options) {
     interToneGap = Math.abs(interToneGap);
   }
 
-  function sendDTMF() {
-    var tone,
-      dtmf = new DTMF(self);
-
-    dtmf.on('failed', function(){ready = false;});
-
-    tone = tones[possition];
-    possition += 1;
-
-    dtmf.send(tone, options);
+  if (this.tones) {
+    // Tones are already queued, just add to the queue
+    this.tones += tones;
+    return;
   }
+
+  // New set of tones to start sending
+  this.tones = tones;
+
+  var sendDTMF = function () {
+    var tone, timeout,
+      tones = self.tones;
+
+    if (self.status === C.STATUS_TERMINATED || !tones || position >= tones.length) {
+      // Stop sending DTMF
+      self.tones = null;
+      return;
+    }
+
+    tone = tones[position];
+    position += 1;
+
+    if (tone === ',') {
+      timeout = 2000;
+    } else {
+      var dtmf = new DTMF(self);
+      dtmf.on('failed', function(){self.tones = null;});
+      dtmf.send(tone, options);
+      timeout = duration + interToneGap;
+    }
+
+    // Set timeout for the next tone
+    window.setTimeout(sendDTMF, timeout);
+  };
 
   // Send the first tone
   sendDTMF();
+};
 
-  // Send the following tones
-  timer = window.setInterval(
-    function() {
-      if (self.status !== C.STATUS_TERMINATED && ready && tones.length > possition) {
-          sendDTMF();
-      } else {
-        window.clearInterval(timer);
-      }
-    },
-    interToneGap
-  );
+
+/**
+ * Send a reINVITE
+ *
+ * @param {Object} [options]
+ */
+RTCSession.prototype.sendReinvite = function(options) {
+  var sdp;
+
+  options = options || {};
+  sdp = options.sdp;
+
+  // TODO: could get offer from PeerConnection if JsSIP is handling media 
+
+  // Check whether the last INVITE transaction has completed
+  // See RFC 3261 section 14.1
+  if (this.lastReinvite) {
+    switch (this.lastReinvite.status) {
+    case C.STATUS_CONFIRMED:
+    case C.STATUS_CANCELED:
+    case C.STATUS_TERMINATED:
+      break;
+    default:
+      throw new JsSIP.Exceptions.InvalidStateError(this.lastReinvite.status);
+    }
+  }
+
+  // TODO: check whether there is an outstanding offer/answer exchange (including UPDATE)
+
+  var reinvite = new Reinvite(this);
+  reinvite.send(sdp, options);
+
+  this.lastReinvite = reinvite;
+};
+
+
+/**
+ * Send an UPDATE
+ *
+ * @param {Object} [options]
+ */
+RTCSession.prototype.sendUpdate = function(options) {
+  var sdp;
+
+  options = options || {};
+  sdp = options.sdp;
+
+  if (sdp) {
+    // TODO: check whether there is an outstanding offer/answer exchange
+  }
+
+  var update = new Update(this);
+  update.send(options);
+};
+
+
+/**
+ * Send a REFER
+ *
+ * @param {URI} target
+ * @param {Object} [options]
+ * @param {Object} [options.eventHandlers]
+ * @param {String[]} [options.extraHeaders]
+ * @param {String} [options.contentType]
+ * @param {String} [options.body]
+ */
+RTCSession.prototype.sendRefer = function(refer_uri, options) {
+  var target = this.dialog.remote_target;
+
+  options = options || {};
+  options.targetDialog = this.dialog;
+
+  // First check: do they support REFER at all
+  if (!this.isMethodAllowed(JsSIP.C.REFER, false)) {
+    throw new JsSIP.Exceptions.RemoteSupportError(JsSIP.C.REFER);
+  }
+  // Next check: can we use out-of-dialog REFER
+  // We don't support in-dialog REFER, because it's nasty (see RFC 5589, 5057)
+  if (!this.isOptionSupported(JsSIP.C.SIP_EXTENSIONS.GRUU ||
+      !target.hasParam('gr'))) {
+    throw new JsSIP.Exceptions.RemoteSupportError(JsSIP.C.SIP_EXTENSIONS.GRUU);
+  }
+  if (!this.isOptionSupported(JsSIP.C.SIP_EXTENSIONS.TARGET_DIALOG)) {
+    throw new JsSIP.Exceptions.RemoteSupportError(JsSIP.C.SIP_EXTENSIONS.TARGET_DIALOG);
+  }
+
+  var refer = new JsSIP.Refer(this.ua);
+  refer.send(target, refer_uri, options);
+};
+
+
+/**
+ * Checks whether the provided method is present in an Allow header received
+ * from the remote party.  If an Allow header has not been received, the
+ * provided default is returned instead.
+ * @param {String} method The SIP method to check.
+ * @param {Boolean} defaultValue The value to return if no Allow header has
+ * been received.
+ * @returns {Boolean}
+ */
+RTCSession.prototype.isMethodAllowed = function(method, defaultValue) {
+  if (!this.allowed) {
+    return defaultValue;
+  }
+  if (this.allowed.indexOf(method) >= 0) {
+    return true;
+  }
+  return false;
+};
+
+
+/**
+ * Checks whether the provided option is present in a Supported header received
+ * from the remote party.  If a Supported header has not been received, the
+ * assumption is that no options are supported.
+ * @param {String} option The SIP option/extension to check.
+ * @returns {Boolean}
+ */
+RTCSession.prototype.isOptionSupported = function(option) {
+  if (this.supported && this.supported.indexOf(option) >= 0) {
+    return true;
+  }
+  return false;
 };
 
 
@@ -4067,6 +5061,15 @@ RTCSession.prototype.init_incoming = function(request) {
   //Save the session into the ua sessions collection.
   this.ua.sessions[this.id] = this;
 
+  // Store the allowed methods if provided
+  if(request.hasHeader('allow')) {
+    this.allowed = request.parseHeader('allow');
+  }
+  // Store the supported options if provided
+  if(request.hasHeader('supported')) {
+    this.supported = request.parseHeader('supported');
+  }
+
   //Get the Expires header value if exists
   if(request.hasHeader('expires')) {
     expires = request.getHeader('expires') * 1000;
@@ -4090,7 +5093,7 @@ RTCSession.prototype.init_incoming = function(request) {
 
     // Set userNoAnswerTimer
     self.timers.userNoAnswerTimer = window.setTimeout(function() {
-        request.reply(408);
+        request.reply(480);
         self.failed('local',null, JsSIP.C.causes.NO_ANSWER);
       }, self.ua.configuration.no_answer_timeout
     );
@@ -4157,7 +5160,7 @@ RTCSession.prototype.init_incoming = function(request) {
 RTCSession.prototype.connect = function(target, options) {
   options = options || {};
 
-  var event, requestParams,
+  var event, requestParams, request,
     invalidTarget = false,
     eventHandlers = options.eventHandlers || {},
     extraHeaders = options.extraHeaders || [],
@@ -4201,7 +5204,10 @@ RTCSession.prototype.connect = function(target, options) {
   this.isCanceled = false;
   this.received_100 = false;
 
-  requestParams = {from_tag: this.from_tag};
+  requestParams = {
+      from_tag: this.from_tag,
+      extra_supported: JsSIP.Utils.getSessionExtensions(this, JsSIP.C.INVITE)
+  };
 
   this.contact = this.ua.contact.toString({
     anonymous: this.anonymous,
@@ -4216,11 +5222,10 @@ RTCSession.prototype.connect = function(target, options) {
     extraHeaders.push('Privacy: id');
   }
 
-  extraHeaders.push('Contact: '+ this.contact);
-  extraHeaders.push('Allow: '+ JsSIP.Utils.getAllowedMethods(this.ua, true));
-  extraHeaders.push('Content-Type: application/sdp');
-
-  this.request = new JsSIP.OutgoingRequest(JsSIP.C.INVITE, target, this.ua, requestParams, extraHeaders);
+  request = new JsSIP.OutgoingRequest(JsSIP.C.INVITE, target, this.ua, requestParams, extraHeaders);
+  this.request = request;
+  request.setHeader('contact', this.contact);
+  request.setHeader('content-type', 'application/sdp');
 
   this.id = this.request.call_id + this.from_tag;
 
@@ -4396,6 +5401,9 @@ RTCSession.prototype.receiveRequest = function(request) {
         window.clearTimeout(this.timers.ackTimer);
         window.clearTimeout(this.timers.invite2xxTimer);
         this.status = C.STATUS_CONFIRMED;
+      } else if(this.lastReinvite &&
+          this.lastReinvite.status === C.STATUS_WAITING_FOR_ACK) {
+        this.lastReinvite.receiveAck();
       }
       break;
     case JsSIP.C.BYE:
@@ -4405,10 +5413,25 @@ RTCSession.prototype.receiveRequest = function(request) {
       }
       break;
     case JsSIP.C.INVITE:
-      if(this.status === C.STATUS_CONFIRMED) {
-        console.log(LOG_PREFIX +'re-INVITE received');
-        // TODO: handle this and respond
+      if(this.status !== C.STATUS_CONFIRMED) {
+        request.reply(491);
+        return false;
       }
+      if (this.lastReinvite) {
+        switch (this.lastReinvite.status) {
+        case C.STATUS_CONFIRMED:
+        case C.STATUS_CANCELED:
+        case C.STATUS_TERMINATED:
+          // Previous reinvite has completed
+          break;
+        default:
+          request.reply(491);
+          return false;
+        }
+      }
+      var reinvite = new Reinvite(this);
+      reinvite.init_incoming(request);
+      this.lastReinvite = reinvite;
       break;
     case JsSIP.C.INFO:
       if(this.status === C.STATUS_CONFIRMED || this.status === C.STATUS_WAITING_FOR_ACK) {
@@ -4419,14 +5442,8 @@ RTCSession.prototype.receiveRequest = function(request) {
       }
       break;
     case JsSIP.C.UPDATE:
-      // For now, just support empty UPDATEs (for session timer refreshes)
-      contentType = request.getHeader('content-type');
-      if(contentType || request.body) {
-        request.reply(488);
-        return false;
-      }
-      request.reply(200);
-      break;
+      var update = new Update(this);
+      return update.init_incoming(request);
   }
 
   return true;
@@ -4598,6 +5615,17 @@ RTCSession.prototype.receiveInviteResponse = function(response) {
       }
 
       this.sendACK();
+
+      // Store the allowed methods if provided
+      if(response.hasHeader('allow')) {
+        this.allowed = response.parseHeader('allow');
+      }
+      // Store the supported options if provided
+      if(response.hasHeader('supported')) {
+        this.supported = response.parseHeader('supported');
+      }
+
+      this.dialog.processSessionTimerHeaders(response);
 
       if (this.rtcMediaHandler) {
         // We're handling the SDP, media, peer connection, etc
@@ -5127,8 +6155,9 @@ var UA,
      * corresponding event handler is set.
      */
     EVENT_METHODS: {
-      'newRTCSession': 'INVITE',
-      'newMessage': 'MESSAGE'
+      'newRTCSession': 'INVITE,UPDATE',
+      'newMessage': 'MESSAGE',
+      'newRefer': 'REFER'
     },
 
     ALLOWED_METHODS: [
@@ -5143,7 +6172,29 @@ var UA,
       'application/dtmf-relay'
     ],
 
-    SUPPORTED: 'path, outbound, gruu',
+    SUPPORTED_EXTENSIONS: [
+      'path',
+      'outbound',
+      'gruu'
+    ],
+
+    /*
+     * Additional SIP extensions that are supported if the corresponding UA
+     * event is handled.
+     * Dynamically added to 'Supported' header field.
+     */
+    EVENT_EXTENSIONS: {
+      'tdialog': 'newRefer'
+    },
+
+    /*
+     * Additional SIP extensions that are supported if the corresponding Session
+     * event is handled.
+     * Dynamically added to 'Supported' header field.
+     */
+    SESSION_EVENT_EXTENSIONS: {
+      'timer': 'refresh'
+    },
 
     MAX_FORWARDS: 69,
     TAG_LENGTH: 10
@@ -5158,7 +6209,8 @@ UA = function(configuration) {
     'registrationFailed',
     'newRTCSession',
     'newMessage',
-    'newOptions'
+    'newOptions',
+    'newRefer'
   ];
 
   // Set Accepted Body Types
@@ -5176,6 +6228,7 @@ UA = function(configuration) {
   this.applicants = {};
 
   this.sessions = {};
+  this.refers = {};
   this.transport = null;
   this.contact = null;
   this.status = C.STATUS_INIT;
@@ -5299,7 +6352,7 @@ UA.prototype.sendMessage = function(target, body, options) {
  *
  */
 UA.prototype.stop = function() {
-  var session, applicant,
+  var session, refer, applicant,
     ua = this;
 
   console.log(LOG_PREFIX +'user requested closure...');
@@ -5319,6 +6372,11 @@ UA.prototype.stop = function() {
   for(session in this.sessions) {
     console.log(LOG_PREFIX +'closing session ' + session);
     this.sessions[session].terminate();
+  }
+
+  // Run  _close_ on every Refer
+  for(refer in this.refers) {
+    this.refers[refer].close();
   }
 
   // Run  _close_ on every applicant
@@ -5543,6 +6601,23 @@ UA.prototype.receiveRequest = function(request) {
     return;
   }
 
+  // Check Require header (RFC 3261 section 8.2.2.3)
+  if(request.hasHeader('require')) {
+    var supported = JsSIP.Utils.getSupportedExtensions(this);
+    var tokens = request.parseHeader('require');
+
+    for (var idx = 0, len = tokens.length; idx < len; idx++) {
+      var token = tokens[idx];
+      if (supported.indexOf(token) < 0 && !C.SESSION_EVENT_EXTENSIONS[token]) {
+        // Unrecognised option-tag/extension
+        if (request.method !== JsSIP.C.ACK) {
+          request.reply_sl(420);
+        }
+        return;
+      }
+    }
+  }
+
   // Create the server transaction
   if(method === JsSIP.C.INVITE) {
     new JsSIP.Transactions.InviteServerTransaction(request, this);
@@ -5558,7 +6633,8 @@ UA.prototype.receiveRequest = function(request) {
   if(method === JsSIP.C.OPTIONS) {
     var extraHeaders = [
       'Allow: '+ JsSIP.Utils.getAllowedMethods(this),
-      'Accept: '+ C.ACCEPTED_BODY_TYPES
+      'Accept: '+ C.ACCEPTED_BODY_TYPES,
+      'Supported: ' + JsSIP.Utils.getSupportedExtensions(this).join(',')
     ];
     
     if (!this.checkEvent('newOptions') || this.listeners('newOptions').length === 0) {
@@ -5620,8 +6696,12 @@ UA.prototype.receiveRequest = function(request) {
          * and without To tag.
          */
         break;
+      case JsSIP.C.REFER:
+        var refer = new JsSIP.Refer(this);
+        refer.init_incoming(request);
+        break;
       default:
-        request.reply(405);
+        request.reply(405, null, ['Allow: '+ JsSIP.Utils.getAllowedMethods(this)]);
         break;
     }
   } else {
@@ -5942,10 +7022,10 @@ UA.prototype.loadConfig = function(configuration) {
     switch(parameter) {
       case 'uri':
       case 'registrar_server':
-        console.log('Â· ' + parameter + ': ' + settings[parameter]);
+        console.log('· ' + parameter + ': ' + settings[parameter]);
         break;
       default:
-        console.log('Â· ' + parameter + ': ' + window.JSON.stringify(settings[parameter]));
+        console.log('· ' + parameter + ': ' + window.JSON.stringify(settings[parameter]));
     }
     UA.configuration_skeleton[parameter].value = settings[parameter];
   }
@@ -6427,7 +7507,8 @@ Utils= {
     var exceptions = {
       'Call-Id': 'Call-ID',
       'Cseq': 'CSeq',
-      'Www-Authenticate': 'WWW-Authenticate'
+      'Www-Authenticate': 'WWW-Authenticate',
+      'Min-Se': 'Min-SE'
       },
       name = string.toLowerCase().replace(/_/g,'-').split('-'),
       hname = '', part;
@@ -6467,7 +7548,7 @@ Utils= {
     return '192.0.2.' + getOctet(1, 254);
   },
 
-  getAllowedMethods: function(ua, inDialog) {
+  getAllowedMethods: function(ua) {
     var event,
       allowed = JsSIP.UA.C.ALLOWED_METHODS.toString();
 
@@ -6477,11 +7558,38 @@ Utils= {
       }
     }
 
-    if (inDialog) {
-      allowed += ',' + JsSIP.C.UPDATE;
+    return allowed;
+  },
+
+  getSupportedExtensions: function(ua, extraExtensions) {
+    var extension, event,
+      supported = JsSIP.UA.C.SUPPORTED_EXTENSIONS.slice();
+
+    for (extension in JsSIP.UA.C.EVENT_EXTENSIONS) {
+      event = JsSIP.UA.C.EVENT_EXTENSIONS[extension];
+      if (ua.checkEvent(event) && ua.listeners(event).length > 0) {
+        supported.push(extension);
+      }
     }
 
-    return allowed;
+    if (extraExtensions) {
+      return supported.concat(extraExtensions);
+    }
+    return supported;
+  },
+
+  getSessionExtensions: function(session) {
+    var extension, event,
+      supported = [];
+
+    for (extension in JsSIP.UA.C.SESSION_EVENT_EXTENSIONS) {
+      event = JsSIP.UA.C.SESSION_EVENT_EXTENSIONS[extension];
+      if (session.checkEvent(event) && session.listeners(event).length > 0) {
+        supported.push(extension);
+      }
+    }
+
+    return supported;
   },
 
   // MD5 (Message-Digest Algorithm) http://www.webtoolkit.info
@@ -7164,6 +8272,395 @@ JsSIP.WebRTC = WebRTC;
 
 
 
+/**
+ * @fileoverview Refer
+ */
+
+/**
+ * @param {JsSIP} JsSIP - The JsSIP namespace
+ */
+(function(JsSIP) {
+  var Refer;
+
+  /**
+   * @class Class creating SIP REFER request.
+   * @augments EventEmitter
+   * @param {JsSIP.UA} ua
+   */
+  Refer = function(ua) {
+    this.ua = ua;
+    this.targetDialog = null;
+    this.closed = false;
+    this.request = null;
+    this.local_tag = null;
+    this.remote_tag = null;
+    this.id = null;
+    this.contact = null;
+    this.accepted = false;
+    this.rejected = false;
+
+    // Public properties
+    this.direction = null;
+    this.local_identity = null;
+    this.remote_identity = null;
+    this.refer_uri = null;
+
+    // Custom Refer empty object for high level use
+    this.data = {};
+  };
+  Refer.prototype = new JsSIP.EventEmitter();
+
+  Refer.prototype.send = function(target, refer_uri, options) {
+    var request_sender, event, contentType, eventHandlers, extraHeaders, request,
+      events = [
+        'accepted',
+        'failed',
+        'notify'
+      ],
+      failCause = null;
+
+    if (target === undefined || refer_uri === undefined) {
+      throw new TypeError('Not enough arguments');
+    }
+
+    this.initEvents(events);
+
+    // Get call options
+    options = options || {};
+    extraHeaders = options.extraHeaders || [];
+    eventHandlers = options.eventHandlers || {};
+    contentType = options.contentType || 'text/plain';
+
+    // Set event handlers
+    for (event in eventHandlers) {
+      this.on(event, eventHandlers[event]);
+    }
+
+    // Check target validity
+    try {
+      target = JsSIP.Utils.normalizeURI(target, this.ua.configuration.hostport_params);
+    } catch(e) {
+      target = JsSIP.URI.parse(JsSIP.C.INVALID_TARGET_URI);
+      failCause = JsSIP.C.causes.INVALID_TARGET;
+    }
+
+    // Check refer-to validity
+    try {
+      refer_uri = JsSIP.Utils.normalizeURI(refer_uri, this.ua.configuration.hostport_params);
+    } catch(e) {
+      refer_uri = JsSIP.URI.parse(JsSIP.C.INVALID_TARGET_URI);
+      failCause = JsSIP.C.causes.INVALID_REFER_TO_TARGET;
+    }
+
+    // Refer parameter initialization
+    this.direction = 'outgoing';
+    this.local_identity = this.ua.configuration.uri;
+    this.remote_identity = target;
+    this.refer_uri = refer_uri;
+    this.local_tag = JsSIP.Utils.newTag();
+    this.contact = this.ua.contact.toString();
+
+    request = new JsSIP.OutgoingRequest(JsSIP.C.REFER, target, this.ua,
+        {from_tag: this.local_tag}, extraHeaders, options.body);
+    this.request = request;
+    this.id = request.call_id + request.from_tag;
+
+    this.ua.refers[this.id] = this;
+
+    request.setHeader('contact', this.contact);
+    request.setHeader('refer-to', refer_uri);
+
+    if (options.targetDialog) {
+      this.targetDialog = options.targetDialog;
+      request.setHeader('require', JsSIP.C.SIP_EXTENSIONS.TARGET_DIALOG);
+      request.setHeader('target-dialog', options.targetDialog.id.toTargetDialogHeader());
+    }
+
+    if(options.body) {
+      request.setHeader('content-type', contentType);
+    }
+
+    request_sender = new JsSIP.RequestSender(this, this.ua);
+
+    this.ua.emit('newRefer', this.ua, {
+      originator: 'local',
+      refer: this,
+      request: this.request
+    });
+
+    if (failCause) {
+      this.emit('failed', this, {
+        originator: 'local',
+        cause: failCause
+      });
+    } else {
+      request_sender.send();
+    }
+  };
+
+  /**
+  * @private
+  */
+  Refer.prototype.receiveResponse = function(response) {
+    var cause;
+
+    if(this.closed) {
+      return;
+    }
+    switch(true) {
+      case /^1[0-9]{2}$/.test(response.status_code):
+        // Ignore provisional responses.
+        break;
+
+      case /^2[0-9]{2}$/.test(response.status_code):
+        // Just close for now, but we should be receiving NOTIFYs on this dialog
+        this.close();
+        this.emit('accepted', this, {
+          originator: 'remote',
+          response: response
+        });
+        break;
+
+      default:
+        this.close();
+        cause = JsSIP.Utils.sipErrorCause(response.status_code);
+        this.emit('failed', this, {
+          originator: 'remote',
+          response: response,
+          cause: cause
+        });
+        break;
+    }
+  };
+
+  /**
+  * @private
+  */
+  Refer.prototype.onRequestTimeout = function() {
+    if(this.closed) {
+      return;
+    }
+    this.close();
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.REQUEST_TIMEOUT
+    });
+  };
+
+  /**
+  * @private
+  */
+  Refer.prototype.onTransportError = function() {
+    if(this.closed) {
+      return;
+    }
+    this.close();
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.CONNECTION_ERROR
+    });
+  };
+
+  /**
+  * @private
+  */
+  Refer.prototype.close = function() {
+    // Terminate confirmed dialog
+    if (this.dialog) {
+      this.dialog.terminate();
+      delete this.dialog;
+    }
+
+    this.closed = true;
+    delete this.ua.refers[this];
+  };
+
+  /**
+   * @private
+   * @param {IncomingRequest} request
+   */
+  Refer.prototype.init_incoming = function(request) {
+    var session = null;
+
+    this.direction = 'incoming';
+    this.request = request;
+    this.remote_tag = request.from_tag;
+    this.id = request.call_id + request.from_tag;
+    this.contact = this.ua.contact.toString();
+    this.local_identity = request.to.uri;
+    this.remote_identity = request.from.uri;
+
+    // Check Refer-To header
+    if (!request.hasHeader('refer-to')) {
+      request.reply(400, 'Missing Refer-To header field');
+      return;
+    }
+    if (request.countHeader('refer-to') > 1) {
+      request.reply(400, 'Too many Refer-To header fields');
+      return;
+    }
+    this.refer_uri = request.parseHeader('refer-to').uri;
+
+    // Process Target-Dialog header (if present)
+    if (request.hasHeader('target-dialog')) {
+      var td = request.parseHeader('target-dialog');
+      // Local/remote labels should be from recipient's perspective
+      var did = new JsSIP.DialogId(td.call_id, td.local_tag, td.remote_tag);
+      this.targetDialog = this.ua.dialogs[did.toString()] || null;
+    }
+
+    if (this.targetDialog && this.targetDialog.isConfirmed()) {
+      session = this.targetDialog.owner;
+      // Sanity check
+      if (session.dialog !== this.targetDialog ||
+          !session instanceof JsSIP.RTCSession) {
+        session = null;
+      }
+    }
+
+    // Set the to_tag before replying with a response code that will create a dialog.
+    this.local_tag = request.to_tag = JsSIP.Utils.newTag();
+    this.dialog = new JsSIP.Dialog(this, request, 'UAS');
+    if(!this.dialog.id) {
+      request.reply(500, 'Missing Contact header field');
+      return;
+    }
+
+    this.ua.refers[this.id] = this;
+
+    this.ua.emit('newRefer', this.ua, {
+      originator: 'remote',
+      refer: this,
+      request: request,
+      session: session
+    });
+
+    if (!this.accepted && !this.rejected) {
+      var extraHeaders = ['Contact: ' + this.contact];
+      request.reply(202, null, extraHeaders);
+    }
+  };
+
+  /**
+   * Call the refer URI. The referrer will be notified of the progress and
+   * result of the call establishment process.
+   *
+   * @param {Object} [options]
+   * Call options as used with the <code>UA.call</code> method.
+   *
+   * @throws {TypeError}
+   * @throws {JsSIP.Exceptions.InvalidTargetError}
+   */
+  Refer.prototype.call = function(options) {
+    var session,
+      uri = this.refer_uri;
+
+    if (uri.scheme !== JsSIP.C.SIP) {
+      throw new JsSIP.Exceptions.InvalidTargetError(uri);
+    }
+
+    session = new JsSIP.RTCSession(this.ua);
+    session.connect(uri, options);
+
+    // TODO: set up handlers to send appropriate notify messages
+  };
+
+  /**
+   * Accept the incoming Refer. Use this for non-SIP refer URIs; for SIP URIs
+   * use the <code>call</code> method instead.
+   * <p>
+   * After calling this method, the application should call the
+   * <code>notify</code> method to inform the referrer of the progress/result
+   * of the refer. This is handled automatically if the <code>call</code>
+   * method is used instead.
+   * 
+   * @param {Object} [options]
+   * @param {String[]} [options.extraHeaders]
+   * Extra headers to add to the response.
+   * @param {String} [options.body]
+   * A message body to include in the response.
+   */
+  Refer.prototype.accept = function(options) {
+    options = options || {};
+
+    var
+      extraHeaders = options.extraHeaders || [],
+      body = options.body;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "accept" for an outgoing refer');
+    }
+
+    extraHeaders.push('Contact: ' + this.contact);
+
+    this.request.reply(200, null, extraHeaders, body);
+    this.accepted = true;
+  };
+
+  /**
+   * Reject the incoming Refer.
+   *
+   * @param {Object} [options]
+   * @param {Number} [options.status_code]
+   * @param {String} [options.reason_phrase]
+   * @param {String[]} [options.extraHeaders]
+   * @param {String} [options.body]
+   */
+  Refer.prototype.reject = function(options) {
+    options = options || {};
+
+    var
+      status_code = options.status_code || 480,
+      reason_phrase = options.reason_phrase,
+      extraHeaders = options.extraHeaders || [],
+      body = options.body;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "reject" for an outgoing refer');
+    }
+
+    if (status_code < 300 || status_code >= 700) {
+      throw new TypeError('Invalid status_code: '+ status_code);
+    }
+
+    this.request.reply(status_code, reason_phrase, extraHeaders, body);
+    this.rejected = true;
+  };
+
+  /**
+   * Notify the referrer of the current refer progress, or final result.
+   * <p>
+   * The application should either provide a SIP status code, or a message body
+   * of type <code>message/sipfrag</code>.  If neither is provided, a
+   * <code>100 Trying</code> message will be constructed.
+   *
+   * @param {Object} [options]
+   * @param {Number} [options.status_code]
+   * @param {String} [options.reason_phrase]
+   * @param {String[]} [options.extraHeaders]
+   * @param {String} [options.body]
+   */
+  Refer.prototype.notify = function(options) {
+    options = options || {};
+    // TODO
+  };
+
+  /**
+   * Receives further messages on the Refer dialog (i.e. NOTIFYs for outgoing
+   * refers, and possibly SUBSCRIBEs for incoming refers).
+   * @private
+   * @param {IncomingRequest} request
+   */
+  Refer.prototype.receiveRequest = function(request) {
+    // TODO
+    request.reply(481);
+  };
+
+  JsSIP.Refer = Refer;
+}(JsSIP));
+
+
+
 window.JsSIP = JsSIP;
 }(window));
 
@@ -7321,8 +8818,11 @@ JsSIP.Grammar = (function(){
         "Status_Code": parse_Status_Code,
         "extension_code": parse_extension_code,
         "Reason_Phrase": parse_Reason_Phrase,
+        "Allow": parse_Allow,
+        "allow_method": parse_allow_method,
         "Allow_Events": parse_Allow_Events,
         "Call_ID": parse_Call_ID,
+        "call_id": parse_call_id,
         "Contact": parse_Contact,
         "contact_param": parse_contact_param,
         "name_addr": parse_name_addr,
@@ -7360,6 +8860,7 @@ JsSIP.Grammar = (function(){
         "tag_param": parse_tag_param,
         "Max_Forwards": parse_Max_Forwards,
         "Min_Expires": parse_Min_Expires,
+        "Min_SE": parse_Min_SE,
         "Name_Addr_Header": parse_Name_Addr_Header,
         "Proxy_Authenticate": parse_Proxy_Authenticate,
         "challenge": parse_challenge,
@@ -7378,17 +8879,26 @@ JsSIP.Grammar = (function(){
         "qop_options": parse_qop_options,
         "qop_value": parse_qop_value,
         "Proxy_Require": parse_Proxy_Require,
+        "option_tag": parse_option_tag,
         "Record_Route": parse_Record_Route,
         "rec_route": parse_rec_route,
+        "Refer_To": parse_Refer_To,
         "Require": parse_Require,
         "Route": parse_Route,
         "route_param": parse_route_param,
+        "Session_Expires": parse_Session_Expires,
+        "se_param": parse_se_param,
+        "refresher_param": parse_refresher_param,
         "Subscription_State": parse_Subscription_State,
         "substate_value": parse_substate_value,
         "subexp_params": parse_subexp_params,
         "event_reason_value": parse_event_reason_value,
         "Subject": parse_Subject,
         "Supported": parse_Supported,
+        "Target_Dialog": parse_Target_Dialog,
+        "td_param": parse_td_param,
+        "remote_param": parse_remote_param,
+        "local_param": parse_local_param,
         "To": parse_To,
         "to_param": parse_to_param,
         "Via": parse_Via,
@@ -14992,6 +16502,83 @@ JsSIP.Grammar = (function(){
         return result0;
       }
       
+      function parse_Allow() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_allow_method();
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_COMMA();
+          if (result2 !== null) {
+            result3 = parse_allow_method();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_COMMA();
+            if (result2 !== null) {
+              result3 = parse_allow_method();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset) {
+        				 data = data.methods; })(pos0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_allow_method() {
+        var result0;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_Method();
+        if (result0 !== null) {
+          result0 = (function(offset, method) {
+                         if (!data.methods) data.methods = [];
+                         data.methods.push(method); })(pos0, result0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
       function parse_Allow_Events() {
         var result0, result1, result2, result3;
         var pos0, pos1;
@@ -15045,6 +16632,22 @@ JsSIP.Grammar = (function(){
       }
       
       function parse_Call_ID() {
+        var result0;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_call_id();
+        if (result0 !== null) {
+          result0 = (function(offset, call_id) {
+                      data = call_id; })(pos0, result0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_call_id() {
         var result0, result1, result2;
         var pos0, pos1, pos2;
         
@@ -15087,7 +16690,7 @@ JsSIP.Grammar = (function(){
         }
         if (result0 !== null) {
           result0 = (function(offset) {
-                      data = input.substring(pos, offset); })(pos0);
+                      return input.substring(pos, offset); })(pos0);
         }
         if (result0 === null) {
           pos = pos0;
@@ -16479,6 +18082,70 @@ JsSIP.Grammar = (function(){
         return result0;
       }
       
+      function parse_Min_SE() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_delta_seconds();
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_SEMI();
+          if (result2 !== null) {
+            result3 = parse_generic_param();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_SEMI();
+            if (result2 !== null) {
+              result3 = parse_generic_param();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, min_se) {
+                              if (min_se >= 90) {
+                              	data = min_se;
+                              } else {
+                              	data = -1;
+                              }})(pos0, result0[0]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
       function parse_Name_Addr_Header() {
         var result0, result1, result2, result3, result4, result5, result6;
         var pos0, pos1, pos2;
@@ -17308,13 +18975,13 @@ JsSIP.Grammar = (function(){
         var pos0, pos1;
         
         pos0 = pos;
-        result0 = parse_token();
+        result0 = parse_option_tag();
         if (result0 !== null) {
           result1 = [];
           pos1 = pos;
           result2 = parse_COMMA();
           if (result2 !== null) {
-            result3 = parse_token();
+            result3 = parse_option_tag();
             if (result3 !== null) {
               result2 = [result2, result3];
             } else {
@@ -17330,7 +18997,7 @@ JsSIP.Grammar = (function(){
             pos1 = pos;
             result2 = parse_COMMA();
             if (result2 !== null) {
-              result3 = parse_token();
+              result3 = parse_option_tag();
               if (result3 !== null) {
                 result2 = [result2, result3];
               } else {
@@ -17350,6 +19017,23 @@ JsSIP.Grammar = (function(){
           }
         } else {
           result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_option_tag() {
+        var result0;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_token();
+        if (result0 !== null) {
+          result0 = (function(offset, option) {
+                           if (!data.options) data.options = [];
+                           data.options.push(option); })(pos0, result0);
+        }
+        if (result0 === null) {
           pos = pos0;
         }
         return result0;
@@ -17499,53 +19183,128 @@ JsSIP.Grammar = (function(){
         return result0;
       }
       
-      function parse_Require() {
+      function parse_Refer_To() {
         var result0, result1, result2, result3;
-        var pos0, pos1;
+        var pos0, pos1, pos2;
         
         pos0 = pos;
-        result0 = parse_token();
+        pos1 = pos;
+        result0 = parse_SIP_URI_noparams();
+        if (result0 === null) {
+          result0 = parse_name_addr();
+        }
         if (result0 !== null) {
           result1 = [];
-          pos1 = pos;
-          result2 = parse_COMMA();
+          pos2 = pos;
+          result2 = parse_SEMI();
           if (result2 !== null) {
-            result3 = parse_token();
+            result3 = parse_generic_param();
             if (result3 !== null) {
               result2 = [result2, result3];
             } else {
               result2 = null;
-              pos = pos1;
+              pos = pos2;
             }
           } else {
             result2 = null;
-            pos = pos1;
+            pos = pos2;
           }
           while (result2 !== null) {
             result1.push(result2);
-            pos1 = pos;
-            result2 = parse_COMMA();
+            pos2 = pos;
+            result2 = parse_SEMI();
             if (result2 !== null) {
-              result3 = parse_token();
+              result3 = parse_generic_param();
               if (result3 !== null) {
                 result2 = [result2, result3];
               } else {
                 result2 = null;
-                pos = pos1;
+                pos = pos2;
               }
             } else {
               result2 = null;
-              pos = pos1;
+              pos = pos2;
             }
           }
           if (result1 !== null) {
             result0 = [result0, result1];
           } else {
             result0 = null;
-            pos = pos0;
+            pos = pos1;
           }
         } else {
           result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset) {
+                          try {
+                            data = new JsSIP.NameAddrHeader(data.uri, data.display_name, data.params);
+                          } catch(e) {
+                            data = -1;
+                          }})(pos0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_Require() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_option_tag();
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_COMMA();
+          if (result2 !== null) {
+            result3 = parse_option_tag();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_COMMA();
+            if (result2 !== null) {
+              result3 = parse_option_tag();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset) {
+                          data = data.options; })(pos0);
+        }
+        if (result0 === null) {
           pos = pos0;
         }
         return result0;
@@ -17650,6 +19409,139 @@ JsSIP.Grammar = (function(){
           }
         } else {
           result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_Session_Expires() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_delta_seconds();
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_SEMI();
+          if (result2 !== null) {
+            result3 = parse_se_param();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_SEMI();
+            if (result2 !== null) {
+              result3 = parse_se_param();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, interval) {
+                              data.interval = interval; })(pos0, result0[0]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_se_param() {
+        var result0;
+        
+        result0 = parse_refresher_param();
+        if (result0 === null) {
+          result0 = parse_generic_param();
+        }
+        return result0;
+      }
+      
+      function parse_refresher_param() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 9).toLowerCase() === "refresher") {
+          result0 = input.substr(pos, 9);
+          pos += 9;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"refresher\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_EQUAL();
+          if (result1 !== null) {
+            if (input.substr(pos, 3).toLowerCase() === "uas") {
+              result2 = input.substr(pos, 3);
+              pos += 3;
+            } else {
+              result2 = null;
+              if (reportFailures === 0) {
+                matchFailed("\"uas\"");
+              }
+            }
+            if (result2 === null) {
+              if (input.substr(pos, 3).toLowerCase() === "uac") {
+                result2 = input.substr(pos, 3);
+                pos += 3;
+              } else {
+                result2 = null;
+                if (reportFailures === 0) {
+                  matchFailed("\"uac\"");
+                }
+              }
+            }
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, refresher) {
+                              if(!data.params) data.params = {};
+                              data.params['refresher'] = refresher; })(pos0, result0[2]);
+        }
+        if (result0 === null) {
           pos = pos0;
         }
         return result0;
@@ -17972,54 +19864,221 @@ JsSIP.Grammar = (function(){
       
       function parse_Supported() {
         var result0, result1, result2, result3;
-        var pos0, pos1;
+        var pos0, pos1, pos2;
         
         pos0 = pos;
-        result0 = parse_token();
+        pos1 = pos;
+        result0 = parse_option_tag();
         if (result0 !== null) {
           result1 = [];
-          pos1 = pos;
+          pos2 = pos;
           result2 = parse_COMMA();
           if (result2 !== null) {
-            result3 = parse_token();
+            result3 = parse_option_tag();
             if (result3 !== null) {
               result2 = [result2, result3];
             } else {
               result2 = null;
-              pos = pos1;
+              pos = pos2;
             }
           } else {
             result2 = null;
-            pos = pos1;
+            pos = pos2;
           }
           while (result2 !== null) {
             result1.push(result2);
-            pos1 = pos;
+            pos2 = pos;
             result2 = parse_COMMA();
             if (result2 !== null) {
-              result3 = parse_token();
+              result3 = parse_option_tag();
               if (result3 !== null) {
                 result2 = [result2, result3];
               } else {
                 result2 = null;
-                pos = pos1;
+                pos = pos2;
               }
             } else {
               result2 = null;
-              pos = pos1;
+              pos = pos2;
             }
           }
           if (result1 !== null) {
             result0 = [result0, result1];
           } else {
             result0 = null;
-            pos = pos0;
+            pos = pos1;
           }
         } else {
           result0 = null;
-          pos = pos0;
+          pos = pos1;
         }
         result0 = result0 !== null ? result0 : "";
+        if (result0 !== null) {
+          result0 = (function(offset) {
+                       data = data.options || []; })(pos0);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_Target_Dialog() {
+        var result0, result1, result2, result3;
+        var pos0, pos1, pos2;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_call_id();
+        if (result0 !== null) {
+          result1 = [];
+          pos2 = pos;
+          result2 = parse_SEMI();
+          if (result2 !== null) {
+            result3 = parse_td_param();
+            if (result3 !== null) {
+              result2 = [result2, result3];
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          } else {
+            result2 = null;
+            pos = pos2;
+          }
+          while (result2 !== null) {
+            result1.push(result2);
+            pos2 = pos;
+            result2 = parse_SEMI();
+            if (result2 !== null) {
+              result3 = parse_td_param();
+              if (result3 !== null) {
+                result2 = [result2, result3];
+              } else {
+                result2 = null;
+                pos = pos2;
+              }
+            } else {
+              result2 = null;
+              pos = pos2;
+            }
+          }
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, call_id) {
+                           data.call_id = call_id; })(pos0, result0[0]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_td_param() {
+        var result0;
+        
+        result0 = parse_remote_param();
+        if (result0 === null) {
+          result0 = parse_local_param();
+          if (result0 === null) {
+            result0 = parse_generic_param();
+          }
+        }
+        return result0;
+      }
+      
+      function parse_remote_param() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 10).toLowerCase() === "remote-tag") {
+          result0 = input.substr(pos, 10);
+          pos += 10;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"remote-tag\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_EQUAL();
+          if (result1 !== null) {
+            result2 = parse_token();
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, tag) {
+                           data.remote_tag = tag; })(pos0, result0[2]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_local_param() {
+        var result0, result1, result2;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        if (input.substr(pos, 9).toLowerCase() === "local-tag") {
+          result0 = input.substr(pos, 9);
+          pos += 9;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"local-tag\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_EQUAL();
+          if (result1 !== null) {
+            result2 = parse_token();
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, tag) {
+                           data.local_tag = tag; })(pos0, result0[2]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
         return result0;
       }
       
@@ -29135,6 +31194,7 @@ var CrocSDK = {};
 			idleTimeout : 300
 		},
 		expiresTime : 600,
+		features: ['audio', 'video', 'pagedata'],
 		register : false,
 		requireMatchingVersion : false,
 		start: true,
@@ -29162,6 +31222,7 @@ var CrocSDK = {};
 		data : [ 'object' ],
 		displayName : [ 'string' ],
 		expiresTime : [ 'number' ],
+		features: ['string[]'],
 		iceServers : [ 'object[]' ],
 		jQuery : [ 'function' ],
 		media : [ 'object' ],
@@ -29296,6 +31357,7 @@ var CrocSDK = {};
 	 * Used to test if browser supports method navigator.getUserMedia.
 	 * 
 	 * @private
+	 * @return {Boolean}
 	 */
 	function hasGetUserMedia() {
 		// navigator.getUserMedia() different browser variations
@@ -29306,43 +31368,62 @@ var CrocSDK = {};
 	 * Used to test if browser has the capabilities for audio and video.
 	 * 
 	 * @private
-	 * @param msrpConfigured
+	 * @param config
+	 * @returns {CrocSDK.Croc~Capabilities}
 	 */
-	function detectCapabilities(msrpConfigured) {
+	function detectCapabilities(config) {
 		var cap = {
-			"sip.audio" : true,
-			"sip.video" : true,
-			"sip.text" : true,
-			"sip.data" : true,
-			"croc.sdkversion" : "1"
+			"sip.audio": true,
+			"sip.video": true,
+			"sip.text": true,
+			"sip.data": true,
+			"croc.sdkversion": "1"
 		};
+		var features = config.features;
 
-		if (hasGetUserMedia()) {
-			var stopStream = function(stream) {
-				stream.stop();
-			};
+		if (features) {
+			// Update capabilities to reflect application's desired features
+			cap["sip.audio"] = features.indexOf(CrocSDK.C.FEATURES.AUDIO) >= 0;
+			cap["sip.video"] = features.indexOf(CrocSDK.C.FEATURES.VIDEO) >= 0;
+		}
 
-			// Detect microphone/webcam presence
-			// If we can get video, assume audio is also available
-			JsSIP.WebRTC.getUserMedia({
-				video : true
-			}, stopStream, function() {
-				cap["sip.video"] = false;
-				// Check for audio
+		if (!config.apiKey && !config.msrpRelaySet) {
+			cap["sip.text"] = false;
+			cap["sip.data"] = false;
+		}
+
+		if (!hasGetUserMedia()) {
+			cap["sip.audio"] = false;
+			cap["sip.video"] = false;
+
+			return cap;
+		}
+
+		var stopStream = function(stream) {
+			stream.stop();
+		};
+		var detectMicrophone = function() {
+			if (cap["sip.audio"]) {
 				JsSIP.WebRTC.getUserMedia({
-					audio : true
+					audio: true
 				}, stopStream, function() {
 					cap["sip.audio"] = false;
 				});
+			}
+		};
+
+		if (cap["sip.video"]) {
+			// Request access to webcam to determine whether one is present
+			JsSIP.WebRTC.getUserMedia({
+				video: true,
+				audio: true
+			}, stopStream, function() {
+				cap["sip.video"] = false;
+				// Fall back to microphone check
+				detectMicrophone();
 			});
 		} else {
-			cap["sip.audio"] = false;
-			cap["sip.video"] = false;
-		}
-
-		if (!msrpConfigured) {
-			cap["sip.text"] = false;
-			cap["sip.data"] = false;
+			detectMicrophone();
 		}
 
 		return cap;
@@ -29358,7 +31439,8 @@ var CrocSDK = {};
 	function initJsSip(croc) {
 		// Override the reported User-Agent
 		if (JsSIP.C.USER_AGENT.indexOf('Crocodile') === -1) {
-			JsSIP.C.USER_AGENT = 'Crocodile SDK v1.0; ' + JsSIP.C.USER_AGENT;
+			JsSIP.C.USER_AGENT = 'Crocodile SDK v1.0; '.concat(
+					JsSIP.C.USER_AGENT, '; ', navigator.userAgent);
 		}
 
 		// Restructure sipProxySet as array of URIs
@@ -29517,7 +31599,7 @@ var CrocSDK = {};
 
 				// JsSIP has not yet processed the SDP
 				// Examine SDP to distinguish between data and media sessions
-				var sdp = new CrocMSRP.Sdp.Session(data.request.body);
+				var sdp = new CrocSDK.Sdp.Session(data.request.body);
 				if (!sdp) {
 					// SDP parsing failed
 					data.sdpInvalid();
@@ -29742,6 +31824,20 @@ var CrocSDK = {};
 	 * will be through the created instance.
 	 * </p>
 	 * 
+	 * <p>
+	 * An example of instantiating the Crocodile RTC JavaScript Library:
+	 *   <pre>
+	 *   <code>
+	 *     var crocObject = $.croc({
+	 *       apiKey: "API_KEY_GOES_HERE",
+	 *       onConnected: function () {
+	 *         // Some code
+	 *       }
+	 *     });
+	 *   </code>
+	 *   </pre>
+	 * </p>
+	 * 
 	 * @constructor
 	 * @param {CrocSDK~Config} config - A configuration object containing any
 	 * properties/event handlers you wish to configure; any that are not
@@ -29749,6 +31845,7 @@ var CrocSDK = {};
 	 * <p>
 	 * To use the Crocodile network, you must at least provide the
 	 * <code>apiKey</code> property.
+	 * </p>
 	 */
 	CrocSDK.Croc = function(config) {
 		var croc = this;
@@ -29764,10 +31861,8 @@ var CrocSDK = {};
 		// Check for apiKey or sipProxySet
 		checkConfig(config);
 
-		var msrpConfigured = config.apiKey || config.msrpRelaySet;
-
 		var detectedConfig = {
-			capabilities : detectCapabilities(msrpConfigured),
+			capabilities : detectCapabilities(config),
 			register : !!config.address
 		};
 
@@ -29792,6 +31887,9 @@ var CrocSDK = {};
 		}
 		if (config.iceServers) {
 			mergedConfig.iceServers = config.iceServers;
+		}
+		if (config.features) {
+			mergedConfig.features = config.features;
 		}
 
 		// Initialise underlying APIs
@@ -29909,6 +32007,7 @@ var CrocSDK = {};
 		// Run init configuration for apis
 		this.capability.init();
 		this.data.init();
+		this.media.init();
 		this.presence.init();
 
 		if (this.start) {
@@ -29964,6 +32063,9 @@ var CrocSDK = {};
 			}
 			if (this.msrpManager) {
 				this.msrpManager.start();
+			}
+			if (croc.features.indexOf(CrocSDK.C.FEATURES.PRESENCE) >= 0) {
+				this.presence.start();
 			}
 		}
 	};
@@ -30127,6 +32229,28 @@ var CrocSDK = {};
 	 */
 	// Type Definitions
 	/**
+	 * <p>
+	 * A {@link CrocSDK.Croc~Capabilities Capabilities} object is a plain 
+	 * Javascript object, but with the key names matching the capabilities 
+	 * defined in {@link CrocSDK.Croc~Capabilities Capabilities}. For instance,
+	 * with the default values defined in that section, the 
+	 * {@link CrocSDK.Croc~Capabilities Capabilities} object for a 
+	 * WebRTC-capable browser with a webcam, and on the Crocodile network, 
+	 * would be as follows:
+	 *   <pre>
+	 *   <code>
+	 *     {
+	 *       "sip.audio": true,
+	 *       "sip.data": true,
+	 *       "sip.text": true,
+	 *       "sip.video": true,
+	 *       "croc.sdkversion": "1.0",
+	 *       "custom.myNameSpace: 'nameSpaceContent'"
+	 *     }
+	 *   </code>
+	 *   </pre>
+	 * </p> 
+	 *
 	 * @memberof CrocSDK.Croc
 	 * @typedef CrocSDK.Croc~Capabilities
 	 * @property {Boolean} [sip.audio=detected] <code>true</code> if the
@@ -30193,6 +32317,7 @@ var CrocSDK = {};
 	function WatchData() {
 		this.status = null;
 		this.capabilities = null;
+		this.userAgent = null;
 	}
 
 	/**
@@ -30301,6 +32426,8 @@ var CrocSDK = {};
 			watchData.capabilities = capabilityApi.parseFeatureTags(parsedContact.parameters);
 		}
 
+		watchData.userAgent = response.getHeader('user-agent');
+
 		var fireEvent = false;
 		if (previousStatus !== watchData.status) {
 			fireEvent = true;
@@ -30388,6 +32515,30 @@ var CrocSDK = {};
 	 * <code>crocObject</code> the <code>Capability.refreshPeriod</code>
 	 * property would be accessed as
 	 * <code>crocObject.capability.refreshPeriod</code>.
+	 * </p>
+	 * 
+	 * <p>
+	 * An example using the Capability API:
+	 *   <pre>
+	 *   <code>
+	 *     var crocObject = $.croc({
+	 *       apiKey: "API_KEY_GOES_HERE",
+	 *       onConnected: function () {
+	 *         // Some code
+	 *       },
+	 *       
+	 *       capability: {
+	 *         refreshPeriod: 15,
+	 *         onWatch: function(event) {
+	 *           // Some code
+	 *         },
+	 *         onWatchChange: function(event) {
+	 *           // Some code
+	 *         }
+	 *       }
+	 *     });
+	 *   </code>
+	 *   </pre>
 	 * </p>
 	 * 
 	 * @constructor
@@ -30711,22 +32862,15 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Returns the cached watch {@link CrocSDK.CapabilityAPI~status status} for
 	 * <code>address</code>.
-	 * </p>
 	 * <p>
 	 * Returns <code>null</code> if <code>address</code> is not on the watch
 	 * list or if a capabilities query response for <code>address</code> has
 	 * not yet been received.
-	 * </p>
-	 * <p>
-	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
 	 * 
-	 * @param {String}
-	 *            address The address to refresh in the watch List.
-	 * @returns {CrocSDK.Croc~Capabilities} Capabilities
+	 * @param {String} address - The target address.
+	 * @returns {CrocSDK.CapabilityAPI~status} watchStatus
 	 */
 	CrocSDK.CapabilityAPI.prototype.getWatchStatus = function(address) {
 		var watchData = this.watchDataCache[address];
@@ -30736,6 +32880,20 @@ var CrocSDK = {};
 		}
 
 		return null;
+	};
+
+	/**
+	 * Retrieves all cached data for <code>address</code>.
+	 * <p>
+	 * Returns <code>null</code> if <code>address</code> is not on the watch
+	 * list.
+	 * 
+	 * @private
+	 * @param {String} address - The target address.
+	 * @returns The cached watch data
+	 */
+	CrocSDK.CapabilityAPI.prototype.getWatchData = function(address) {
+		return this.watchDataCache[address] || null;
 	};
 
 	/**
@@ -30835,6 +32993,13 @@ var CrocSDK = {};
 
 (function (CrocSDK) {
 	CrocSDK.C = {
+		FEATURES: {
+			AUDIO: 'audio',
+			VIDEO: 'video',
+			PAGEDATA: 'pagedata',
+			PRESENCE: 'presence',
+			TRANSFER: 'transfer'
+		},
 		NS: {
 			XHTML: 'http://www.w3.org/1999/xhtml',
 			XMPP_XHTML_IM: 'http://jabber.org/protocol/xhtml-im',
@@ -30871,6 +33036,150 @@ var CrocSDK = {};
 	};
 }(CrocSDK));
 
+(function (CrocSDK) {
+	/**
+	 * The CustomHeaders object can be used 
+	 * to define headers to send in an outbound session request. Likewise, if any 
+	 * custom headers are found in an inbound session request, these are available
+	 * to the application in the same format.
+	 * <p>
+	 * There are no prescribed properties on a CustomHeaders object. Each
+	 * property name that exists in the object will be mapped to a header name
+	 * in the request, and each property value will be used as the associated
+	 * header value.
+	 * <p>
+	 * All custom header keys <b><i>MUST</i></b> start with &#34;X-&#34;.
+	 * Keys that do not start &#34;X-&#34; will be ignored.
+	 * <p>
+	 * When specifying custom headers to send, the header name can be provided
+	 * with any chosen capitalisation, as long as it only uses valid characters
+	 * (sticking to alphanumeric characters and dashes is recommended). However,
+	 * the names of received custom headers are always provided in a specific
+	 * format: with only the first character, and each character following
+	 * a dash, in uppercase. For instance, a header sent as
+	 * &#34;x-lowercase&#34; will be received as &#34;X-Lowercase&#34;.
+	 * 
+	 * @memberof CrocSDK
+	 * @typedef CrocSDK~CustomHeaders
+	 */
+	CrocSDK.CustomHeaders = function (input) {
+		if (input instanceof JsSIP.IncomingRequest) {
+			this.fromJsSipHeaders(input.headers);
+		} else if (input instanceof JsSIP.OutgoingRequest) {
+			this.fromExtraHeaders(input.extraHeaders);
+		} else if (input) {
+			var name, value;
+			for (name in input) {
+				value = input[name];
+				if (this.isValidCustomHeader(name, value)) {
+					this[name] = value;
+				} else {
+					console.warn('Ignored custom header:', name, value);
+				}
+			}
+		}
+	};
+
+	CrocSDK.CustomHeaders.prototype.isValidCustomHeader = function (name, value) {
+		var token = /[^a-zA-Z0-9\-\.!%\*_\+`'~]/;
+		if (name.slice(0, 2).toUpperCase() !== 'X-') {
+			return false;
+		}
+
+		if (name.match(token)) {
+			return false;
+		}
+		
+		if (!CrocSDK.Util.isType(value, 'string')) {
+			return false;
+		}
+		
+		// Though they can be valid, ban new lines/carriage returns for safety
+		if (value.match(/[\r\n]/)) {
+			return false;
+		}
+
+		return true;
+	};
+
+	CrocSDK.CustomHeaders.prototype.equals = function (customHeaders) {
+		var keys = Object.keys(this); 
+		if (keys.length !== Object.keys(customHeaders).length) {
+			return false;
+		}
+
+		for (var i = 0, len = keys.length; i < len; i++) {
+			var name = keys[i];
+
+			if (customHeaders[name] !== this[name]) {
+				return false;
+			}
+		}
+
+		return true;
+	};
+
+	CrocSDK.CustomHeaders.prototype.fromJsSipHeaders = function (headers) {
+		for (var name in headers) {
+			if (name.slice(0, 2).toUpperCase() === 'X-') {
+				// We only grab the first instance of a given header name
+				var value = headers[name][0].raw;
+				if (this.isValidCustomHeader(name, value)) {
+					this[name] = value;
+				} else {
+					console.warn('Ignored custom header:', name, value);
+				}
+			}
+		}
+	};
+
+	/**
+	 * Processes an array of "extra headers" as used by JsSIP.
+	 * @private
+	 */
+	CrocSDK.CustomHeaders.prototype.fromExtraHeaders = function (extraHeaders) {
+		for (var i = 0, len = extraHeaders.length; i < len; i++) {
+			var header = extraHeaders[i];
+			var match = header.match(/([^:]*)\s*:\s*(.*)/);
+			var name = match[1];
+			var value = match[2];
+			if (name.slice(0, 2).toUpperCase() === 'X-' &&
+					this.isValidCustomHeader(name, value)) {
+				this[name] = value;
+			}
+		}
+	};
+
+	/**
+	 * Produces an array of "extra headers" as used by JsSIP.
+	 * @returns {Array}
+	 * @private
+	 */
+	CrocSDK.CustomHeaders.prototype.toExtraHeaders = function () {
+		var extraHeaders = [];
+		var keys = Object.keys(this);
+		
+		for (var i = 0, len = keys.length; i < len; i++) {
+			var name = keys[i];
+			var value = this[name];
+			
+			if (this.isValidCustomHeader(name, value)) {
+				extraHeaders.push(name + ': ' + value);
+			} else {
+				console.warn('Ignored invalid custom header:', name, value);
+			}
+		}
+		
+		return extraHeaders;
+	};
+
+	CrocSDK.CustomHeaders.prototype.isEmpty = function () {
+		var keys = Object.keys(this);
+		return keys.length === 0;
+	};
+
+}(CrocSDK));
+
 (function(CrocSDK) {
 	/**
 	 * Send data to address via page mode.
@@ -30892,7 +33201,7 @@ var CrocSDK = {};
 
 			// Start with cached capabilities if we have them
 			session.capabilities = capabilityApi.getCapabilities(address);
-			session.customHeaders = sendConfig.customHeaders || {};
+			session.customHeaders = new CrocSDK.CustomHeaders(sendConfig.customHeaders);
 
 			if (!dataApi.checkSessionsIntervalId) {
 				dataApi.checkSessionsIntervalId = window.setInterval(function() {
@@ -31104,6 +33413,37 @@ var CrocSDK = {};
 	 * would be accessed as <code>crocObject.data.acceptTimeout</code>
 	 * </p>
 	 * 
+	 * <p>
+	 * An example using the Data API:
+	 *   <pre>
+	 *   <code>
+	 *   var crocObject = $.croc({
+	 *     apiKey: "API_KEY_GOES_HERE",
+	 *     onConnected: function () {
+	 *       // Some code
+	 *     },
+	 *     
+	 *     // Data API configuration
+	 *     data: {
+	 *       // Optional parameters
+	 *       acceptTimeout: 300,   // Incoming sessions will be rejected if not accepted within this time (seconds)
+	 *       idleTimeout: 300,     // Idle sessions will be closed if not reused within this time (seconds)
+	 *       
+	 *       // Optional event handlers
+	 *       onSession: function(event) {
+	 *         // Handle incoming session
+	 *       },
+	 *       onData: function(event) {
+	 *         // Handle incoming data (simple case, where SDK handles sessions)
+	 *       }
+	 *     }
+	 *   });
+	 *   
+	 *   var dataSession = crocObject.data.send(address, data, config);
+	 *   </code>
+	 *   </pre>
+	 * </p>
+	 * 
 	 * @constructor
 	 * @memberof CrocSDK
 	 * @param {CrocSDK.Croc} crocObject
@@ -31132,10 +33472,13 @@ var CrocSDK = {};
 	 * @fires CrocSDK.DataAPI#onData
 	 */
 	CrocSDK.DataAPI.prototype.init = function() {
-		var xmppCon = this.crocObject.xmppCon;
+		var croc = this.crocObject;
+		var xmppCon = croc.xmppCon;
 
-		// Handle SIP MESSAGE requests
-		this.crocObject.sipUA.on('newMessage', this._handleSipMessage.bind(this));
+		if (croc.features.indexOf(CrocSDK.C.FEATURES.PAGEDATA) >= 0) {
+			// Handle SIP MESSAGE requests
+			croc.sipUA.on('newMessage', this._handleSipMessage.bind(this));
+		}
 
 		if (xmppCon) {
 			// Process incoming XMPP message stanzas
@@ -31211,8 +33554,8 @@ var CrocSDK = {};
 			this.msrpDataSessions.push(session);
 
 			var fileTransferInfo = null;
-			if (mLine.attributes['file-selector']) {
-				var fileParams = CrocMSRP.Sdp.parseFileAttributes(mLine);
+			var fileParams = mLine.parseFileAttributes();
+			if (fileParams) {
 				fileTransferInfo = {
 					name : fileParams.selector.name,
 					description : fileParams.description,
@@ -31224,7 +33567,7 @@ var CrocSDK = {};
 			// We're happy with the SDP, send provisional response now
 			sdpValid();
 
-			if (!session.customHeaders && !fileTransferInfo) {
+			if (session.customHeaders.isEmpty() && !fileTransferInfo) {
 				// Add it as a reusable session for this address
 				this.reusableMsrpDataSessions[session.address] = session;
 			}
@@ -31269,7 +33612,7 @@ var CrocSDK = {};
 
 			// Set the new session properties
 			dataSession.capabilities = caps;
-			dataSession.customHeaders = CrocSDK.Util.getCustomHeaders(request);
+			dataSession.customHeaders = new CrocSDK.CustomHeaders(request);
 			dataSession.displayName = displayName;
 
 			if (!this.checkSessionsIntervalId) {
@@ -31306,7 +33649,7 @@ var CrocSDK = {};
 		} else {
 			// Update session properties
 			dataSession.capabilities = caps;
-			dataSession.customHeaders = CrocSDK.Util.getCustomHeaders(request);
+			dataSession.customHeaders = new CrocSDK.CustomHeaders(request);
 			dataSession.displayName = displayName;
 		}
 
@@ -31605,7 +33948,7 @@ var CrocSDK = {};
 	 * {@link CrocSDK.MsrpDataSession~DataSession#send DataSession.send()} as it
 	 * is only relevant when establishing new sessions/transfers.
 	 * </p>
-	 * @property {CrocSDK.DataAPI~CustomHeaders} customHeaders
+	 * @property {CrocSDK~CustomHeaders} customHeaders
 	 *           <p>
 	 *           This enables the web-app to specify custom headers that will be
 	 *           included in the session creation request. The key names
@@ -31704,37 +34047,6 @@ var CrocSDK = {};
 	 */
 
 	/**
-	 * <p>
-	 * The {@link CrocSDK.DataAPI~CustomHeaders CustomHeaders} object can be used 
-	 * to define headers to send in an outbound session request. Likewise, if any 
-	 * custom headers are found in an inbound session request, these are available
-	 * to the application in the same format.
-	 * </p>
-	 * 
-	 * <p>
-	 * There are no prescribed properties on a 
-	 * {@link CrocSDK.DataAPI~CustomHeaders CustomHeaders} object. Each
-	 * property name that exists in the object will be mapped to a header name
-	 * in the request, and each property value will be used as the associated
-	 * header value.
-	 * </p>
-	 * 
-	 * All custom header keys <b><i>MUST</i></b> start with &#34;X-&#34;.
-	 * Keys that do not start &#34;X-&#34; will be ignored.
-	 * 
-	 * When specifying custom headers to send, the header name can be provided
-	 * with any chosen capitalisation, as long as it only uses valid characters
-	 * (sticking to alphanumeric characters and dashes is recommended). However,
-	 * the names of received custom headers are always provided in a specific
-	 * format: with only the first character, and the first character following
-	 * a dash, in uppercase. For instance, a header sent as
-	 * &#34;x-lowercase&#34; will be received as &#34;X-Lowercase&#34;.
-	 * 
-	 * @memberof CrocSDK.DataAPI
-	 * @typedef CrocSDK.DataAPI~CustomHeaders
-	 */
-
-	/**
 	 * All of these properties will be <code>null</code> if not provided.
 	 * 
 	 * @memberof CrocSDK.DataAPI
@@ -31749,28 +34061,40 @@ var CrocSDK = {};
 (function(CrocSDK) {
 
 	/**
-	 * @constructor
+	 * @namespace
 	 */
 	CrocSDK.Exceptions = {};
+
+	/**
+	 * Base exception object.
+	 * @constructor Error
+	 * @property {String} name
+	 * The exception name.
+	 * @property {String} message
+	 * The message provided when the exception was created.
+	 * @property {String} stack
+	 * The execution stack at the time the exception was created.
+	 */
 
 	/**
 	 * This exception indicates that a parameter supplied to a method had an
 	 * unexpected value.
 	 * 
-	 * @function CrocSDK.Exceptions#ValueError
-	 * @param {String}
-	 *            [message] The message to display.
+	 * @constructor
+	 * @alias CrocSDK.Exceptions.ValueError
+	 * @extends Error
+	 * @param {String} [message] The message to display.
 	 */
-	CrocSDK.Exceptions.ValueError = function(message) {
+	var ValueError = function(message) {
 		var err = new Error();
 		if (err.stack) {
 			this.stack = err.stack;
 		}
 		this.message = message || "Unexpected value error";
 	};
-	CrocSDK.Exceptions.ValueError.prototype = new Error();
-	CrocSDK.Exceptions.ValueError.prototype.constructor = CrocSDK.Exceptions.ValueError;
-	CrocSDK.Exceptions.ValueError.prototype.name = 'ValueError';
+	ValueError.prototype = new Error();
+	ValueError.prototype.constructor = ValueError;
+	ValueError.prototype.name = 'ValueError';
 
 	/**
 	 * This exception indicates that a method was called at an inappropriate
@@ -31779,30 +34103,403 @@ var CrocSDK = {};
 	 * inbound session has already been accepted would result in this exception
 	 * being raised.
 	 * 
-	 * @function CrocSDK.Exceptions#StateError
-	 * @param {String}
-	 *            [message] The message to display.
+	 * @constructor
+	 * @alias CrocSDK.Exceptions.StateError
+	 * @extends Error
+	 * @param {String} [message] The message to display.
 	 */
-	CrocSDK.Exceptions.StateError = function(message) {
+	var StateError = function(message) {
 		var err = new Error();
 		if (err.stack) {
 			this.stack = err.stack;
 		}
 		this.message = message || "Unexpected state error";
 	};
-	CrocSDK.Exceptions.StateError.prototype = new Error();
-	CrocSDK.Exceptions.StateError.prototype.constructor = CrocSDK.Exceptions.StateError;
-	CrocSDK.Exceptions.StateError.prototype.name = 'StateError';
+	StateError.prototype = new Error();
+	StateError.prototype.constructor = StateError;
+	StateError.prototype.name = 'StateError';
 
 	/**
 	 * This exception indicates that the Crocodile RTC JavaScript Library
 	 * versions of the local and remote parties do not match.
 	 * 
-	 * @function CrocSDK.Exceptions#VersionError
-	 * @param {String}
-	 *            [message] The message to display.
+	 * @constructor
+	 * @alias CrocSDK.Exceptions.VersionError
+	 * @extends Error
+	 * @param {String} [message] The message to display.
 	 */
+	var VersionError = function(message) {
+		var err = new Error();
+		if (err.stack) {
+			this.stack = err.stack;
+		}
+		this.message = message || "Version error";
+	};
+	VersionError.prototype = new Error();
+	VersionError.prototype.constructor = VersionError;
+	VersionError.prototype.name = 'VersionError';
+
+	/**
+	 * This exception indicates that a method was called at an inappropriate
+	 * time. For example, calling the <code>accept()</code> method on a
+	 * {@link CrocSDK.MsrpDataSession DataSession} object where the
+	 * inbound session has already been accepted would result in this exception
+	 * being raised.
+	 * 
+	 * @constructor
+	 * @alias CrocSDK.Exceptions.UnsupportedError
+	 * @extends Error
+	 * @param {String} [message] The message to display.
+	 */
+	var UnsupportedError = function(message) {
+		var err = new Error();
+		if (err.stack) {
+			this.stack = err.stack;
+		}
+		this.message = message || "Unsupported error";
+	};
+	UnsupportedError.prototype = new Error();
+	UnsupportedError.prototype.constructor = UnsupportedError;
+	UnsupportedError.prototype.name = 'UnsupportedError';
+
+	CrocSDK.Exceptions.ValueError = ValueError;
+	CrocSDK.Exceptions.StateError = StateError;
+	CrocSDK.Exceptions.VersionError = VersionError;
+	CrocSDK.Exceptions.UnsupportedError = UnsupportedError;
 }(CrocSDK));
+
+(function(CrocSDK) {
+	/**
+	 * The media features of the Crocodile RTC JavaScript Library allow a
+	 * web-app to exchange media (for example, audio or video streams) with
+	 * other instances connected to the Crocodile RTC Network.
+	 * <p>
+	 * Once the {@link CrocSDK.Croc Croc} Object is instantiated it will contain
+	 * an instance of the {@link CrocSDK.MediaAPI Media} object named
+	 * <code>media</code>.
+	 * <p>
+	 * For example, given a {@link CrocSDK.Croc Croc} Object named
+	 * <code>crocObject</code> the <code>Media.connect</code> method would
+	 * be accessed as <code>crocObject.media.connect</code>.
+	 * <p>
+	 * An example using the Media API: 
+	 *   <pre>
+	 *   <code>
+	 *   // Basic API configuration
+	 *   var crocObject = $.croc({
+	 *     apiKey: "API_KEY_GOES_HERE",
+	 *     onConnected: function () {
+	 *       // Some code
+	 *     },
+	 *   
+	 *     // Media API configuration
+	 *     media: {
+	 *       // Optional parameters (with default values)
+	 *       acceptTimeout: 30,
+	 *   
+	 *       // Optional event handlers
+	 *       onSession: function(event) {
+	 *         // Handle new incoming session
+	 *       }
+	 *     }
+	 *   });
+	 *   
+	 *   // Basic audio session set-up example
+	 *   function startCall(address) {
+	 *     var session = crocObject.media.connect(address);
+	 *     session.remoteAudioElement = $('#audio');
+	 *     session.onProvisional = function (event) {
+	 *     $('#state').html('Ringing');
+	 *     };
+	 *     session.onConnect = function (event) {
+	 *       $('#state').html('Connected');
+	 *     };
+	 *     session.onClose = function (event) {
+	 *       $('#state').html('Disconnected');
+	 *     };
+	 *   }
+	 *   </code>
+	 *   </pre>
+	 * 
+	 * @constructor
+	 * @alias CrocSDK.MediaAPI
+	 * @param {CrocSDK.Croc} crocObject - The parent {@link CrocSDK.Croc Croc}
+	 * object.
+	 * @param {CrocSDK~Config} config - The Croc object configuration.
+	 */
+	var MediaAPI = function(crocObject, config) {
+		this.crocObject = crocObject;
+		this.mediaSessions = [];
+		config.jQuery.extend(this, config.media);
+	};
+
+	MediaAPI.prototype.init = function() {
+		var croc = this.crocObject;
+		if (croc.features.indexOf(CrocSDK.C.FEATURES.TRANSFER) >= 0) {
+			croc.sipUA.on('newRefer', this._handleRefer.bind(this));
+		}
+	};
+
+	/**
+	 * Process an incoming request to establish a media session.
+	 * 
+	 * @private
+	 * @param sipSession
+	 * @param sipRequest
+	 * @param sdp
+	 * @param sdpValid
+	 * @param sdpInvalid
+	 * @fires onMediaSession
+	 */
+	MediaAPI.prototype.init_incoming = function(sipSession, sipRequest,
+			sdp, sdpValid, sdpInvalid) {
+		if (this.hasOwnProperty('onMediaSession')) {
+			var mediaApi = this;
+			var crocObject = this.crocObject;
+			var capabilityApi = crocObject.capability;
+			var address = sipSession.remote_identity.uri.toAor().replace(
+					/^sip:/, '');
+			var mediaSession = new CrocSDK.MediaSession(this, sipSession, address);
+
+			// Process the sdp offer - this should kick off the ICE agent
+			var onSuccess = function() {
+				console.log('Remote offer set');
+				sdpValid();
+
+				CrocSDK.Util.fireEvent(mediaApi, 'onMediaSession', {
+					session : mediaSession
+				});
+			};
+			var onFailure = function(error) {
+				console.warn('setRemoteDescription failed:', error);
+				sdpInvalid();
+				mediaSession.close();
+			};
+			mediaSession._handleInitialInvite(sipRequest.body, sdp, onSuccess, onFailure);
+
+			// Set MediaSession properties
+			mediaSession.displayName = sipSession.remote_identity.display_name;
+			mediaSession.customHeaders = new CrocSDK.CustomHeaders(sipRequest);
+			// Process remote capabilities
+			var parsedContactHeader = sipRequest.parseHeader('contact', 0);
+			mediaSession.capabilities = capabilityApi
+					.parseFeatureTags(parsedContactHeader.parameters);
+
+			this.mediaSessions.push(mediaSession);
+
+			if (crocObject.requireMatchingVersion && (mediaSession.capabilities['croc.sdkversion'] !== crocObject.capabilities['croc.sdkversion'])) {
+				console.log('Remote client SDK version does not match');
+				sdpInvalid();
+				mediaSession.close();
+			}
+		} else {
+			// If this handler is not defined, we reject incoming data sessions
+			sdpInvalid();
+		}
+	};
+
+	/**
+	 * @private
+	 */
+	MediaAPI.prototype._updateIceServers = function() {
+		var croc = this.crocObject;
+		var iceServers = croc.iceServers;
+		if (croc.dynamicIceServers) {
+			// Put the managed TURN servers first in the list, but still include
+			// any other configured STUN/TURN servers.
+			iceServers = croc.dynamicIceServers.concat(iceServers);
+		}
+
+		for ( var i = 0, len = this.mediaSessions.length; i < len; i++) {
+			this.mediaSessions[i]._updateIceServers(iceServers);
+		}
+	};
+
+	/**
+	 * Handles the JsSIP <code>newRefer</code> event.
+	 * @private
+	 * @param {Object} event - The JsSIP event object.
+	 */
+	MediaAPI.prototype._handleRefer = function(event) {
+		var data = event.data;
+		if (data.originator !== 'remote') {
+			return;
+		}
+
+		// Check the refer had a known target session
+		var referredSession = data.session;
+		if (!referredSession) {
+			data.refer.reject({
+				status_code: 403,
+				reason_phrase: 'Missing Target-Session Header'
+			});
+			return;
+		}
+
+		// Check that the refer is to a SIP URI
+		if (data.refer.refer_uri.scheme !== JsSIP.C.SIP) {
+			data.refer.reject({
+				status_code: 416,
+				reason_phrase: 'Unsupported Refer URI Scheme'
+			});
+		}
+
+		// Find the target session
+		var mediaSessions = this.mediaSessions;
+		var mediaSession = null;
+		for (var idx = 0, len = mediaSessions.length; idx < len; idx++) {
+			mediaSession = mediaSessions[idx];
+			if (mediaSession.sipSession === referredSession) {
+				mediaSession._handleRefer(data.refer);
+				return;
+			}
+		}
+
+		// Could not find the target session
+		data.refer.reject({
+			status_code: 481,
+			reason_phrase: 'Target Session Does Not Exist'
+		});
+	};
+
+	/*
+	 * Public methods
+	 */
+
+	/**
+	 * Initiate a media session to <code>address</code>. Defaults to a
+	 * bi-directional audio session unless specified otherwise using the
+	 * <code>config</code> parameter.
+	 * <p>
+	 * Returns a {@link CrocSDK.MediaAPI~MediaSession MediaSession} object which
+	 * the required event handlers should be registered with immediately to
+	 * avoid missing events.
+	 * 
+	 * @param {String} address - The target address for the media session.
+	 * @param {CrocSDK.MediaAPI~ConnectConfig} [connectConfig]
+	 * Optional configuration properties.
+	 * @returns CrocSDK.MediaAPI~MediaSession
+	 * @throws {TypeError}
+	 * @throws {CrocSDK.Exceptions#ValueError}
+	 * @throws {CrocSDK.Exceptions#VersionError}
+	 * @throws {CrocSDK.Exceptions#StateError}
+	 */
+	MediaAPI.prototype.connect = function(address, connectConfig) {
+		var crocObject = this.crocObject;
+		var capabilityApi = crocObject.capability;
+		var sipSession = new JsSIP.RTCSession(crocObject.sipUA);
+		var watchData = capabilityApi.getWatchData(address);
+
+		if (!connectConfig) {
+			connectConfig = {};
+		}
+
+		var constraints = connectConfig.constraints || null;
+
+		// Force DTLS-SRTP if Chrome is calling Firefox.
+		// We don't turn this on by default to avoid problems with Asterisk.
+		if (watchData) {
+			if (/Chrome/.test(navigator.userAgent) &&
+					/Firefox/.test(watchData.userAgent)) {
+				if (!constraints) {
+					constraints = {};
+				}
+				if (!constraints.optional) {
+					constraints.optional = [];
+				}
+				constraints.optional.push({DtlsSrtpKeyAgreement: true});
+				console.log('Enabling DTLS for Firefox compatibility');
+			}
+		}
+
+		var mediaSession = new CrocSDK.MediaSession(this, sipSession, address, constraints);
+
+		// Set MediaSession properties
+		mediaSession.customHeaders = new CrocSDK.CustomHeaders(connectConfig.customHeaders);
+		// Start with cached capabilities if we have them
+		mediaSession.capabilities = watchData ? watchData.capabilities : null;
+		mediaSession.streamConfig = connectConfig.streamConfig || new CrocSDK.StreamConfig();
+
+		mediaSession._connect();
+
+		this.mediaSessions.push(mediaSession);
+		return mediaSession;
+	};
+
+	/**
+	 * Closes all current media sessions.
+	 */
+	MediaAPI.prototype.close = function() {
+		for ( var i = 0, len = this.mediaSessions.length; i < len; i++) {
+			this.mediaSessions[i].close();
+		}
+	};
+
+	/* Further Documentation in JSDoc */
+
+	// Documented Type Definitions
+
+	/**
+	 * @typedef CrocSDK.MediaAPI~ConnectConfig
+	 * @property {CrocSDK~CustomHeaders} customHeaders
+	 * Custom headers that to include in the session creation request.
+	 * <p>
+	 * These custom headers will be available to the local and remote party in
+	 * the
+	 * {@link CrocSDK.MediaAPI~MediaSession#customHeaders MediaSession.customHeaders}
+	 * property and to the remote party in the
+	 * {@link CrocSDK.MediaAPI~MediaSession~OnRenegotiateRequestEvent OnRenegotiateRequestEvent.customHeaders}
+	 * property during session renegotiation.
+	 * @property {CrocSDK.MediaAPI~StreamConfig} streamConfig The media stream
+	 *           configuration.
+	 */
+
+	/**
+	 * @typedef CrocSDK.MediaAPI~StreamConfig
+	 * @property {CrocSDK.MediaAPI~StreamDirections} audio The audio stream
+	 * configuration. Set to <code>null</code> if there is no audio stream in
+	 * the session.
+	 * @property {CrocSDK.MediaAPI~StreamDirections} video The video stream
+	 * configuration. Set to <code>null</code> if there is no video stream in
+	 * the session.
+	 */
+
+	/**
+	 * @typedef CrocSDK.MediaAPI~StreamDirections
+	 * @property {Boolean} send Set to <code>true</code> if the stream is
+	 *           outbound-only or bi-directional.
+	 * @property {Boolean} receive Set to <code>true</code> if the stream is
+	 *           inbound-only or bi-directional.
+	 */
+
+	/**
+	 * @typedef CrocSDK.MediaAPI~MediaSessionEvent
+	 * @property {CrocSDK.MediaAPI~MediaSession} session
+	 * The MediaSession object representing the inbound session.
+	 */
+
+	// Documented Events
+
+	/**
+	 * Dispatched when Crocodile RTC JavaScript Library receives a request 
+	 * for a new session from another party on the Crocodile RTC Network.
+	 * <p>
+	 * An instance of Crocodile RTC JavaScript Library cannot receive inbound
+	 * sessions unless the <code>register</code> property was set to
+	 * <code>true</code> when the {@link CrocSDK.Croc Croc} Object was
+	 * instantiated.
+	 * <p>
+	 * If this event is not handled the Crocodile RTC JavaScript Library will
+	 * automatically reject inbound sessions.
+	 * 
+	 * @event CrocSDK.MediaAPI#onMediaSession
+	 * @param {CrocSDK.MediaAPI~MediaSessionEvent}
+	 * [event] The event object associated with this event.
+	 */
+
+	CrocSDK.MediaAPI = MediaAPI;
+}(CrocSDK));
+
 (function(CrocSDK) {
 	var mediaSessionState = {
 		PENDING : 'pending',
@@ -31810,65 +34507,8 @@ var CrocSDK = {};
 		CLOSED : 'closed'
 	};
 
-	var allowedMediaTypes = [ 'audio', 'video' ];
-	var defaultStreamConfig = {
-		audio : {
-			send : true,
-			receive : true
-		}
-	};
-
-	/**
-	 * Gets the local stream and adds it to the RTCPeerConnection.
-	 * 
-	 * @private
-	 * @param mediaSession
-	 * @param onSuccess
-	 */
-	function getUserMedia(mediaSession, onSuccess) {
-		var sc = mediaSession.streamConfig;
-		var constraints = {
-			audio : !!sc.audio && sc.audio.send,
-			video : !!sc.video && sc.video.send
-		};
-		// Undocumented screen capture feature, only works in Chrome
-		if (constraints.video && sc.source === 'screen') {
-			constraints.video = {mandatory: {chromeMediaSource: 'screen'}};
-		}
-		var mediaSuccess = function(stream) {
-			if (mediaSession.state === mediaSessionState.CLOSED) {
-				// Oops, too late
-				stream.stop();
-				return;
-			}
-
-			console.log('Got local media stream');
-			mediaSession.localStream = stream;
-			mediaSession.peerConnection.addStream(stream);
-			if (constraints.video && mediaSession.localVideoElement) {
-				mediaSession.localVideoElement.src = window.URL.createObjectURL(stream);
-				mediaSession.localVideoElement.muted = true;
-			}
-			onSuccess();
-		};
-		var mediaFailure = function(error) {
-			console.warn('getUserMedia failed:', error);
-			mediaSession.close();
-		};
-
-		if (!constraints.audio && !constraints.video) {
-			// We don't need any media, but make sure calling function
-			// finishes before calling onSuccess.
-			setTimeout(function() {
-				onSuccess();
-			}, 0);
-		} else {
-			JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
-		}
-	}
-
 	function fixLocalDescription(sessionDescription, streamConfig) {
-		var parsedSdp = new CrocMSRP.Sdp.Session(sessionDescription.sdp);
+		var parsedSdp = new CrocSDK.Sdp.Session(sessionDescription.sdp);
 		var directions = [ 'sendrecv', 'sendonly', 'recvonly', 'inactive' ];
 		var oldDirection, newDirection;
 		var sdpChanged = false;
@@ -31923,115 +34563,6 @@ var CrocSDK = {};
 		}
 	}
 
-	/**
-	 * Performs the steps needed to create a complete SDP offer: Request offer
-	 * from RTCPeerConnection describing our current streams. Set offer as the
-	 * local description (unmodified). Waits for ICE candidate collection to
-	 * complete. Runs callback with completed offer.
-	 * 
-	 * @private
-	 * @param mediaSession
-	 *            The MediaSession object for which we are creating an offer.
-	 * @param onSuccess
-	 *            Callback to execute when the SDP offer is complete.
-	 */
-	function createOffer(mediaSession, onSuccess) {
-		var pc = mediaSession.peerConnection;
-
-		var setLocalSuccess = function() {
-			console.log('Local description set, ice gathering state:', pc.iceGatheringState);
-			// Local description set, now wait for ICE completion
-			if (pc.iceGatheringState === 'complete') {
-				onSuccess();
-			} else {
-				awaitIceCompletion(pc, onSuccess);
-			}
-		};
-		var setLocalFailure = function(error) {
-			console.warn('setLocalDescription failed:', error);
-			mediaSession.close();
-		};
-		var offerSuccess = function(sessionDescription) {
-			console.log('Offer created');
-			// We've got a template offer, set it as the local description
-			fixLocalDescription(sessionDescription, mediaSession.streamConfig);
-			pc.setLocalDescription(sessionDescription, setLocalSuccess, setLocalFailure);
-		};
-		var offerFailure = function(error) {
-			console.warn('createOffer failed:', error);
-			mediaSession.close();
-		};
-		var sc = mediaSession.streamConfig;
-
-		// These constraints can add m-lines for streams that we have not added
-		// to the PeerConnection, in case we want to receive but not send.
-		// However, they do not seem to change added streams to sendonly when
-		// set to false, so we have to mess with the SDP ourselves.
-		var constraints = {
-			mandatory : {
-				OfferToReceiveAudio : !!sc.audio && sc.audio.receive,
-				OfferToReceiveVideo : !!sc.video && sc.video.receive
-			}
-		};
-
-		// Start by requesting an offer
-		pc.createOffer(offerSuccess, offerFailure, constraints);
-	}
-
-	/**
-	 * Performs the steps needed to create a complete SDP answer: Request answer
-	 * from RTCPeerConnection describing our current streams. Set answer as the
-	 * local description (unmodified). Waits for ICE candidate collection to
-	 * complete. Runs callback with completed answer.
-	 * 
-	 * @private
-	 * @param mediaSession
-	 *            The MediaSession object for which we are creating an answer.
-	 * @param onSuccess
-	 *            Callback to execute when the SDP answer is complete.
-	 */
-	function createAnswer(mediaSession, onSuccess) {
-		var pc = mediaSession.peerConnection;
-
-		var setLocalSuccess = function() {
-			console.log('Local description set, ice gathering state:',
-					pc.iceGatheringState);
-			// Local description set, now wait for ICE completion
-			if (pc.iceGatheringState === 'complete') {
-				onSuccess();
-			} else {
-				awaitIceCompletion(pc, onSuccess);
-			}
-		};
-		var setLocalFailure = function(error) {
-			console.warn('setLocalDescription failed:', error);
-			mediaSession.close();
-		};
-		var answerSuccess = function(sessionDescription) {
-			console.log('Answer created');
-			// We've got a template answer, set it as the local description
-			fixLocalDescription(sessionDescription, mediaSession.streamConfig);
-			pc.setLocalDescription(sessionDescription, setLocalSuccess, setLocalFailure);
-		};
-		var answerFailure = function(error) {
-			console.warn('createOffer failed:', error);
-			mediaSession.close();
-		};
-		var sc = mediaSession.streamConfig;
-
-		// I don't think these are effective when creating an answer - we have
-		// to mess with the SDP ourselves.
-		var constraints = {
-			'mandatory' : {
-				'OfferToReceiveAudio' : !!sc.audio && sc.audio.receive,
-				'OfferToReceiveVideo' : !!sc.video && sc.video.receive
-			}
-		};
-
-		// Start by requesting an offer
-		pc.createAnswer(answerSuccess, answerFailure, constraints);
-	}
-
 	function awaitIceCompletion(pc, onComplete) {
 		// Firefox 20 never calls this - ICE completion is done before
 		// createOffer/createAnswer returns. Chrome 26-28 don't call
@@ -32076,72 +34607,6 @@ var CrocSDK = {};
 				}
 			}
 		};
-	}
-
-	function addSipHandlers(mediaSession) {
-		var sipSession = mediaSession.sipSession;
-
-		sipSession.on('progress', function() {
-			CrocSDK.Util.fireEvent(mediaSession, 'onProvisional', {});
-		});
-		sipSession.on('started', function(event) {
-			mediaSession.state = mediaSessionState.ESTABLISHED;
-
-			if (event.data.response) {
-				// We've got the response to an outgoing session
-				// Make sure we haven't already provided an
-				// answer (retransmissions)
-				if (mediaSession.peerConnection.signalingState === 'have-local-offer') {
-					var eventData = event.data;
-
-					var onSuccess = function() {
-						console.log('Remote answer set');
-						CrocSDK.Util.fireEvent(mediaSession, 'onConnect', {});
-						setRemoteStreamOutput(mediaSession);
-					};
-					var onFailure = function(error) {
-						console.warn('setRemoteDescription failed:', error);
-						mediaSession.sipSession.terminate({
-							status_code: 488
-						});
-						// SIP session has already ended
-						mediaSession.sipSession = null;
-						// Clean up everything else, then notify app
-						mediaSession.close();
-					};
-					var sdp = eventData.response.body;
-
-					console.log('Setting remote description');
-					// Update session streamConfig based on the
-					// answer
-					mediaSession.streamConfig = streamConfigFromSdp(
-							new CrocMSRP.Sdp.Session(sdp));
-					var description = new JsSIP.WebRTC.RTCSessionDescription({
-						type : 'answer',
-						sdp : sdp
-					});
-					mediaSession.peerConnection.setRemoteDescription(
-							description, onSuccess, onFailure);
-				}
-			}
-		});
-		sipSession.on('ended', function(event) {
-			var edata = event.data;
-			if (edata.originator !== 'local') {
-				var status = CrocSDK.Util.jsSipCauseToSdkStatus(edata.cause);
-				// SIP session has already ended
-				mediaSession.sipSession = null;
-				// Clean up everything else, then notify app
-				mediaSession.close(status);
-			}
-		});
-		sipSession.on('failed', function(event) {
-			var status = CrocSDK.Util.jsSipCauseToSdkStatus(event.data.cause);
-			// SIP session has already ended
-			mediaSession.sipSession = null;
-			// Clean up everything else, then notify app
-			mediaSession.close(status);
-		});
 	}
 
 	function configureRemoteMediaDetection(mediaSession) {
@@ -32190,26 +34655,7 @@ var CrocSDK = {};
 		};
 	}
 
-	function setRemoteStreamOutput(mediaSession) {
-		var stream = mediaSession.peerConnection.getRemoteStreams()[0];
-
-		if (mediaSession.remoteVideoElement) {
-			mediaSession.remoteVideoElement.src = window.URL.createObjectURL(stream);
-		} else if (mediaSession.remoteAudioElement) {
-			mediaSession.remoteAudioElement.src = window.URL.createObjectURL(stream);
-		}
-	}
-
 	function configurePeerConnectionDebug(pc) {
-		if ('onnegotiationneeded' in pc) {
-			pc.onnegotiationneeded = function() {
-				console.log('PC: negotiation needed');
-			};
-		}
-		pc.onicecandidate = function(e) {
-			console.log('PC: new ICE candidate:', e.candidate, this.iceGatheringState);
-		};
-
 		var onSigStateChange = function() {
 			console.log('PC: signalling state change:', this.signalingState);
 		};
@@ -32235,89 +34681,25 @@ var CrocSDK = {};
 		}
 	}
 
-	function streamConfigFromSdp(sdp) {
-		var streamConfig = {};
-
-		for ( var i = 0, len = sdp.media.length; i < len; i++) {
-			var mLine = sdp.media[i];
-			for ( var index in allowedMediaTypes) {
-				var type = allowedMediaTypes[index];
-				if (mLine.media === type && mLine.port !== 0) {
-					// Remember that our send/receive settings are the inverse
-					// of what we receive in the SDP offer.
-					if ('sendrecv' in mLine.attributes) {
-						streamConfig[type] = {
-							send : true,
-							receive : true
-						};
-					} else if ('sendonly' in mLine.attributes) {
-						streamConfig[type] = {
-							send : false,
-							receive : true
-						};
-					} else if ('recvonly' in mLine.attributes) {
-						streamConfig[type] = {
-							send : true,
-							receive : false
-						};
-					} else if ('inactive' in mLine.attributes) {
-						streamConfig[type] = {
-							send : false,
-							receive : false
-						};
-					} else {
-						// Defaults to sendrecv (assuming we're not
-						// conferencing)
-						streamConfig[type] = {
-							send : true,
-							receive : true
-						};
-					}
-				}
-			}
-		}
-
-		return streamConfig;
-	}
-
 	/**
-	 * MediaSession object constructor. Though the constructor is private, the
-	 * resulting object is exposed publicly.
-	 * 
-	 * @constructor
-	 * @classdesc Represents a MediaSession Object.
-	 * @memberof CrocSDK.MediaAPI
-	 * @inner
-	 * @private
-	 * @param mediaApi
-	 * @param sipSession
-	 * @param address
-	 */
-	/**
-	 * <p>
-	 * {@link CrocSDK.MediaAPI~MediaSession MediaSession} objects allow control
-	 * and monitoring of media sessions with other instances of Crocodile RTC
-	 * JavaScript Library.
-	 * </p>
-	 * 
+	 * MediaSession objects allow control and monitoring of media sessions with
+	 * other instances of the Crocodile RTC JavaScript Library, or other SIP
+	 * clients on the Crocodile network.
 	 * <p>
 	 * Instances of this object are provided as the return value of the
 	 * {@link CrocSDK.MediaAPI#connect Media.connect()} method, the
 	 * {@link CrocSDK.MediaAPI~MediaSession#acceptTransfer MediaSession.acceptTransfer()}
 	 * method, and are also contained within the
-	 * {@link CrocSDK.MediaAPI~OnMediaSessionEvent OnMediaSessionEvent} object
+	 * {@link CrocSDK.MediaAPI~MediaSessionEvent MediaSessionEvent} object
 	 * provided as an argument to the the
 	 * {@link CrocSDK.MediaAPI#event:onMediaSession Media.onMediaSession} event
 	 * handler.
-	 * </p>
 	 * 
 	 * @constructor
-	 * @classdesc Represents a MediaSession Object.
-	 * @memberof CrocSDK.MediaAPI
-	 * @inner
-	 * @type {CrocSDK.MediaAPI~MediaSession}
+	 * @alias CrocSDK.MediaAPI~MediaSession
+	 * @classdesc Represents a media session with a remote party.
 	 */
-	function MediaSession(mediaApi, sipSession, address) {
+	var MediaSession = function(mediaApi, sipSession, address, constraints) {
 		var croc = mediaApi.crocObject;
 		var iceServers = croc.iceServers;
 		if (croc.dynamicIceServers) {
@@ -32333,11 +34715,18 @@ var CrocSDK = {};
 		this.state = mediaSessionState.PENDING;
 		this.peerConnection = new JsSIP.WebRTC.RTCPeerConnection({
 			iceServers : iceServers
-		}//, {mandatory: {DtlsSrtpKeyAgreement: true}}
-		);
+		}, constraints);
 		this.localStream = null;
+		this.oldLocalStream = null;
 		this.remoteMediaReceived = false;
 		this.accepted = false;
+		this.offerOutstanding = false;
+		this.remoteHold = false;
+		this.remoteHoldStreams = null;
+		this.localHold = false;
+		this.localHoldStreams = null;
+		this.dtmfSender = null;
+		this.transferFeedback = null;
 
 		// Public properties
 		/**
@@ -32359,24 +34748,18 @@ var CrocSDK = {};
 		 */
 		this.displayName = null;
 		/**
-		 * <p>
 		 * Any custom headers provided during session initiation.
-		 * </p>
-		 * 
 		 * <p>
 		 * For inbound sessions these are provided by the remote party and for
 		 * outbound sessions these are specified in the
 		 * {@link CrocSDK.MediaAPI~ConnectConfig ConnectConfig} object used as a
 		 * parameter to the {@link CrocSDK.MediaAPI#connect Media.connect()}
 		 * method.
-		 * </p>
-		 * 
 		 * <p>
 		 * The header names are used as the key names in this object and the
 		 * header contents are mapped to the key values.
-		 * </p>
 		 * 
-		 * @type {CrocSDK.DataAPI~CustomHeaders}
+		 * @type {CrocSDK~CustomHeaders}
 		 */
 		this.customHeaders = null;
 		/**
@@ -32420,7 +34803,212 @@ var CrocSDK = {};
 
 		configureRemoteMediaDetection(this);
 		configurePeerConnectionDebug(this.peerConnection);
-	}
+		this.peerConnection.onnegotiationneeded = this._handleNegotiationNeeded.bind(this);
+
+		// Configure JsSIP event handlers
+		var mediaSession = this;
+		sipSession.on('progress', function() {
+			CrocSDK.Util.fireEvent(mediaSession, 'onProvisional', {});
+		});
+		sipSession.on('started', this._handleStarted.bind(this));
+		sipSession.on('ended', function(event) {
+			var edata = event.data;
+			if (edata.originator !== 'local') {
+				var status = CrocSDK.Util.jsSipCauseToSdkStatus(edata.cause);
+				// SIP session has already ended
+				mediaSession.sipSession = null;
+				// Clean up everything else, then notify app
+				mediaSession.close(status);
+			}
+		});
+		sipSession.on('failed', function(event) {
+			var status = CrocSDK.Util.jsSipCauseToSdkStatus(event.data.cause);
+			// SIP session has already ended
+			mediaSession.sipSession = null;
+			// Clean up everything else, then notify app
+			mediaSession.close(status);
+		});
+		sipSession.on('reinvite', this._handleReinvite.bind(this));
+		sipSession.on('refresh', this._handleRefresh.bind(this));
+	};
+
+	/**
+	 * Gets the local stream and adds it to the RTCPeerConnection.
+	 * 
+	 * @private
+	 * @param streamConfig
+	 * @param onSuccess
+	 * @returns <code>true</code> if local user media has been requested
+	 * <code>false</code> if we already have (or don't need) local user media
+	 */
+	MediaSession.prototype._getUserMedia = function(streamConfig, onSuccess) {
+		var mediaSession = this;
+		var sc = streamConfig || this.streamConfig;
+		var constraints = {
+			audio : !!sc.audio && sc.audio.send,
+			video : !!sc.video && sc.video.send
+		};
+		// Undocumented screen capture feature, only works in Chrome
+		if (constraints.video && sc.source === 'screen') {
+			constraints.video = {mandatory: {chromeMediaSource: 'screen'}};
+		}
+		var mediaSuccess = function(stream) {
+			var oldStream = mediaSession.localStream;
+
+			if (mediaSession.state === mediaSessionState.CLOSED) {
+				// Oops, too late
+				stream.stop();
+				return;
+			}
+
+			console.log('Got local media stream');
+			if (oldStream) {
+				mediaSession.oldLocalStream = oldStream;
+				mediaSession.peerConnection.removeStream(oldStream);
+			}
+			mediaSession.localStream = stream;
+			mediaSession.peerConnection.addStream(stream);
+			if (constraints.video && mediaSession.localVideoElement) {
+				mediaSession.localVideoElement.src = window.URL.createObjectURL(stream);
+				mediaSession.localVideoElement.muted = true;
+			}
+			if (onSuccess) {
+				onSuccess();
+			}
+		};
+		var mediaFailure = function(error) {
+			console.warn('getUserMedia failed:', error);
+			mediaSession.close();
+		};
+
+		if (!constraints.audio && !constraints.video) {
+			// We don't need any media, but make sure calling function
+			// finishes before calling onSuccess.
+			if (onSuccess) {
+				setTimeout(function() {
+					onSuccess();
+				}, 0);
+			}
+			return false;
+		}
+
+		JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
+		return true;
+	};
+
+	/**
+	 * Performs the steps needed to create a complete SDP offer: Request offer
+	 * from RTCPeerConnection describing our current streams. Set offer as the
+	 * local description (unmodified). Waits for ICE candidate collection to
+	 * complete. Runs callback with completed offer.
+	 * 
+	 * @private
+	 * @param streamConfig
+	 * The MediaSession object for which we are creating an offer.
+	 * @param onSuccess
+	 * Callback to execute when the SDP offer is complete.
+	 */
+	MediaSession.prototype._createOffer = function(streamConfig, onSuccess) {
+		var self = this;
+		var pc = this.peerConnection;
+		var sc = streamConfig || this.streamConfig;
+
+		var setLocalSuccess = function() {
+			console.log('Local description set, ice gathering state:', pc.iceGatheringState);
+			// Local description set, now wait for ICE completion
+			if (pc.iceGatheringState === 'complete') {
+				onSuccess();
+			} else {
+				awaitIceCompletion(pc, onSuccess);
+			}
+		};
+		var setLocalFailure = function(error) {
+			console.warn('setLocalDescription failed:', error);
+			self.close();
+		};
+		var offerSuccess = function(sessionDescription) {
+			console.log('Offer created');
+			// We've got a template offer, set it as the local description
+			fixLocalDescription(sessionDescription, sc);
+			pc.setLocalDescription(sessionDescription, setLocalSuccess, setLocalFailure);
+		};
+		var offerFailure = function(error) {
+			console.warn('createOffer failed:', error);
+			self.close();
+		};
+
+		// These constraints can add m-lines for streams that we have not added
+		// to the PeerConnection, in case we want to receive but not send.
+		// However, they do not seem to change added streams to sendonly when
+		// set to false, so we have to mess with the SDP ourselves.
+		var constraints = {
+			mandatory : {
+				OfferToReceiveAudio : !!sc.audio && sc.audio.receive,
+				OfferToReceiveVideo : !!sc.video && sc.video.receive
+			}
+		};
+
+		// Start by requesting an offer
+		try {
+			pc.createOffer(offerSuccess, offerFailure, constraints);
+		} catch (e) {
+			console.warn('createOffer failed:', e.stack);
+			self.close();
+		}
+	};
+
+	/**
+	 * Performs the steps needed to create a complete SDP answer: Request answer
+	 * from RTCPeerConnection describing our current streams. Set answer as the
+	 * local description (unmodified). Waits for ICE candidate collection to
+	 * complete. Runs callback with completed answer.
+	 * 
+	 * @private
+	 * @param onSuccess
+	 *            Callback to execute when the SDP answer is complete.
+	 */
+	MediaSession.prototype._createAnswer = function(onSuccess) {
+		var mediaSession = this;
+		var pc = this.peerConnection;
+
+		var setLocalSuccess = function() {
+			console.log('Local description set, ice gathering state:',
+					pc.iceGatheringState);
+			// Local description set, now wait for ICE completion
+			if (pc.iceGatheringState === 'complete') {
+				onSuccess();
+			} else {
+				awaitIceCompletion(pc, onSuccess);
+			}
+		};
+		var setLocalFailure = function(error) {
+			console.warn('setLocalDescription failed:', error);
+			mediaSession.close();
+		};
+		var answerSuccess = function(sessionDescription) {
+			console.log('Answer created');
+			// We've got a template answer, set it as the local description
+			fixLocalDescription(sessionDescription, mediaSession.streamConfig);
+			pc.setLocalDescription(sessionDescription, setLocalSuccess, setLocalFailure);
+		};
+		var answerFailure = function(error) {
+			console.warn('createOffer failed:', error);
+			mediaSession.close();
+		};
+		var sc = this.streamConfig;
+
+		// I don't think these are effective when creating an answer - we have
+		// to mess with the SDP ourselves.
+		var constraints = {
+			'mandatory' : {
+				'OfferToReceiveAudio' : !!sc.audio && sc.audio.receive,
+				'OfferToReceiveVideo' : !!sc.video && sc.video.receive
+			}
+		};
+
+		// Start by requesting an offer
+		pc.createAnswer(answerSuccess, answerFailure, constraints);
+	};
 
 	/**
 	 * @private
@@ -32431,73 +35019,714 @@ var CrocSDK = {};
 		});
 	};
 
+	/**
+	 * @private
+	 */
+	MediaSession.prototype._setRemoteStreamOutput = function() {
+		var stream;
+		var pc = this.peerConnection;
+
+		if (pc.getRemoteStreams) {
+			// Latest spec uses a method
+			stream = pc.getRemoteStreams()[0];
+		} else {
+			// Older spec used a property (still used by Firefox 22)
+			stream = pc.remoteStreams[0];
+		}
+
+		if (this.remoteVideoElement) {
+			this.remoteVideoElement.src = window.URL.createObjectURL(stream);
+		} else if (this.remoteAudioElement) {
+			this.remoteAudioElement.src = window.URL.createObjectURL(stream);
+		}
+	};
+
+	/**
+	 * @private
+	 */
+	MediaSession.prototype._connect = function() {
+		var self = this;
+		this._getUserMedia(null, function() {
+			self._sendInvite();
+		});
+	};
+
+	/**
+	 * @private
+	 */
+	MediaSession.prototype._sendInvite = function() {
+		var self = this;
+		var crocObject = this.mediaApi.crocObject;
+		var capabilityApi = crocObject.capability;
+
+		this._createOffer(null, function() {
+			var sipOptions = {};
+			sipOptions.sdp = self.peerConnection.localDescription.sdp;
+			sipOptions.extraHeaders = self.customHeaders.toExtraHeaders();
+			sipOptions.featureTags = capabilityApi.createFeatureTags(
+					crocObject.capabilities);
+
+			// Add Call-Info header as per
+			// draft-ivov-xmpp-cusax-05
+			sipOptions.extraHeaders.push('Call-Info: <xmpp:' +
+					crocObject.address + '> ;purpose=impp');
+
+			self.sipSession.connect('sip:' + self.address, sipOptions);
+
+			CrocSDK.Util.fireEvent(self, 'onConnecting', {});
+		});
+	};
+
+	/**
+	 * @private
+	 */
+	MediaSession.prototype._sendReinvite = function(streamConfig, customHeaders) {
+		var self = this;
+
+		customHeaders = customHeaders || this.customHeaders;
+
+		this._createOffer(streamConfig, function() {
+			self.sipSession.sendReinvite({
+				sdp: self.peerConnection.localDescription.sdp,
+				extraHeaders: customHeaders.toExtraHeaders()
+			});
+			// The appropriate event handlers get added to the reinvite object
+			// when the JsSIP 'reinvite' event fires.
+		});
+	};
+
+	/**
+	 * @private
+	 */
+	MediaSession.prototype._handleNegotiationNeeded = function() {
+		if (this.state !== mediaSessionState.ESTABLISHED) {
+			console.log('Ignoring negotiationneeded event - session not established');
+			return;
+		}
+
+		if (this.offerOutstanding) {
+			console.log('Ignoring negotiationneeded event - already due');
+			return;
+		}
+
+		console.log('Starting O/A negotiation at PC\'s request');
+		this._sendReinvite();
+	};
+
+	/**
+	 * @private
+	 */
+	MediaSession.prototype._handleInitialInvite = function(rawSdp,
+			parsedSdp, onSuccess, onFailure) {
+		var sessionDesc = new JsSIP.WebRTC.RTCSessionDescription({
+			type : 'offer',
+			sdp : rawSdp
+		});
+
+		this.peerConnection.setRemoteDescription(sessionDesc, onSuccess, onFailure);
+		this.streamConfig = new CrocSDK.StreamConfig(parsedSdp);
+		// Now we wait for the application/user to accept or reject the session
+	};
+
+	/**
+	 * Handles "started" events from JsSIP.
+	 * @private
+	 */
+	MediaSession.prototype._handleStarted = function(event) {
+		var response = event.data.response;
+
+		this.state = mediaSessionState.ESTABLISHED;
+
+		if (response) {
+			// We've got the response to an outgoing session
+			var mediaSession = this;
+
+			var onSuccess = function() {
+				console.log('Remote answer set');
+				CrocSDK.Util.fireEvent(mediaSession, 'onConnect', {});
+				mediaSession._setRemoteStreamOutput();
+			};
+			var onFailure = function(error) {
+				console.warn('setRemoteDescription failed:', error);
+				mediaSession.sipSession.terminate({
+					status_code: 488
+				});
+				// SIP session has already ended
+				mediaSession.sipSession = null;
+				// Clean up everything else, then notify app
+				mediaSession.close();
+			};
+			var sdp = response.body;
+
+			console.log('Setting remote description');
+			// Update session streamConfig based on the answer
+			this.streamConfig = new CrocSDK.StreamConfig(new CrocSDK.Sdp.Session(sdp));
+			var description = new JsSIP.WebRTC.RTCSessionDescription({
+				type : 'answer',
+				sdp : sdp
+			});
+			this.peerConnection.setRemoteDescription(
+					description, onSuccess, onFailure);
+		}
+	};
+
+	/**
+	 * Handles "reinvite" events from JsSIP.
+	 * @private
+	 */
+	MediaSession.prototype._handleReinvite = function(event) {
+		var self = this;
+		var data = event.data;
+		var i, len;
+
+		if (data.originator === 'remote') {
+			this.offerOutstanding = true;
+
+			var rawSdp = data.sdp;
+			var parsedSdp = new CrocSDK.Sdp.Session(rawSdp);
+			var streamsChanged = false;
+			var headersChanged = false;
+
+			if (!parsedSdp) {
+				data.reinvite.sdpInvalid();
+			}
+
+			var streamConfig = new CrocSDK.StreamConfig(parsedSdp);
+			var customHeaders = new CrocSDK.CustomHeaders(data.request);
+
+			// Reject any unacceptable stream changes early on - checking this
+			// before altering the PeerConnection state avoids having to
+			// terminate the session (due to lack of PeerConnection rollback
+			// feature).
+			if (this.remoteHold && streamConfig.isSending()) {
+				// We're coming off hold. Make sure we're only resuming sending
+				// of previously-agreed streams - we should not be asked to
+				// send anything extra.
+				var heldStreams = this.remoteHoldStreams;
+				var sendingStreams = streamConfig.getSendingStreams();
+				for (i = 0, len = sendingStreams.length; i < len; i++) {
+					if (heldStreams.indexOf(sendingStreams[i]) === -1) {
+						// Denied
+						console.warn('Remote UA tried to activate additional stream during resume:',
+								sendingStreams[i]);
+						data.reinvite.sdpInvalid();
+					}
+				}
+			} else {
+				// Check for significant changes in the re-INVITE.
+				// Significant changes include changes to media streams, or
+				// changes to custom headers.
+				if (!streamConfig.equals(this.streamConfig)) {
+					console.log('re-INVITE changing stream configuration');
+					streamsChanged = true;
+				}
+				if (!customHeaders.equals(this.customHeaders)) {
+					console.log('re-INVITE changing custom headers');
+					headersChanged = true;
+				}
+			}
+
+			// Submit the new remote SDP to RTCPeerConnection
+			var sessionDesc = new JsSIP.WebRTC.RTCSessionDescription({
+				type: 'offer',
+				sdp: rawSdp
+			});
+			var onSuccess = function() {
+				var oldStreamConfig = self.streamConfig;
+				console.log('Remote offer set');
+				data.reinvite.sdpValid();
+
+				var accept = function(acceptStreamConfig) {
+					if (acceptStreamConfig) {
+						self.streamConfig = new CrocSDK.StreamConfig(acceptStreamConfig);
+					} else {
+						// Accepting the offered stream configuration
+						self.streamConfig = streamConfig;
+					}
+					self.customHeaders = customHeaders;
+
+					var answer = function() {
+						self._createAnswer(function() {
+							data.reinvite.accept({
+								sdp: self.peerConnection.localDescription.sdp
+							});
+							self._setRemoteStreamOutput();
+						});
+					};
+
+					if (self.remoteHold ||
+							self.streamConfig.sendingStreamsEqual(oldStreamConfig)) {
+						// Don't need to update user media
+						answer();
+					} else {
+						self._getUserMedia(null, answer);
+					}
+				};
+
+				// Notify the application
+				if (oldStreamConfig.isSending() && !streamConfig.isSending()) {
+					// Remote hold
+					self.remoteHold = true;
+					self.remoteHoldStreams = oldStreamConfig.getSendingStreams();
+					accept();
+					CrocSDK.Util.fireEvent(self, 'onHold', {});
+				} else if (self.remoteHold && streamConfig.isSending()) {
+					// Remote resume
+					accept();
+					self.remoteHold = false;
+					CrocSDK.Util.fireEvent(self, 'onResume', {});
+				} else {
+					// Generic renegotiation
+					var reject = function() {
+						data.reinvite.reject({status_code: 488});
+					};
+					var safe = true;
+					if (headersChanged ||
+							!oldStreamConfig.isSafeChange(streamConfig)) {
+						safe = false;
+					}
+
+					CrocSDK.Util.fireEvent(self, 'onRenegotiateRequest', {
+						streamConfig: streamsChanged ? streamConfig : null,
+						customHeaders: headersChanged ? customHeaders : null,
+						safe: safe,
+						accept: accept,
+						reject: reject
+					}, true);
+				}
+			};
+			var onFailure = function(error) {
+				console.warn('setRemoteDescription failed:', error);
+				data.reinvite.sdpInvalid();
+				// We're happy to continue, though the remote end is likely to
+				// end the session after this.
+			};
+
+			this.peerConnection.setRemoteDescription(sessionDesc, onSuccess, onFailure);
+		} else {
+			// Outgoing re-INVITE
+			data.reinvite.on('succeeded', function(event) {
+				var onSuccess = function() {
+					console.log('Remote answer set');
+					self._setRemoteStreamOutput();
+				};
+				var onFailure = function(error) {
+					console.warn('setRemoteDescription failed:', error);
+					self.sipSession.terminate({
+						status_code: 488
+					});
+					// SIP session has already ended
+					self.sipSession = null;
+					// Clean up everything else, then notify app
+					self.close();
+				};
+				var sdp = event.data.sdp;
+
+				console.log('Setting remote description');
+				// Update session streamConfig based on the answer
+				self.streamConfig = new CrocSDK.StreamConfig(
+						new CrocSDK.Sdp.Session(sdp));
+				self.customHeaders = new CrocSDK.CustomHeaders(data.request);
+				var description = new JsSIP.WebRTC.RTCSessionDescription({
+					type : 'answer',
+					sdp : sdp
+				});
+				self.peerConnection.setRemoteDescription(
+						description, onSuccess, onFailure);
+
+				CrocSDK.Util.fireEvent(self, 'onRenegotiateResponse', {
+					accepted: true
+				});
+			});
+
+			data.reinvite.on('failed', function(event) {
+				// Not sure how to get the RTCPeerConnection back into a stable
+				// state; the simplest option here is to end the session.
+				console.log('Reinvite failed, closing session', event.data);
+				CrocSDK.Util.fireEvent(self, 'onRenegotiateResponse', {
+					accepted: false
+				});
+				self.close();
+			});
+		}
+
+		data.reinvite.on('completed', function() {
+			self.offerOutstanding = false;
+			if (self.oldLocalStream) {
+				self.oldLocalStream.stop();
+				self.oldLocalStream = null;
+			}
+			CrocSDK.Util.fireEvent(self, 'onRenegotiateComplete', {});
+		});
+	};
+
+	/**
+	 * Handles "refresh" events from JsSIP.
+	 * @private
+	 */
+	MediaSession.prototype._handleRefresh = function() {
+		if (this.sipSession.isMethodAllowed(JsSIP.C.UPDATE, false)) {
+			this.sipSession.sendUpdate();
+		} else {
+			this._sendReinvite();
+		}
+	};
+
+	/**
+	 * Handles out-of-dialog "newRefer" events from JsSIP that targetted this
+	 * session.
+	 * @private
+	 * @param {JsSIP.Refer} refer - The object representing the incoming refer.
+	 */
+	MediaSession.prototype._handleRefer = function(refer) {
+		var event = new TransferRequestEvent(this, refer);
+		CrocSDK.Util.fireEvent(this, 'onTransferRequest', event, true);
+	};
+
 	/*
 	 * Public methods
 	 */
 
 	/**
-	 * <p>
-	 * Accept a new {@link CrocSDK.MediaAPI~MediaSession MediaSession} or the 
-	 * renegotiation of an existing 
-	 * {@link CrocSDK.MediaAPI~MediaSession MediaSession} The optional config 
-	 * parameter may be used to selectively accept or modify the streams. If 
-	 * config is not provided all offered streams are accepted as-is.
-	 * </p>
+	 * Accept this new, incoming media session. The optional config parameter
+	 * may be used to selectively accept or modify the offered streams; if 
+	 * this is not provided the offered stream configuration is accepted.
 	 * 
-	 * <p>
-	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError},
-	 * {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
+	 * @param {CrocSDK.MediaAPI~StreamConfig} [config]
+	 * May be used to selectively accept or modify the offered streams.
 	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#accept
-	 * @param {CrocSDK.MediaAPI~StreamConfig}
-	 *            [config] Used to selectively accept or modify the streams.
 	 * @fires CrocSDK.MediaAPI~MediaSession#onConnect
+	 * 
+	 * @throws {TypeError}
+	 * @throws {CrocSDK.Exceptions#ValueError}
+	 * @throws {CrocSDK.Exceptions#StateError}
 	 */
 	MediaSession.prototype.accept = function(config) {
 		var mediaSession = this;
 
 		if (config) {
-			this.streamConfig = config;
+			if (config instanceof CrocSDK.StreamConfig) {
+				this.streamConfig = config;
+			} else {
+				this.streamConfig = new CrocSDK.StreamConfig(config);
+			}
 		}
 
-		if (this.state === mediaSessionState.PENDING) {
-			if (this.sipSession.direction === 'incoming') {
-				getUserMedia(this, function() {
-					createAnswer(mediaSession, function() {
-						mediaSession.sipSession.answer({
-							sdp : mediaSession.peerConnection.localDescription.sdp
-						});
-						CrocSDK.Util.fireEvent(mediaSession, 'onConnect', {});
-					});
-				});
-				setRemoteStreamOutput(this);
-			} else {
-				throw new CrocSDK.Exceptions.StateError('Cannot call accept() on outgoing sessions');
-			}
-		} else {
+		if (this.state !== mediaSessionState.PENDING) {
 			throw new CrocSDK.Exceptions.StateError('Session cannot be accepted in state', this.state);
+		}
+
+		if (this.sipSession.direction !== 'incoming') {
+			throw new CrocSDK.Exceptions.StateError('Cannot call accept() on outgoing sessions');
+		}
+
+		this._getUserMedia(null, function() {
+			mediaSession._createAnswer(function() {
+				// Check that we haven't received a CANCEL in the meanwhile
+				if (mediaSession.state === mediaSessionState.PENDING) {
+					mediaSession.sipSession.answer({
+						sdp : mediaSession.peerConnection.localDescription.sdp
+					});
+					CrocSDK.Util.fireEvent(mediaSession, 'onConnect', {});
+				}
+			});
+		});
+		this._setRemoteStreamOutput();
+	};
+
+	/**
+	 * Put the session on-hold. Media streams are renegotiated to
+	 * &#34;sendonly&#34; to stop inbound media, and local media is muted.
+	 * <p>
+	 * Note: due to current limitations of WebRTC, if the renegotiation fails
+	 * the session will be closed.
+	 * 
+	 * @throws {CrocSDK.Exceptions#StateError} If a renegotiation is already in
+	 * progress.
+	 */
+	MediaSession.prototype.hold = function() {
+		if (this.localHold) {
+			// Don't need to do anything
+			return;
+		}
+		if (this.offerOutstanding) {
+			throw new CrocSDK.Exceptions.StateError('Existing renegotiation still in progress');
+		}
+		this.localHold = true;
+		this.offerOutstanding = true;
+
+		// Mute all local streams
+		var videoTracks = this.localStream.getVideoTracks();
+		var audioTracks = this.localStream.getAudioTracks();
+		var allTracks = videoTracks.concat(audioTracks);
+		for (var i = 0, len = allTracks.length; i < len; i++) {
+			allTracks[i].enabled = false;
+		}
+
+		// Request that the remote party stop sending all streams
+		var newStreamConfig = new CrocSDK.StreamConfig(this.streamConfig);
+		this.localHoldStreams = newStreamConfig.hold();
+		this._sendReinvite(newStreamConfig);
+	};
+
+	/**
+	 * Resume an on-hold session. Media streams are renegotiated with the
+	 * configuration that was in effect before <code>hold()</code> was called
+	 * and the local media is unmuted.
+	 * <p>
+	 * Note: due to current limitations of WebRTC, if the renegotiation fails
+	 * the session will be closed.
+	 * 
+	 * @throws {CrocSDK.Exceptions#StateError} If a renegotiation is already in
+	 * progress.
+	 */
+	MediaSession.prototype.resume = function() {
+		if (!this.localHold) {
+			// Don't need to do anything
+			return;
+		}
+		if (this.offerOutstanding) {
+			throw new CrocSDK.Exceptions.StateError('Existing renegotiation still in progress');
+		}
+		this.offerOutstanding = true;
+
+		// Request that the remote party resumes sending media
+		var newStreamConfig = new CrocSDK.StreamConfig(this.streamConfig);
+		newStreamConfig.resume(this.localHoldStreams);
+		this._sendReinvite(newStreamConfig);
+
+		// Unmute the local media
+		var videoTracks = this.localStream.getVideoTracks();
+		var audioTracks = this.localStream.getAudioTracks();
+		var allTracks = videoTracks.concat(audioTracks);
+		for (var i = 0, len = allTracks.length; i < len; i++) {
+			allTracks[i].enabled = true;
+		}
+
+		this.localHold = false;
+	};
+
+	/**
+	 * Attempt to renegotiate the session. This is used to change the media
+	 * streams mid-session by adding or removing video or audio. The remote
+	 * party must accept the changes before they will take effect.
+	 * <p>
+	 * Note: due to current limitations of WebRTC, if the renegotiation fails
+	 * the session will be closed.  To reduce the likelihood of rejected
+	 * negotiation attempts, applications should avoid stream modifications
+	 * that demand new media from the remote party.  For instance, to add video
+	 * to an existing audio-only session, enable a send-only video stream
+	 * instead of a send/receive video stream; the remote party is then free
+	 * to choose whether they enable their own video, which would be done in
+	 * a subsequent renegotiation initiated from their end.
+	 * 
+	 * @param {CrocSDK.MediaAPI~ConnectConfig} [connectConfig]
+	 * Optional new configuration to use in the negotiation.
+	 * 
+	 * @throws {TypeError} If a parameter is set to an unexpected type.
+	 * @throws {CrocSDK.Exceptions#ValueError} If a parameter is set to an
+	 * unexpected value.
+	 * @throws {CrocSDK.Exceptions#StateError} If a renegotiation is already in
+	 * progress, or if streams are being modified whilst the call is on-hold.
+	 */
+	MediaSession.prototype.renegotiate = function(connectConfig) {
+		if (!connectConfig) {
+			connectConfig = {};
+		}
+		var streamConfig = connectConfig.streamConfig;
+		var customHeaders = connectConfig.customHeaders;
+
+		if (streamConfig) {
+			streamConfig = new CrocSDK.StreamConfig(streamConfig);
+		}
+		if (customHeaders) {
+			customHeaders = new CrocSDK.CustomHeaders(customHeaders);
+		}
+
+		if ((this.localHold || this.remoteHold) && streamConfig) {
+			throw new CrocSDK.Exceptions.StateError('Cannot modify streams whilst on hold');
+		}
+		if (this.offerOutstanding) {
+			throw new CrocSDK.Exceptions.StateError('Existing renegotiation still in progress');
+		}
+		this.offerOutstanding = true;
+
+		if (streamConfig && !streamConfig.sendingStreamsEqual(this.streamConfig)) {
+			var self = this;
+			this._getUserMedia(streamConfig, function() {
+				self._sendReinvite(streamConfig, customHeaders);
+			});
+		} else {
+			this._sendReinvite(streamConfig, customHeaders);
 		}
 	};
 
 	/**
+	 * Mutes the local microphone.
 	 * <p>
-	 * Explicitly close this {@link CrocSDK.MediaAPI~MediaSession MediaSession}. If <code>accept()</code> has not
-	 * been called the session will be rejected.
-	 * </p>
+	 * Mute may be preferable to hold if you still want to receive the remote
+	 * party's media, or if you want to avoid media renegotiation (which is not
+	 * currently supported in Firefox).
+	 * <p>
+	 * Due to the logical and functional overlap, not to mention potential user
+	 * confusion, mixing mute and hold is not recommended.
+	 */
+	MediaSession.prototype.mute = function() {
+		var audioTracks = this.localStream.getAudioTracks();
+		for (var i = 0, len = audioTracks.length; i < len; i++) {
+			audioTracks[i].enabled = false;
+		}
+	};
+
+	/**
+	 * Unmutes the local microphone.
 	 * 
+	 * @throws {CrocSDK.Exceptions#StateError} If the remote party is currently
+	 * on-hold.
+	 */
+	MediaSession.prototype.unmute = function() {
+		if (this.localHold) {
+			throw new CrocSDK.Exceptions.StateError('Cannot unmute a held call');
+		}
+
+		var audioTracks = this.localStream.getAudioTracks();
+		for (var i = 0, len = audioTracks.length; i < len; i++) {
+			audioTracks[i].enabled = true;
+		}
+	};
+
+	/**
+	 * Sends DTMF tones to the remote party.
+	 * <p>
+	 * If DTMF playout is already in progress, the provided tone(s) will be
+	 * appended to the existing queue.
+	 * 
+	 * @param {String|Number} tones
+	 * One or more DTMF symbols to send.  Valid symbols include the numbers 0 to
+	 * 9, and the characters *, #, and A through D.  A comma is also valid,
+	 * which will insert a two-second gap in the played tones.
+	 * @param {Object} [config]
+	 * Optional extra configuration.
+	 * @param {Number} [config.duration]
+	 * The duration, in milliseconds, to play each DTMF tone. Defaults to 200ms
+	 * if not provided. Valid values range from 70ms to 6000ms.
+	 * @param {Number} [config.interToneGap]
+	 * The amount of time to leave, in milliseconds, between each DTMF tone.
+	 * Defaults to 50ms.
+	 * 
+	 * @throws {CrocSDK.Exceptions#ValueError} If sending of DTMF is attempted
+	 * when no audio stream is being sent.
+	 */
+	MediaSession.prototype.sendDTMF = function(tones, config) {
+		config = config || {};
+		var type = config.type || 'pc';
+		var duration = config.duration || 200;
+		var interToneGap = config.interToneGap || type === 'info' ? 500: 50;
+		var self = this;
+
+		tones = tones.toString().toUpperCase();
+		if (/[^0-9A-D\*#,]/.test(tones)) {
+			throw new CrocSDK.Exceptions.ValueError(
+					'Invalid characters in DTMF tones:', tones);
+		}
+
+		duration = Math.max(duration, 70);
+		duration = Math.min(duration, 6000);
+		interToneGap = Math.max(interToneGap, 50);
+
+		switch (type) {
+		default:
+		case 'pc':
+			var sender = this.dtmfSender;
+			if (sender) {
+				// Append to the existing tone buffer, using the existing
+				// duration and gap settings.
+				sender.insertDTMF(sender.toneBuffer + tones, sender.duration,
+						sender.interToneGap);
+				return;
+			}
+
+			var audioTracks = this.localStream.getAudioTracks();
+			if (audioTracks.length < 1) {
+				throw new CrocSDK.Exceptions.ValueError(
+						'Cannot send DTMF without an audio track');
+			}
+			sender = this.peerConnection.createDTMFSender(audioTracks[0]);
+			sender.insertDTMF(tones, duration, interToneGap);
+			sender.ontonechange = function(event) {
+				if (!event.tone) {
+					// Playout has completed - discard the sender
+					self.dtmfSender = null;
+				}
+			};
+			this.dtmfSender = sender;
+			break;	
+		case 'info':
+			this.sipSession.sendDTMF(tones, {
+				duration: duration,
+				interToneGap: interToneGap
+			});
+			break;
+		}
+	};
+
+	/**
+	 * Request that the remote party be transferred to the target address.
+	 * <p>
+	 * To ensure a standard call transfer experience, the following behaviour
+	 * is recommended for applications using this functionality:
+	 * <ol>
+	 * <li>Put the session on hold.
+	 * <li>Request the transfer.
+	 * <li>If the transfer is successful, close the session; otherwise resume
+	 * the session.
+	 * </ol>
+	 * 
+	 * @param {String} address - The target address of the transfer.
+	 * @returns {CrocSDK.MediaAPI~MediaSession~TransferFeedback}
+	 * @throws {CrocSDK.Exceptions#StateError}
+	 * If the current session is not established, or a previous transfer attempt
+	 * is still in progress.
+	 * @throws {CrocSDK.Exceptions#UnsupportedError}
+	 * If the remote party does not support transfer.
+	 */
+	MediaSession.prototype.transfer = function(address) {
+		if (this.state !== mediaSessionState.ESTABLISHED) {
+			throw new CrocSDK.Exceptions.StateError(
+					'Media session not established: ' + this.state);
+		}
+		if (this.transferFeedback) {
+			throw new CrocSDK.Exceptions.StateError(
+					'Previous transfer outstanding');
+		}
+
+		var feedback = new TransferFeedback(this);
+		var options = {};
+		options.eventHandlers = feedback._getJsSipHandlers();
+
+		try {
+			this.sipSession.sendRefer(address, options);
+		} catch (e) {
+			if (e instanceof JsSIP.Exceptions.RemoteSupportError) {
+				throw new CrocSDK.Exceptions.UnsupportedError(
+						'Remote party does not support transfers');
+			}
+		}
+		this.transferFeedback = feedback;
+		return feedback;
+	};
+
+	/**
+	 * Explicitly close this media session.
+	 * <p>
+	 * If <code>accept()</code> has not been called the session will be
+	 * rejected.
 	 * <p>
 	 * If the <code>status</code> argument is not provided it will default to
 	 * <code>normal</code>.
-	 * </p>
 	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#close
-	 * @param {String}
-	 *            status The
-	 *            {@link CrocSDK.MediaAPI~MediaSession~OnCloseEvent.status status}
-	 *            of a session.
+	 * @method
+	 * @param {CrocSDK.MediaAPI~MediaSession~status} status
 	 */
 	MediaSession.prototype.close = function(status) {
 		if (this.state === mediaSessionState.CLOSED) {
@@ -32552,318 +35781,239 @@ var CrocSDK = {};
 	 */
 
 	/**
-	 * <p>
 	 * This event is dispatched when the Crocodile RTC JavaScript Library has 
 	 * acquired the necessary media streams and has constructed the session 
 	 * request.
-	 * </p>
-	 *  
 	 * <p>
 	 * If this event handler is not defined the session set-up will proceed 
 	 * regardless.
-	 * </p>
 	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onConnecting
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnConnectingEvent}
-	 *            [onConnectingEvent] The event object associated to the event.
+	 * @event
 	 */
 	MediaSession.prototype.onConnecting = function() {
 		// Do nothing
 	};
 
 	/**
-	 * <p>
 	 * This event is dispatched when the Crocodile RTC Javascript Library 
 	 * receives a provisional response to a new media session set-up request or
 	 * renegotiation.
-	 * </p>
-	 *
 	 * <p>
 	 * If this event handler is not defined the session set-up will proceed 
 	 * regardless.
-	 * </p>
 	 *  
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onProvisional
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnProvisionalEvent}
-	 *            [onProvisionalEvent] The event object associated to the event.
+	 * @event
 	 */
 	MediaSession.prototype.onProvisional = function() {
 		// Do nothing
 	};
 
 	/**
-	 * <p>
 	 * This event is dispatched when the remote party accepts the session.
-	 * </p>
-	 * 
 	 * <p>
 	 * If this event handler is not defined the session set-up will complete 
 	 * regardless.
-	 * </p> 
 	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onConnect
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnConnectEvent}
-	 *            [onConnectEvent] The event object associated to the event.
+	 * @event
 	 */
 	MediaSession.prototype.onConnect = function() {
 		// Do nothing
 	};
 
 	/**
-	 * <p>
 	 * This event is dispatched when remote media is first received on a 
 	 * session.
-	 * </p>
-	 * 
 	 * <p>
 	 * If this event handler is not defined the session set-up will proceed 
 	 * regardless.
-	 * </p> 
 	 *   
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onRemoteMediaReceived
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnRemoteMediaReceivedEvent}
-	 *            [onRemoteMediaReceivedEvent] The event object associated to
-	 *            the event.
+	 * @event
 	 */
 	MediaSession.prototype.onRemoteMediaReceived = function() {
 		// Do nothing
 	};
 
 	/**
+	 * This event is dispatched when the remote party attempts to renegotiate
+	 * the {@link CrocSDK.MediaAPI~MediaSession MediaSession}.
 	 * <p>
+	 * If this event is not handled, any changes that are not considered
+	 * "safe" (due to possible privacy or billing implications) will be rejected
+	 * automatically.
+	 * 
+	 * @event
+	 * @param {CrocSDK.MediaAPI~MediaSession~RenegotiateRequestEvent}
+	 * [event] The event object associated with this event.
+	 */
+	MediaSession.prototype.onRenegotiateRequest = function(event) {
+		if (event.safe) {
+			// Nothing significant changed - accept
+			console.log('Auto-accepting re-INVITE (no significant changes)');
+			event.accept();
+			return;
+		}
+
+		// Something significant changed, and event not handled (so we can't
+		// get user approval) - reject.
+		console.log('Auto-rejecting re-INVITE (significant changes)');
+		event.reject();
+	};
+
+	/**
+	 * This event is fired when a request to transfer the session is received.
+	 * The web-app is responsible for notifying the user and requesting
+	 * permission to transfer (if appropriate), and then should call the
+	 * <code>accept</code> or <code>reject</code> method on the event object.
+	 * <p>
+	 * If this event is not handled, or the response is not provided within the
+	 * configured <code>acceptTimeout</code> period, the transfer request will
+	 * be rejected automatically.
+	 * 
+	 * @event
+	 * @param {CrocSDK.MediaAPI~MediaSession~TransferRequestEvent} event
+	 * The event object associated with this event.
+	 */
+	MediaSession.prototype.onTransferRequest = function(event) {
+		// Default handler rejects the request
+		event.reject();
+	};
+
+	/**
 	 * Dispatched when Crocodile RTC JavaScript Library detects that a 
 	 * {@link CrocSDK.MediaAPI~MediaSession MediaSession} 
 	 * has been closed by the Crocodile RTC Network or remote party.
-	 * </p>
-	 * 
 	 * <p>
 	 * Any references to the session within a web-app should be removed (to 
 	 * allow garbage collection) when this event is run.
-	 * </p>
-	 * 
 	 * <p>
 	 * If this event is not handled the Crocodile RTC JavaScript Library will 
 	 * clean up the session internally.
-	 * </p>
 	 *  
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onClose
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnCloseEvent}
-	 *            [onCloseEvent] The event object associated to the event.
+	 * @event
+	 * @param {CrocSDK.MediaAPI~MediaSession~CloseEvent}
+	 * [event] The event object associated with this event.
 	 */
 	MediaSession.prototype.onClose = function() {
 		// Do nothing
 	};
 
+
 	/**
-	 * <p>
-	 * The media features of the Crocodile RTC JavaScript Library allow a
-	 * web-app to exchange media (for example, audio or video streams) with
-	 * other instances connected to the Crocodile RTC Network.
-	 * </p>
-	 * 
-	 * <p>
-	 * Once the {@link CrocSDK.Croc Croc} Object is instantiated it will contain
-	 * an instance of the {@link CrocSDK.MediaAPI Media} object named
-	 * <code>media</code>.
-	 * </p>
-	 * 
-	 * <p>
-	 * For example, given a {@link CrocSDK.Croc Croc} Object named
-	 * <code>crocObject</code> the <code>Media.connect</code> method would
-	 * be accessed as <code>crocObject.media.connect</code>.
-	 * </p>
-	 * 
+	 * Provides feedback for an outgoing transfer/refer attempt.
+	 *  
 	 * @constructor
-	 * @param {CrocSDK.Croc} crocObject - The parent {@link CrocSDK.Croc Croc}
-	 * object.
-	 * @param {CrocSDK~Config} config - The Croc object configuration.
+	 * @alias CrocSDK.MediaAPI~MediaSession~TransferFeedback
+	 * @param {CrocSDK.MediaAPI~MediaSession} session
+	 * The target session being transferred.
 	 */
-	CrocSDK.MediaAPI = function(crocObject, config) {
-		this.crocObject = crocObject;
-		this.mediaSessions = [];
-		config.jQuery.extend(this, config.media);
+	var TransferFeedback = function(session) {
+		this.session = session;
 	};
 
 	/**
-	 * <p>
-	 * Process an incoming request to establish a media session.
-	 * </p>
-	 * 
-	 * @private
-	 * @param sipSession
-	 * @param sipRequest
-	 * @param sdp
-	 * @param sdpValid
-	 * @param sdpInvalid
-	 * @fires onMediaSession
+	 * Event fired when the remote party accepts a transfer request.
+	 * @event
 	 */
-	CrocSDK.MediaAPI.prototype.init_incoming = function(sipSession, sipRequest,
-			sdp, sdpValid, sdpInvalid) {
-		if (this.hasOwnProperty('onMediaSession')) {
-			var mediaApi = this;
-			var crocObject = this.crocObject;
-			var capabilityApi = crocObject.capability;
-			var address = sipSession.remote_identity.uri.toAor().replace(
-					/^sip:/, '');
-			var mediaSession = new MediaSession(this, sipSession, address);
+	TransferFeedback.prototype.onAccepted = function () {
+		// Default behaviour is to close the session automatically (blind transfer)
+		this.session.close();
+	};
 
-			// Process the sdp offer - this should kick off the ICE agent
-			var onSuccess = function() {
-				console.log('Remote offer set');
-				sdpValid();
+	/**
+	 * Event fired when the remote party rejects a transfer request.
+	 * @event
+	 */
+	TransferFeedback.prototype.onRejected = function () {
+		// Default behaviour is to close the session automatically (blind transfer)
+		this.session.close();
+	};
 
-				CrocSDK.Util.fireEvent(mediaApi, 'onMediaSession', {
-					session : mediaSession
-				});
-			};
-			var onFailure = function(error) {
-				console.warn('setRemoteDescription failed:', error);
-				sdpInvalid();
-				mediaSession.close();
-			};
-			var sessionDesc = new JsSIP.WebRTC.RTCSessionDescription({
-				type : 'offer',
-				sdp : sipRequest.body
-			});
-			mediaSession.peerConnection.setRemoteDescription(sessionDesc,
-					onSuccess, onFailure);
-
-			// Add SIP session event handlers
-			addSipHandlers(mediaSession);
-
-			// Set MediaSession properties
-			mediaSession.displayName = sipSession.remote_identity.display_name;
-			mediaSession.customHeaders = CrocSDK.Util
-					.getCustomHeaders(sipRequest);
-			// Process remote capabilities
-			var parsedContactHeader = sipRequest.parseHeader('contact', 0);
-			mediaSession.capabilities = capabilityApi
-					.parseFeatureTags(parsedContactHeader.parameters);
-			mediaSession.streamConfig = streamConfigFromSdp(sdp);
-
-			this.mediaSessions.push(mediaSession);
-
-			if (crocObject.requireMatchingVersion && (mediaSession.capabilities['croc.sdkversion'] !== crocObject.capabilities['croc.sdkversion'])) {
-				console.log('Remote client SDK version does not match');
-				sdpInvalid();
-				mediaSession.close();
+	TransferFeedback.prototype._getJsSipHandlers = function () {
+		var self = this;
+		return {
+			accepted: function() {
+				CrocSDK.Util.fireEvent(self, 'onAccepted', {}, true);
+			},
+			failed: function() {
+				// Transfer attempt finished
+				self.session.transferFeedback = null;
+				CrocSDK.Util.fireEvent(self, 'onRejected', {}, true);
 			}
-		} else {
-			// If this handler is not defined, we reject incoming data sessions
-			sdpInvalid();
-		}
+		};
 	};
 
 	/**
-	 * @private
+	 * The event object for the
+	 * {@link CrocSDK.MediaAPI~MediaSession#event:onTransferRequest onTransferRequest}
+	 * event.
+	 * @constructor
+	 * @alias CrocSDK.MediaAPI~MediaSession~TransferRequestEvent
+	 * @param {CrocSDK.MediaAPI~MediaSession} session
+	 * @param {JsSIP.Refer} refer
 	 */
-	CrocSDK.MediaAPI.prototype._updateIceServers = function() {
-		var croc = this.crocObject;
-		var iceServers = croc.iceServers;
-		if (croc.dynamicIceServers) {
-			// Put the managed TURN servers first in the list, but still include
-			// any other configured STUN/TURN servers.
-			iceServers = croc.dynamicIceServers.concat(iceServers);
-		}
+	var TransferRequestEvent = function(session, refer) {
+		var self = this;
 
-		for ( var i = 0, len = this.mediaSessions.length; i < len; i++) {
-			this.mediaSessions[i]._updateIceServers(iceServers);
-		}
+		this.session = session;
+		this.refer = refer;
+		this.timer = setTimeout(function() {
+			self.reject();
+			self.timer = null;
+		}, session.mediaApi.acceptTimeout * 1000);
+
+		/**
+		 * The <code>address</code> to which we are being transferred.
+		 * @type {String}
+		 */
+		this.address = refer.refer_uri.toString().replace(/^sip:/, '');
 	};
 
-	/*
-	 * Public methods
+	/**
+	 * Accept the incoming transfer request. Returns a new
+	 * <code>MediaSession</code> object representing the media session with
+	 * the transfer target.
+	 * <p>
+	 * The stream configuration of the new MediaSession will match that of the
+	 * existing session unless it is specified in the <code>config</code>
+	 * parameter.
+	 * 
+	 * @param {CrocSDK.MediaAPI~ConnectConfig} [config]
+	 * Optional session configuration.
+	 * @returns {CrocSDK.MediaAPI~MediaSession} The new session with the
+	 * transfer target.
 	 */
+	TransferRequestEvent.prototype.accept = function(config) {
+		if (this.timer === null) {
+			return;
+		}
+		clearTimeout(this.timer);
+		this.timer = null;
+
+		config = config || {};
+		if (!config.streamConfig) {
+			config.streamConfig = this.session.streamConfig;
+		} 
+
+		var newSession = this.session.mediaApi.connect(this.address, config);
+		// TODO: Add handlers that send appropriate NOTIFY messages
+		return newSession;
+	};
 
 	/**
-	 * <p>
-	 * Initiate a media session to <code>address</code>. Defaults to a
-	 * bi-directional audio session unless specified otherwise using the
-	 * <code>config</code> parameter.
-	 * </p>
-	 * 
-	 * <p>
-	 * Returns a {@link CrocSDK.MediaAPI~MediaSession MediaSession} object which
-	 * the required event handlers should be registered with immediately to
-	 * avoid missing events.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError},
-	 * {@link CrocSDK.Exceptions#VersionError VersionError},
-	 * {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
-	 * 
-	 * @param {String}
-	 *            address The address to establish a
-	 *            {@link CrocSDK.MediaAPI Media} connnection to.
-	 * @param {CrocSDK.MediaAPI~ConnectConfig}
-	 *            connectConfig Optional configuration properties.
-	 * @returns CrocSDK.MediaAPI~MediaSession
+	 * Reject the incoming transfer request.
 	 */
-	CrocSDK.MediaAPI.prototype.connect = function(address, connectConfig) {
-		var crocObject = this.crocObject;
-		var capabilityApi = crocObject.capability;
-		var sipSession = new JsSIP.RTCSession(crocObject.sipUA);
-		var mediaSession = new MediaSession(this, sipSession, address);
-
-		if (!connectConfig) {
-			connectConfig = {};
+	TransferRequestEvent.prototype.reject = function() {
+		if (this.timer === null) {
+			return;
 		}
+		clearTimeout(this.timer);
+		this.timer = null;
 
-		// Set MediaSession properties
-		mediaSession.customHeaders = connectConfig.customHeaders || {};
-		// Start with cached capabilities if we have them
-		mediaSession.capabilities = capabilityApi.getCapabilities(address);
-		mediaSession.streamConfig = connectConfig.streamConfig || defaultStreamConfig;
-
-		// Add SIP session event handlers
-		addSipHandlers(mediaSession);
-
-		getUserMedia(mediaSession, function() {
-			createOffer(mediaSession, function() {
-				var sipOptions = {};
-				sipOptions.sdp = mediaSession.peerConnection.localDescription.sdp;
-				sipOptions.extraHeaders = CrocSDK.Util.getExtraHeaders(
-						mediaSession.customHeaders);
-				sipOptions.featureTags = capabilityApi.createFeatureTags(
-						crocObject.capabilities);
-
-				// Add Call-Info header as per
-				// draft-ivov-xmpp-cusax-05
-				sipOptions.extraHeaders.push('Call-Info: <xmpp:' +
-						crocObject.address + '> ;purpose=impp');
-
-				sipSession.connect('sip:' + address, sipOptions);
-
-				CrocSDK.Util.fireEvent(mediaSession, 'onConnecting', {});
-			});
+		this.refer.reject({
+			status_code: 603
 		});
-
-		this.mediaSessions.push(mediaSession);
-		return mediaSession;
 	};
 
-	/**
-	 * <p>
-	 * Explicitly close all current media sessions.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: <i>none</i>
-	 * </p>
-	 * 
-	 */
-	CrocSDK.MediaAPI.prototype.close = function() {
-		for ( var i = 0, len = this.mediaSessions.length; i < len; i++) {
-			this.mediaSessions[i].close();
-		}
-	};
 
 	/* Further Documentation in JSDoc */
 	// Documented Type Definitions
@@ -32885,148 +36035,52 @@ var CrocSDK = {};
 	 * 
 	 * @typedef {String} CrocSDK.MediaAPI~MediaSession~status
 	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI
-	 * @typedef CrocSDK.MediaAPI~ConnectConfig
-	 * @property {CrocSDK.DataAPI~CustomHeaders} customHeaders
-	 *           <p>
-	 *           This enables the web-app to specify custom headers that will be
-	 *           included in the session creation request. The key names
-	 *           provided will be used as the header names and the associated
-	 *           String values will be used as the header values.
-	 *           </p>
-	 * 
-	 * <p>
-	 * All custom header keys <b>MUST</b> start with &#34;X-&#34;. Keys that do
-	 * not start &#34;X-&#34; will be ignored.
-	 * </p>
-	 * 
-	 * <p>
-	 * These custom headers will be available to the local and remote party in
-	 * the
-	 * {@link CrocSDK.MediaAPI~MediaSession#customHeaders MediaSession.customHeaders}
-	 * property and to the remote party in the
-	 * {@link CrocSDK.MediaAPI~MediaSession~OnRenegotiateRequestEvent OnRenegotiateRequestEvent.customHeaders}
-	 * property during session renegotiation.
-	 * </p>
-	 * @property {CrocSDK.MediaAPI~StreamConfig} streamConfig The media stream
-	 *           configuration.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI
-	 * @typedef CrocSDK.MediaAPI~StreamConfig
-	 * @property {CrocSDK.MediaAPI~StreamDirections} audio The audio stream
-	 *           configuration.
-	 * @property {CrocSDK.MediaAPI~StreamDirections} video The video stream
-	 *           configuration.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI
-	 * @typedef CrocSDK.MediaAPI~StreamDirections
-	 * @property {Boolean} send Set to <code>true</code> if the stream is
-	 *           outbound-only or bi-directional.
-	 * @property {Boolean} receive Set to <code>true</code> if the stream is
-	 *           inbound-only or bi-directional.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI
-	 * @typedef CrocSDK.MediaAPI~OnMediaSessionEvent
-	 * @property {CrocSDK.MediaAPI~MediaSession} session The
-	 *           {@link CrocSDK.MediaAPI~MediaSession MediaSession} representing
-	 *           the inbound session.
-	 */
+
 	/**
 	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnConnectingEvent
+	 * @class CrocSDK.MediaAPI~MediaSession~RenegotiateRequestEvent
+	 * @property {CrocSDK~CustomHeaders} customHeaders
+	 * The new set of custom headers provided by the remote party when it
+	 * started renegotiation. If the custom headers match those previously seen
+	 * (available as a property of the MediaSession object), this property will
+	 * be set to <code>null</code>.
+	 * @property {CrocSDK.MediaAPI~StreamConfig} streamConfig
+	 * The new configuration for the renegotiated media stream. If this matches
+	 * the previously agreed configuration, this property will be set to
+	 * <code>null</code>.
+	 * @property {Boolean} safe
+	 * A boolean value indicating whether the renegotiation is considered "safe".
+	 * A "safe" renegotiation is one that does not change any custom headers,
+	 * and that does not request any new media from the local party. This
+	 * indicates that there should not be any billing or privacy implications
+	 * in accepting the renegotiation.
 	 */
 	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnProvisionalEvent
+	 * Accepts the renegotiation request.
+	 * @method CrocSDK.MediaAPI~MediaSession~RenegotiateRequestEvent#accept
+	 * @param {CrocSDK.MediaAPI~StreamConfig} [acceptStreamConfig]
+	 * The accepted stream configuration. If not provided, the offered stream
+	 * configuration will be accepted as-is.
 	 */
 	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnConnectEvent
+	 * Rejects the renegotiation request. The session will continue with the
+	 * previously-agreed streams.
+	 * @method CrocSDK.MediaAPI~MediaSession~RenegotiateRequestEvent#reject
 	 */
+
 	/**
 	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnRemoteMediaReceivedEvent
+	 * @typedef CrocSDK.MediaAPI~MediaSession~RenegotiateResponseEvent
+	 * @property {Boolean} accepted
+	 * Set to <code>true</code> if the remote party accepted the renegotiation
+	 * request, <code>false</code> otherwise.
 	 */
+
 	/**
 	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnHoldEvent
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnRenegotiateRequestEvent
-	 * @property {CrocSDK.MediaAPI~CustomHeaders} customHeaders
-	 *           <p>
-	 *           Any custom headers provided by the remote party when it started
-	 *           renegotiation.
-	 *           </p>
-	 * 
-	 * <p>
-	 * These are specified by the remote party in the
-	 * {@link CrocSDK.MediaAPI~ConnectConfig ConnectConfig} object used as a
-	 * parameter to the {@link CrocSDK.MediaAPI#connect MediaSession.connect()}
-	 * method.
-	 * </p>
-	 * 
-	 * <p>
-	 * The header names are used as the key names in this object and the header
-	 * contents are mapped to the key values.
-	 * </p>
-	 * @property {CrocSDK.MediaAPI~StreamConfig} streamConfig The configuration
-	 *           for the renegotiated media stream.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnRenegotiateResponseEvent
-	 * @property {Boolean} accepted Set to <code>true</code> if the remote
-	 *           party accepted the renegotiation request.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnTransferRequestEvent
-	 * @property {String} transferAddress The <code>address</code> to which we
-	 *           are being transferred.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnTransferProgressEvent
-	 * @property {Boolean} transferComplete Set to <code>true</code> if the
-	 *           transfer process has finished.
-	 * @property {Boolean} transferSuccessful Set to <code>true</code> if the
-	 *           transfer process has finished successfully. <code>false</code>
-	 *           indicates the transfer is pending or has failed.
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnTransferProgressEvent
-	 * @property {String} status
-	 *           <p>
-	 *           An indication of how the session ended.
-	 *           </p>
-	 * 
-	 * <p>
-	 * Valid status are:
-	 * <ul>
-	 * <li><code>normal</code> - the session ended normally (including timed
-	 * out).</li>
-	 * <li><code>blocked</code> - the remote party has rejected the session
-	 * because the local user is blocked.</li>
-	 * <li><code>offline</code> - the remote party is offline or wants to
-	 * appear offline.</li>
-	 * <li><code>notfound</code> - the remote party does not exist or wants
-	 * to appear to not exist.</li>
-	 * </ul>
-	 * </p>
-	 */
-	/**
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @typedef CrocSDK.MediaAPI~MediaSession~OnCloseEvent
+	 * @typedef CrocSDK.MediaAPI~MediaSession~CloseEvent
 	 * @property {String} status An indication of how the session ended.
 	 * 
-	 * <p>
 	 * Valid status are:
 	 * <ul>
 	 * <li><code>normal</code> - the session ended normally (including timed
@@ -33038,224 +36092,65 @@ var CrocSDK = {};
 	 * <li><code>notfound</code> - the remote party does not exist or wants
 	 * to appear to not exist.</li>
 	 * </ul>
-	 * </p>
 	 */
-	// Documented Methods (functions)
-	/**
-	 * <p>
-	 * Reject a pending renegotiation from the remote party. The session remains
-	 * valid and connected using the existing media streams.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#rejectChange
-	 */
-	/**
-	 * <p>
-	 * Attempt to renegotiate the session. This is used to change the media
-	 * streams mid-session by adding or removing video or audio. The remote
-	 * party must accept the changes before they will take effect.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError},
-	 * {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#renegotiate
-	 * @param {CrocSDK.MediaAPI~ConnectConfig}
-	 *            config The configuration object.
-	 */
-	/**
-	 * <p>
-	 * Put the session on-hold. Media streams are renegotiated to
-	 * &#34;sendonly&#34; to stop inbound media and local media is muted.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#hold
-	 */
-	/**
-	 * <p>
-	 * Resume an on-hold session. Media streams are renegotiated with the
-	 * configuration that was in effect before <code>hold()</code> was called
-	 * and the local media is unmuted.
-	 * </p>
-	 * 
-	 * Exceptions: {@link CrocSDK.Exceptions#StateError StateError}
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#resume
-	 */
-	/**
-	 * <p>
-	 * Put the session on-hold (if not already) and perform a blind-transfer to
-	 * transfer the remote party to <code>address</code>.
-	 * </p>
-	 * 
-	 * <p>
-	 * Notification of the transfer result will be provided through the
-	 * {@link CrocSDK.MediaAPI~MediaSession#event:onTransferProgress OnTransferProgress}
-	 * event.
-	 * </p>
-	 * 
-	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError},
-	 * {@link CrocSDK.Exceptions#StateError StateError}
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#blindTransfer
-	 * @param {String} address
-	 */
-	/**
-	 * <p>
-	 * Accept a pending inbound transfer request. The returned 
-	 * {@link CrocSDK.MediaAPI~MediaSession MediaSession} object provides 
-	 * access to the new {@link CrocSDK.MediaAPI~MediaSession MediaSession}.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#acceptTransfer
-	 * @returns CrocSDK.MediaAPI~MediaSession
-	 */
-	/**
-	 * <p>
-	 * Reject a pending inbound transfer request. The current session will
-	 * continue as before.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: {@link CrocSDK.Exceptions#StateError StateError}
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @function CrocSDK.MediaAPI~MediaSession#rejectTransfer
-	 */
+
 	// Documented Events
+
 	/**
-	 * <p>
-	 * Dispatched when Crocodile RTC JavaScript Library receives a request 
-	 * for a new session from another party on the Crocodile RTC Network.
-	 * </p>
-	 * 
-	 * <p>
-	 * An instance of Crocodile RTC JavaScript Library cannot receive inbound
-	 * sessions unless the <code>register</code> property was set to
-	 * <code>true</code> when the {@link CrocSDK.Croc Croc} Object was
-	 * instantiated.
-	 * </p>
-	 * 
-	 * <p>
-	 * If this event is not handled the Crocodile RTC JavaScript Library will
-	 * automatically reject inbound sessions.
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI
-	 * @event CrocSDK.MediaAPI#onMediaSession
-	 * @param {CrocSDK.MediaAPI~OnMediaSessionEvent}
-	 *            [onMediaSessionEvent] The event object associated to this
-	 *            event.
-	 */
-	/**
-	 * <p>
-	 * This event is dispatched when the remote party is attempting to put the
+	 * This event is dispatched when the remote party has requested to put the
 	 * session on hold.
-	 * </p>
-	 * 
+	 * <p>
+	 * Note that local and remote hold are independent - if the remote party
+	 * puts the session on hold, the local party cannot reverse the action by
+	 * calling the <code>resume()</code> method.
 	 * <p>
 	 * The session will automatically go on hold whether this event is handled
 	 * or not.
-	 * </p>
 	 * 
 	 * @memberof CrocSDK.MediaAPI~MediaSession
 	 * @event CrocSDK.MediaAPI~MediaSession#onHold
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnHoldEvent}
-	 *            [onHoldEvent] The event object associated to this event.
 	 */
+
 	/**
+	 * This event is dispatched when the remote party has requested to resume
+	 * the session, having previously placed it on hold.
 	 * <p>
-	 * This event is dispatched when the remote party attempts to renegotiate
-	 * the {@link CrocSDK.MediaAPI~MediaSession MediaSession}.
-	 * </p>
-	 * 
-	 * <p>
-	 * If this event is not handled the renegotiation request will be rejected
-	 * automatically.
-	 * </p>
+	 * The session will automatically resume whether this event is handled or
+	 * not.
 	 * 
 	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onRenegotiateRequest
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnRenegotiateRequestEvent}
-	 *            [onRenegotiateRequestEvent] The event object associated to
-	 *            this event.
+	 * @event CrocSDK.MediaAPI~MediaSession#onResume
 	 */
+
 	/**
+	 * This event is dispatched when a response is received for an outgoing
+	 * renegotiation request (including the special cases of hold/resume
+	 * renegotiations).
 	 * <p>
-	 * This event is dispatched when the remote party has accepted or rejected a
-	 * renegotiation request.
-	 * </p>
-	 * 
-	 * <p>
-	 * If this event is not handled the Crocodile RTC JavaScript Library will
-	 * complete the renegotiation process automatically.
-	 * </p>
+	 * No action is necessary on this event - the Crocodile RTC JavaScript
+	 * Library will complete the renegotiation process regardless of whether
+	 * a handler is registered.
 	 * 
 	 * @memberof CrocSDK.MediaAPI~MediaSession
 	 * @event CrocSDK.MediaAPI~MediaSession#onRenegotiateResponse
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnRenegotiateResponseEvent}
-	 *            [onRenegotiateResponseEvent] The event object associated to
-	 *            this event.
-	 */
-	/**
-	 * <p>
-	 * This event is dispatched when a request to transfer the session is
-	 * received. The web-app must call the <code>acceptTransfer()</code> or
-	 * <code>rejectTransfer()</code> method as appropriate.
-	 * </p>
-	 * 
-	 * <p>
-	 * If this event is not handled the transfer request will be rejected
-	 * automatically.
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onTransferRequest
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnTransferRequestEvent}
-	 *            [onTransferRequestEvent] The event object associated to this
-	 *            event.
-	 */
-	/**
-	 * <p>
-	 * This event is dispatched when a progress indication is received for a
-	 * transfer that has been requested by this party. Regardless of the result
-	 * the current session remains valid (but on-hold) and should be closed once
-	 * it is no longer required.
-	 * </p>
-	 * 
-	 * <p>
-	 * If this handler is not defined the media session will be automatically
-	 * closed after the local party sends a transfer request.
-	 * </p>
-	 * 
-	 * @memberof CrocSDK.MediaAPI~MediaSession
-	 * @event CrocSDK.MediaAPI~MediaSession#onTransferProgress
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnTransferProgressEvent}
-	 *            [onTransferProgressEvent] The event object associated to this
-	 *            event.
+	 * @param {CrocSDK.MediaAPI~MediaSession~RenegotiateResponseEvent}
+	 * [event] The event object associated with this event.
 	 */
 
+	/**
+	 * This event is dispatched when a renegotiation completes (including the
+	 * special cases of hold/resume renegotiations).  The event fires
+	 * regardless of which party started the renegotiation, thus indicating that
+	 * it is possible to start a new renegotiation if required.
+	 * <p>
+	 * If this event is not handled the Crocodile RTC JavaScript Library will
+	 * complete the renegotiation process automatically.
+	 * 
+	 * @memberof CrocSDK.MediaAPI~MediaSession
+	 * @event CrocSDK.MediaAPI~MediaSession#onRenegotiateComplete
+	 */
+
+	CrocSDK.MediaSession = MediaSession;
 }(CrocSDK));
 
 (function(CrocSDK) {
@@ -33559,6 +36454,52 @@ var CrocSDK = {};
 	 * event handler.
 	 * </p>
 	 * 
+	 * <p>
+	 * This example makes use of the 
+	 * {@link CrocSDK.MsrpDataSession~TransferProgress TransferProgress} object
+	 * to monitor incoming file transfers. The code to implement the progress 
+	 * bar is not included.
+	 *   <pre>
+	 *   <code>
+	 *     var crocObject = $.croc({
+	 *       apiKey: "API_KEY_GOES_HERE",
+	 *       onConnected: function () {
+	 *         // Update the UI to show we are listening for incoming connections
+	 *       },
+	 *       
+	 *       data: {
+	 *         onSession: function(event) {
+	 *           // Add event handler for file transfers on the new incoming session
+	 *           event.session.onDataStart = function (event) {
+	 *             // Create new progress bar for each file transfer
+	 *             var bar = new MyAwesomeFileTransferProgressBar();
+	 *             
+	 *             // Enable the abort button on the UI
+	 *             bar.onAbort = function () {
+	 *               event.transferProgress.abort();
+	 *             };
+	 *             
+	 *             // Add event handlers to the TransferProgress object to update the UI
+	 *             event.transferProgress.onProgress = function (event) {
+	 *               bar.updateProgress(event.percentComplete);
+	 *             };
+	 *             event.transferProgress.onSuccess = function (event) {
+	 *               bar.addSaveLink(event.data);
+	 *             };
+	 *             event.transferProgress.onFailure = function (event) {
+	 *               bar.transferFailed();
+	 *             };
+	 *           };
+	 *           
+	 *           // Accept the incoming session
+	 *           event.session.accept();
+	 *         }
+	 *       }
+	 *     });
+	 *   </code>
+	 *   </pre>
+	 * </p> 
+	 * 
 	 * @memberof CrocSDK.MsrpDataSession
 	 * @constructor
 	 * @classdesc Represents a TransferProgress Object.
@@ -33707,6 +36648,45 @@ var CrocSDK = {};
 	 * <code>accept()</code> method.
 	 * </p>
 	 * 
+	 * <p>
+	 * The simplest applications will only use the top-level send function and 
+	 * onData handler; the only interaction with a session would be to 
+	 * automatically accept it.
+	 * </p>
+	 * 
+	 * <p>
+	 * An example using Automatic session Management:
+	 *   <pre>
+	 *   <code>
+	 *     var crocObject = $.croc({
+	 *       apiKey: "API_KEY_GOES_HERE",
+	 *       onConnected: function () {
+	 *         this.data.send('sip:bob@example.com', 'Web application ready');
+	 *       },
+	 *       
+	 *       data: {
+	 *         onSession: function(event) {
+	 *           // Accept every incoming session
+	 *           event.session.accept();
+	 *         },
+	 *         onData: function(event) {
+	 *           alert('Data received from ' + event.address + ':\n' + event.data);
+	 *         }
+	 *       }
+	 *     });
+	 *   </code>
+	 *   </pre>
+	 * </p>
+	 * 
+	 * <p>
+	 * In this case the SDK handles the sessions automatically: re-using 
+	 * sessions if they already exist to save the time involved in setting up 
+	 * new sessions, but also closing them to save resources if they are unused 
+	 * for a long time. If the application does not need to support incoming 
+	 * sessions, then even the onSession handler can be dropped, and there are 
+	 * no interactions with DataSession objects at all.
+	 * </p>
+	 * 
 	 * @memberof CrocSDK
 	 * @constructor
 	 */
@@ -33789,7 +36769,7 @@ var CrocSDK = {};
 		 * 
 		 * @member CrocSDK.MsrpDataSession~customHeaders
 		 * @instance
-		 * @type {CrocSDK.DataAPI~CustomHeaders}
+		 * @type {CrocSDK~CustomHeaders}
 		 */
 		this.customHeaders = null;
 		/**
@@ -34194,7 +37174,11 @@ var CrocSDK = {};
 		var capabilityApi = crocObject.capability;
 
 		this.init(dataApi, address);
-		this.customHeaders = sendConfig.customHeaders || {};
+		if (sendConfig.customHeaders instanceof CrocSDK.CustomHeaders) {
+			this.customHeaders = sendConfig.customHeaders;
+		} else {
+			this.customHeaders = new CrocSDK.CustomHeaders(sendConfig.customHeaders);
+		}
 		// Start with cached capabilities if we have them
 		this.capabilities = capabilityApi.getCapabilities(address);
 
@@ -34240,7 +37224,7 @@ var CrocSDK = {};
 
 			var sipOptions = {
 				eventHandlers : sipEventHandlers,
-				extraHeaders : CrocSDK.Util.getExtraHeaders(sendConfig.customHeaders),
+				extraHeaders : dataSession.customHeaders.toExtraHeaders(),
 				featureTags : capabilityApi.createFeatureTags(crocObject.capabilities),
 				sdp : dataSession.msrpSession.getSdpOffer()
 			};
@@ -34280,7 +37264,7 @@ var CrocSDK = {};
 		this.init(dataApi, sipSession.remote_identity.uri.toAor().replace(/^sip:/, ''));
 		this.sipSession = sipSession;
 		this.displayName = sipSession.remote_identity.display_name;
-		this.customHeaders = CrocSDK.Util.getCustomHeaders(sipRequest);
+		this.customHeaders = new CrocSDK.CustomHeaders(sipRequest);
 		// Process remote capabilities
 		var parsedContactHeader = sipRequest.parseHeader('contact', 0);
 		this.capabilities = capabilityApi.parseFeatureTags(parsedContactHeader.parameters);
@@ -34386,6 +37370,740 @@ var CrocSDK = {};
 	 * ArrayBuffer or Blob, depending on the size of the data.
 	 */
 }(CrocSDK));
+
+(function(CrocSDK) {
+	var lineEnd = '\r\n';
+	// The NTP epoch is 1/1/1900
+	var unixToNtpOffset = 2208988800;
+
+	function ntpTimeToDate(ntpTime) {
+		return new Date((parseInt(ntpTime, 10) - unixToNtpOffset) * 1000);
+	}
+	
+	function dateToNtpTime(date) {
+		return parseInt(date.getTime() / 1000, 10) + unixToNtpOffset;
+	}
+	
+	/**
+	 * Encodes a string as an SDP filename-string, as defined in RFC 5547.
+	 * @private
+	 * @param {String} str The string to encode.
+	 * @returns {String} The encoded string.
+	 */
+//	function encodeSdpFileName(str) {
+//		return str.replace(/%/g, '%25')
+//			.replace(/\0/g, '%00')
+//			.replace(/\n/g, '%0A')
+//			.replace(/\r/g, '%0D')
+//			.replace(/"/g, '%22');
+//	}
+
+	/**
+	 * Decodes an SDP filename-string, as defined in RFC 5547.
+	 * @private
+	 * @param {String} str The string to decode.
+	 * @returns {String} The decoded string.
+	 */
+	function decodeSdpFileName(str) {
+		return str.replace(/%00/g, '\0')
+			.replace(/%0A/gi, '\n')
+			.replace(/%0D/gi, '\r')
+			.replace(/%22/g, '"')
+			.replace(/%25/g, '%');
+	}
+
+	/**
+	 * @namespace Encapsulates all of the SDP classes.
+	 * @private
+	 */
+	CrocSDK.Sdp = {};
+	
+	CrocSDK.Sdp.Session = function(sdp) {
+		if (sdp) {
+			// Parse the provided SDP
+			if (!this.parse(sdp)) {
+				return null;
+			}
+		} else {
+			// Set some sensible defaults
+			this.reset();
+		}
+	};
+	CrocSDK.Sdp.Session.prototype.reset = function() {
+		this.version = 0;
+		this.origin = new CrocSDK.Sdp.Origin();
+		this.sessionName = ' ';
+		this.sessionInfo = null;
+		this.uri = null;
+		this.email = null;
+		this.phone = null;
+		this.connection = new CrocSDK.Sdp.Connection();
+		this.bandwidth = [];
+		this.timing = [new CrocSDK.Sdp.Timing()];
+		this.timezone = null;
+		this.key = null;
+		this.resetAttributes();
+		this.media = [];
+	};
+	CrocSDK.Sdp.Session.prototype.addAttribute = function(name, value) {
+		if (!this.attributes[name]) {
+			this.attributes[name] = [];
+			this.attributeNameOrder.push(name);
+		}
+		this.attributes[name].push(value);
+	};
+	CrocSDK.Sdp.Session.prototype.removeAttribute = function(name) {
+		if (this.attributes[name]) {
+			delete this.attributes[name];
+			this.attributeNameOrder.splice(
+					this.attributeNameOrder.indexOf(name), 1);
+		}
+	};
+	CrocSDK.Sdp.Session.prototype.replaceAttribute = function(oldName, newName, newValue) {
+		if (this.attributes[oldName]) {
+			delete this.attributes[oldName];
+			this.addAttribute(newName, newValue);
+			this.attributeNameOrder.splice(this.attributeNameOrder.lastIndexOf(newName), 1);
+			this.attributeNameOrder.splice(
+					this.attributeNameOrder.indexOf(oldName), 1, newName);
+		}
+	};
+	CrocSDK.Sdp.Session.prototype.resetAttributes = function() {
+		this.attributeNameOrder = [];
+		this.attributes = {};
+	};
+	CrocSDK.Sdp.Session.prototype.parse = function(sdp) {
+		var line, lines = sdp.split(lineEnd), value, colonIndex, aName;
+		
+		this.reset();
+		
+		if (lines[lines.length - 1] === '') {
+			// SDP ends in CRLF; remove final array index
+			lines.pop();
+		}
+		
+		if (lines.length < 4) {
+			console.log('Unexpected SDP length: ' + lines.length);
+			return false;
+		}
+		
+		line = lines.shift();
+		if (line !== 'v=0') {
+			console.log('Unexpected SDP version: ' + line);
+			return false;
+		}
+		
+		line = lines.shift();
+		if (line.substr(0, 2) !== 'o=' ||
+				!(this.origin = new CrocSDK.Sdp.Origin(line.substr(2)))) {
+			console.log('Unexpected SDP origin: ' + line);
+			return false;
+		}
+		
+		line = lines.shift();
+		if (line.substr(0, 2) === 's=') {
+			this.sessionName = line.substr(2);
+		} else {
+			console.log('Unexpected SDP session name: ' + line);
+			return false;
+		}
+		
+		// Process any other optional pre-timing lines
+		while (lines.length > 0 && lines[0].charAt(0) !== 't') {
+			line = lines.shift();
+			value = line.substr(2);
+			
+			switch (line.substr(0, 2)) {
+			case 'i=':
+				this.sessionInfo = value;
+				break;
+			case 'u=':
+				this.uri = value;
+				break;
+			case 'e=':
+				this.email = value;
+				break;
+			case 'p=':
+				this.phone = value;
+				break;
+			case 'c=':
+				value = new CrocSDK.Sdp.Connection(value);
+				if (!value) {
+					return false;
+				}
+				this.connection = value;
+				break;
+			case 'b=':
+				this.bandwidth.push(value);
+				break;
+			default:
+				console.log('Unexpected SDP line (pre-timing): ' + line);
+				return false;
+			}
+		}
+		
+		if (lines.length === 0) {
+			console.log('Unexpected end of SDP (pre-timing)');
+			return false;
+		}
+		
+		this.timing = [];
+		while (lines.length > 0 && lines[0].charAt(0) === 't') {
+			line = lines.shift().substr(2);
+			// Append any following r-lines
+			while (lines.length > 0 && lines[0].charAt(0) === 'r') {
+				line += lineEnd + lines.shift();
+			}
+			
+			value = new CrocSDK.Sdp.Timing(line);
+			if (!value) {
+				return false;
+			}
+			this.timing.push(value);
+		}
+
+		if (this.timing.length === 0) {
+			console.log('No timing line found');
+			return false;
+		}
+		
+		// Process any optional pre-media lines
+		while (lines.length > 0 && lines[0].charAt(0) !== 'm') {
+			line = lines.shift();
+			value = line.substr(2);
+			
+			switch (line.substr(0, 2)) {
+			case 'z=':
+				this.timezone = value;
+				break;
+			case 'k=':
+				this.key = value;
+				break;
+			case 'a=':
+				colonIndex = value.indexOf(':');
+				if (colonIndex === -1) {
+					aName = value;
+					value = null;
+				} else {
+					aName = value.substr(0, colonIndex);
+					value = value.substr(colonIndex + 1);
+				}
+				this.addAttribute(aName, value);
+				break;
+			default:
+				console.log('Unexpected SDP line (pre-media): ' + line);
+				return false;
+			}
+		}
+		
+		while (lines.length > 0 && lines[0].charAt(0) === 'm') {
+			line = lines.shift().substr(2);
+			// Append any following lines up to the next m-line
+			while (lines.length > 0 && lines[0].charAt(0) !== 'm') {
+				line += lineEnd + lines.shift();
+			}
+
+			value = new CrocSDK.Sdp.Media(line);
+			if (!value) {
+				return false;
+			}
+			this.media.push(value);
+		}
+
+		return true;
+	};
+	CrocSDK.Sdp.Session.prototype.toString = function() {
+		var sdp = '', index, aName, aValues;
+		
+		sdp += 'v=' + this.version + lineEnd;
+		sdp += 'o=' + this.origin + lineEnd;
+		sdp += 's=' + this.sessionName + lineEnd;
+		if (this.sessionInfo) {
+			sdp += 'i=' + this.sessionInfo + lineEnd;
+		}
+		if (this.uri) {
+			sdp += 'u=' + this.uri + lineEnd;
+		}
+		if (this.email) {
+			sdp += 'e=' + this.email + lineEnd;
+		}
+		if (this.phone) {
+			sdp += 'p=' + this.phone + lineEnd;
+		}
+		if (this.connection) {
+			sdp += 'c=' + this.connection + lineEnd;
+		}
+		for (index in this.bandwidth) {
+			sdp += 'b=' + this.bandwidth[index] + lineEnd;
+		}
+		for (index in this.timing) {
+			sdp += 't=' + this.timing[index] + lineEnd;
+		}
+		if (this.timezone) {
+			sdp += 'z=' + this.timezone + lineEnd;
+		}
+		if (this.key) {
+			sdp += 'k=' + this.key + lineEnd;
+		}
+		for (var i = 0, len = this.attributeNameOrder.length; i < len; i++) {
+			aName = this.attributeNameOrder[i];
+			aValues = this.attributes[aName];
+
+			for (index in aValues) {
+				sdp += 'a=' + aName;
+				if (aValues[index]) {
+					sdp += ':' + aValues[index];
+				}
+				sdp += lineEnd;
+			}
+		}
+		for (index in this.media) {
+			sdp += 'm=' + this.media[index] + lineEnd;
+		}
+		
+		return sdp;
+	};
+	/**
+	 * Checks whether the local party is on hold. Assumes that the current
+	 * session description has been received from the remote party.
+	 * @private
+	 * @returns {Boolean}
+	 */
+	CrocSDK.Sdp.Session.prototype.isHeld = function() {
+		var i, len, mline;
+		for (i = 0, len = this.media.length; i < len; i++) {
+			mline = this.media[i];
+			// Only check audio/video streams
+			switch (mline.media) {
+			case 'audio':
+			case 'video':
+				if (mline.isReceiving()) {
+					// The remote party is receiving at least one stream
+					return false;
+				}
+				break;
+			}
+		}
+		// If we've got this far, the remote party does not want to receive
+		// media for any of the relevant streams.
+		return true;
+	};
+
+	CrocSDK.Sdp.Origin = function(origin) {
+		if (origin) {
+			// Parse the provided origin line
+			if (!this.parse(origin)) {
+				return null;
+			}
+		} else {
+			// Set some sensible defaults
+			this.reset();
+		}
+	};
+	CrocSDK.Sdp.Origin.prototype.reset = function() {
+		this.username = '-';
+		this.id = dateToNtpTime(new Date());
+		this.version = this.sessId;
+		this.netType = 'IN';
+		this.addrType = 'IP4';
+		this.address = 'address.invalid';
+	};
+	CrocSDK.Sdp.Origin.prototype.parse = function(origin) {
+		var split;
+		
+		split = origin.split(' ');
+		if (split.length !== 6) {
+			console.log('Unexpected origin line: ' + origin);
+			return false;
+		}
+
+		this.username = split[0];
+		this.id = split[1];
+		this.version = split[2];
+		this.netType = split[3];
+		this.addrType = split[4];
+		this.address = split[5];
+		
+		return true;
+	};
+	CrocSDK.Sdp.Origin.prototype.toString = function() {
+		var o = '';
+		
+		o += this.username + ' ';
+		o += this.id + ' ';
+		o += this.version + ' ';
+		o += this.netType + ' ';
+		o += this.addrType + ' ';
+		o += this.address;
+		
+		return o;
+	};
+
+	CrocSDK.Sdp.Connection = function(con) {
+		if (con) {
+			// Parse the provided connection line
+			if (!this.parse(con)) {
+				return null;
+			}
+		} else {
+			// Set some sensible defaults
+			this.reset();
+		}
+	};
+	CrocSDK.Sdp.Connection.prototype.reset = function() {
+		this.netType = 'IN';
+		this.addrType = 'IP4';
+		this.address = 'address.invalid';
+	};
+	CrocSDK.Sdp.Connection.prototype.parse = function(con) {
+		var split;
+		
+		split = con.split(' ');
+		if (split.length !== 3) {
+			console.log('Unexpected connection line: ' + con);
+			return false;
+		}
+
+		this.netType = split[0];
+		this.addrType = split[1];
+		this.address = split[2];
+		
+		return true;
+	};
+	CrocSDK.Sdp.Connection.prototype.toString = function() {
+		var c = '';
+		
+		c += this.netType + ' ';
+		c += this.addrType + ' ';
+		c += this.address;
+		
+		return c;
+	};
+
+	CrocSDK.Sdp.Timing = function(timing) {
+		if (timing) {
+			// Parse the provided timing line
+			if (!this.parse(timing)) {
+				return null;
+			}
+		} else {
+			// Set some sensible defaults
+			this.reset();
+		}
+	};
+	CrocSDK.Sdp.Timing.prototype.reset = function() {
+		this.start = null;
+		this.stop = null;
+		this.repeat = [];
+	};
+	// Parse expects to be passed the full t-line, plus any following r-lines
+	CrocSDK.Sdp.Timing.prototype.parse = function(timing) {
+		var lines, tLine, tokens;
+		
+		lines = timing.split(lineEnd);
+		tLine = lines.shift();
+		
+		tokens = tLine.split(' ');
+		if (tokens.length !== 2) {
+			console.log('Unexpected timing line: ' + tLine);
+			return false;
+		}
+
+		if (tokens[0] === '0') {
+			this.start = null;
+		} else {
+			this.start = ntpTimeToDate(tokens[0]);
+		}
+		
+		if (tokens[1] === '0') {
+			this.stop = null;
+		} else {
+			this.stop =  ntpTimeToDate(tokens[1]);
+		}
+		
+		// Don't care about repeat lines at the moment
+		this.repeat = lines;
+		
+		return true;
+	};
+	CrocSDK.Sdp.Timing.prototype.toString = function() {
+		var t = '', index;
+		
+		if (this.start) {
+			t +=  dateToNtpTime(this.start);
+		} else {
+			t += '0';
+		}
+		t += ' ';
+		if (this.stop) {
+			t +=  dateToNtpTime(this.stop);
+		} else {
+			t += '0';
+		}
+		
+		for (index in this.repeat) {
+			t += lineEnd + this.repeat[index];
+		}
+		
+		return t;
+	};
+
+	CrocSDK.Sdp.Media = function(media) {
+		if (media) {
+			// Parse the provided connection line
+			if (!this.parse(media)) {
+				return null;
+			}
+		} else {
+			// Set some sensible defaults
+			this.reset();
+		}
+	};
+	CrocSDK.Sdp.Media.prototype.reset = function() {
+		this.media = 'message';
+		this.port = 2855;
+		this.proto = 'TCP/MSRP';
+		this.format = '*';
+		this.title = null;
+		this.connection = null;
+		this.bandwidth = [];
+		this.key = null;
+		this.resetAttributes();
+	};
+	CrocSDK.Sdp.Media.prototype.addAttribute = function(name, value) {
+		if (!this.attributes[name]) {
+			this.attributes[name] = [];
+			this.attributeNameOrder.push(name);
+		}
+		this.attributes[name].push(value);
+	};
+	CrocSDK.Sdp.Media.prototype.removeAttribute = function(name) {
+		if (this.attributes[name]) {
+			delete this.attributes[name];
+			this.attributeNameOrder.splice(
+					this.attributeNameOrder.indexOf(name), 1);
+		}
+	};
+	CrocSDK.Sdp.Media.prototype.resetAttributes = function() {
+		this.attributeNameOrder = [];
+		this.attributes = {};
+	};
+	CrocSDK.Sdp.Media.prototype.replaceAttribute = function(oldName, newName, newValue) {
+		if (this.attributes[oldName]) {
+			delete this.attributes[oldName];
+			this.addAttribute(newName, newValue);
+			this.attributeNameOrder.splice(this.attributeNameOrder.lastIndexOf(newName), 1);
+			this.attributeNameOrder.splice(
+					this.attributeNameOrder.indexOf(oldName), 1, newName);
+		}
+	};
+	CrocSDK.Sdp.Media.prototype.parse = function(media) {
+		var lines, mLine, tokens, index, aName;
+		
+		this.reset();
+		
+		lines = media.split(lineEnd);
+		mLine = lines.shift();
+		
+		tokens = mLine.split(' ');
+		if (tokens.length < 4) {
+			console.log('Unexpected media line: ' + mLine);
+			return false;
+		}
+
+		this.media = tokens.shift();
+		this.port = parseInt(tokens.shift(), 10);
+		this.proto = tokens.shift();
+		this.format = tokens.join(' ');
+		
+		for (index in lines) {
+			var value = lines[index].substr(2), colonIndex;
+			
+			switch (lines[index].substr(0, 2)) {
+			case 'i=':
+				this.title = value;
+				break;
+			case 'c=':
+				this.connection = new CrocSDK.Sdp.Connection(value);
+				if (!this.connection) {
+					return false;
+				}
+				break;
+			case 'b=':
+				this.bandwidth.push(value);
+				break;
+			case 'k=':
+				this.key = value;
+				break;
+			case 'a=':
+				colonIndex = value.indexOf(':');
+				if (colonIndex === -1) {
+					aName = value;
+					value = null;
+				} else {
+					aName = value.substr(0, colonIndex);
+					value = value.substr(colonIndex + 1);
+				}
+				this.addAttribute(aName, value);
+				break;
+			default:
+				console.log('Unexpected type (within media): ' + lines[index]);
+				return false;
+			}
+		}
+		
+		return true;
+	};
+	CrocSDK.Sdp.Media.prototype.toString = function() {
+		var m = '', index, aName, aValues;
+		
+		m += this.media + ' ';
+		m += this.port + ' ';
+		m += this.proto + ' ';
+		m += this.format;
+		
+		if (this.title) {
+			m += lineEnd + 'i=' + this.title;
+		}
+		if (this.connection) {
+			m += lineEnd + 'c=' + this.connection;
+		}
+		for (index in this.bandwidth) {
+			m += lineEnd + 'b=' + this.bandwidth[index];
+		}
+		if (this.key) {
+			m += lineEnd + 'k=' + this.key;
+		}
+		for (var i = 0, len = this.attributeNameOrder.length; i < len; i++) {
+			aName = this.attributeNameOrder[i];
+			aValues = this.attributes[aName];
+
+			for (index in aValues) {
+				m += lineEnd + 'a=' + aName;
+				if (aValues[index]) {
+					m += ':' + aValues[index];
+				}
+			}
+		}
+		
+		return m;
+	};
+	CrocSDK.Sdp.Media.prototype.parseFileAttributes = function () {
+		var fileParams = {}, position = 0, selector = {},
+			colonIndex, name, value, endIndex;
+
+		if (!this.attributes['file-selector']) {
+			return null;
+		}
+
+		// Separate the file-selector components
+		var fileSelectorString = this.attributes['file-selector'][0];
+		while (position < fileSelectorString.length) {
+			if (fileSelectorString.charAt(position) === ' ') {
+				position++;
+				continue;
+			}
+			
+			colonIndex = fileSelectorString.indexOf(':', position);
+			if (colonIndex === -1) {
+				break;
+			}
+
+			name = fileSelectorString.slice(position, colonIndex);
+			position = colonIndex + 1;
+			
+			if (fileSelectorString.charAt(position) === '"') {
+				// Grab everything within the quotes (possibly including spaces)
+				position++;
+				endIndex = fileSelectorString.indexOf('"', position);
+				if (endIndex === -1) {
+					break;
+				}
+				value = fileSelectorString.slice(position, endIndex);
+				position = endIndex + 1;
+			} else if (name === 'type') {
+				var quoted = false;
+				// Further parsing needed; find the next unquoted space
+				endIndex = position;
+				while (endIndex < fileSelectorString.length &&
+						(quoted || fileSelectorString.charAt(endIndex) !== ' ')) {
+					if (fileSelectorString.charAt(endIndex) === '"') {
+						quoted = !quoted;
+					}
+					endIndex++;
+				}
+				value = fileSelectorString.slice(position, endIndex);
+				position = endIndex + 1;
+			} else {
+				// Grab everything until the next space
+				endIndex = fileSelectorString.indexOf(' ', position);
+				if (endIndex === -1) {
+					endIndex = fileSelectorString.length;
+				}
+				value = fileSelectorString.slice(position, endIndex);
+				position = endIndex + 1;
+			}
+		
+			switch (name) {
+			case 'name':
+				selector.name = decodeSdpFileName(value);
+				break;
+			case 'size':
+				selector.size = parseInt(value, 10);
+				break;
+			case 'type':
+				selector.type = value;
+				break;
+			case 'hash':
+				if (!selector.hash) {
+					selector.hash = {};
+				}
+				colonIndex = value.indexOf(':');
+				selector.hash[value.substring(0, colonIndex)] =
+					value.substring(colonIndex + 1);
+				break;
+			default:
+				continue;
+			}
+		}
+		fileParams.selector = selector;
+		
+		fileParams.id = this.attributes['file-transfer-id'][0];
+		fileParams.disposition = this.attributes['file-disposition'][0] || 'render';
+		if (this.title) {
+			fileParams.description = this.title;
+		}
+		if (this.attributes['file-icon']) {
+			fileParams.icon = this.attributes['file-icon'][0];
+		}
+		
+		return fileParams;
+	};
+	/**
+	 * Check whether the party that created this SDP expects to be sending
+	 * media.
+	 * @private
+	 */
+	CrocSDK.Sdp.Media.prototype.isSending = function () {
+		if (this.attributes['recvonly'] || this.attributes['inactive']) {
+			return false;
+		}
+		return true;
+	};
+	/**
+	 * Check whether the party that created this SDP expects to be receiving
+	 * media.
+	 * @private
+	 */
+	CrocSDK.Sdp.Media.prototype.isReceiving = function () {
+		if (this.attributes['sendonly'] || this.attributes['inactive']) {
+			return false;
+		}
+		return true;
+	};
+
+}(CrocSDK));
+
 
 (function (CrocSDK) {
 
@@ -34640,6 +38358,195 @@ var CrocSDK = {};
 }(CrocSDK));
 
 (function (CrocSDK) {
+	var allowedMediaTypes = [ 'audio', 'video' ];
+
+	CrocSDK.StreamConfig = function (config) {
+		if (config instanceof CrocSDK.Sdp.Session) {
+			this.fromSdp(config);
+		} else if (config) {
+			var addedStream = false;
+
+			if (typeof config !== 'object') {
+				throw new TypeError('Unexpected streamConfig type: ' + typeof config);
+			}
+
+			for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+				var type = allowedMediaTypes[i];
+				if (config[type]) {
+					this[type] = config[type];
+					addedStream = true;
+				} else {
+					this[type] = null;
+				}
+			}
+
+			if (!addedStream) {
+				throw new CrocSDK.Exceptions.ValueError('No allowed streams found');
+			}
+		} else {
+			// Default to a bi-directional audio session
+			this.audio = {send: true, receive: true};
+			this.video = null;
+		}
+	};
+
+	CrocSDK.StreamConfig.prototype.fromSdp = function (sdp) {
+		var i, len;
+		for (i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			this[type] = null;
+		}
+
+		for (i = 0, len = sdp.media.length; i < len; i++) {
+			var mLine = sdp.media[i];
+			if (allowedMediaTypes.indexOf(mLine.media) !== -1 &&
+					mLine.port !== 0) {
+				// Remember that our send/receive settings are the inverse
+				// of what we receive in the remote party's SDP.
+				this[mLine.media] = {
+					send: mLine.isReceiving(),
+					receive: mLine.isSending()
+				};
+			}
+		}
+	};
+
+	CrocSDK.StreamConfig.prototype.isSending = function () {
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (this[type] && this[type].send) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	CrocSDK.StreamConfig.prototype.getSendingStreams = function () {
+		var streams = [];
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (this[type] && this[type].send) {
+				streams.push(type);
+			}
+		}
+		return streams;
+	};
+
+	/**
+	 * Updates the stream config to be on-hold (not receiving any streams) and
+	 * returns the streams that were being received.
+	 * @returns {Array.<String>} The streams previously being received.
+	 */
+	CrocSDK.StreamConfig.prototype.hold = function () {
+		var streams = [];
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (this[type] && this[type].receive) {
+				streams.push(type);
+				this[type].receive = false;
+			}
+		}
+		return streams;
+	};
+
+	/**
+	 * Takes the stream config off-hold by resuming the provided streams.
+	 * @param {Array.<String>} streams - The streams previously being received.
+	 */
+	CrocSDK.StreamConfig.prototype.resume = function (streams) {
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (this[type] && streams.indexOf(type) !== -1) {
+				this[type].receive = true;
+			}
+		}
+	};
+
+	/**
+	 * Test for equality between this StreamConfig object and the provided one.
+	 * They are considered equal if the same streams are present, and the stream
+	 * directions match.
+	 * @param {CrocSDK.StreamConfig} streamConfig - The StreamConfig object to
+	 * compare with the parent object.
+	 * @returns {Boolean} <code>true</code> if the objects are equivalent,
+	 * <code>false</code> otherwise.
+	 */
+	CrocSDK.StreamConfig.prototype.equals = function (streamConfig) {
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (typeof this[type] !== typeof streamConfig[type]) {
+				return false;
+			}
+			if (this[type] && streamConfig[type]) {
+				if (this[type].send !== streamConfig[type].send) {
+					return false;
+				}
+				if (this[type].receive !== streamConfig[type].receive) {
+					return false;
+				}
+			} else if (this[type]) {
+				return false;
+			} else if (streamConfig[type]) {
+				return false;
+			}
+		}
+		return true;
+	};
+
+	/**
+	 * Test for equality between the sending streams of this StreamConfig object
+	 * and the provided one.
+	 * They are considered equal if the same sending streams are present, and the
+	 * stream directions match.
+	 * @param {CrocSDK.StreamConfig} streamConfig - The StreamConfig object to
+	 * compare with the parent object.
+	 * @returns {Boolean} <code>true</code> if the sending streams are the same,
+	 * <code>false</code> otherwise.
+	 */
+	CrocSDK.StreamConfig.prototype.sendingStreamsEqual = function (streamConfig) {
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (typeof this[type] !== typeof streamConfig[type]) {
+				return false;
+			}
+			if (this[type] && streamConfig[type]) {
+				if (this[type].send !== streamConfig[type].send) {
+					return false;
+				}
+			} else if (this[type]) {
+				return false;
+			} else if (streamConfig[type]) {
+				return false;
+			}
+		}
+		return true;
+	};
+
+	/**
+	 * Test for 'safety' (in terms of privacy) of a stream configuration change.
+	 * A change is considered safe if it does not request additional media
+	 * streams to be sent by the local party (the remote party may send
+	 * additional streams if they wish).
+	 * @param {CrocSDK.StreamConfig} newStreamConfig - The StreamConfig object
+	 * representing the new configuration.
+	 * @returns {Boolean} <code>true</code> if the changes are safe,
+	 * <code>false</code> otherwise.
+	 */
+	CrocSDK.StreamConfig.prototype.isSafeChange = function (newStreamConfig) {
+		for (var i = 0, len = allowedMediaTypes.length; i < len; i++) {
+			var type = allowedMediaTypes[i];
+			if (newStreamConfig[type] && newStreamConfig[type].send) {
+				if (!this[type] || !this[type].send) {
+					return false;
+				}
+			}
+		}
+		return true;
+	};
+
+}(CrocSDK));
+
+(function (CrocSDK) {
 	CrocSDK.Util = {};
 	
 	/**
@@ -34721,58 +38628,6 @@ var CrocSDK = {};
 				throw new TypeError(prop + " is not set to a valid type");
 			}
 		}
-	};
-
-	CrocSDK.Util.isValidCustomHeader = function (name, value) {
-		var token = /[^a-zA-Z0-9\-\.!%\*_\+`'~]/;
-		if (name.slice(0, 2).toUpperCase() !== 'X-') {
-			return false;
-		}
-
-		if (name.match(token)) {
-			return false;
-		}
-		
-		if (!CrocSDK.Util.isType(value, 'string')) {
-			return false;
-		}
-		
-		// Though they can be valid, ban new lines/carriage returns for safety
-		if (value.match(/[\r\n]/)) {
-			return false;
-		}
-
-		return true;
-	};
-
-	CrocSDK.Util.getExtraHeaders = function (customHeaders) {
-		var extraHeaders = [];
-		
-		// Convert our custom header format to JsSIP's
-		for (var header in customHeaders) {
-			var value = customHeaders[header];
-	
-			if (CrocSDK.Util.isValidCustomHeader(header, value)) {
-				extraHeaders.push(header + ': ' + value);
-			} else {
-				console.warn('Ignored invalid custom header:', header, value);
-			}
-		}
-		
-		return extraHeaders;
-	};
-
-	CrocSDK.Util.getCustomHeaders = function (sipRequest) {
-		var customHeaders = {};
-		
-		for (var name in sipRequest.headers) {
-			if (name.slice(0, 2).toUpperCase() === 'X-') {
-				// We only grab the first instance of a given header name
-				customHeaders[name] = sipRequest.headers[name][0].raw;
-			}
-		}
-
-		return customHeaders;
 	};
 
 	CrocSDK.Util.websocketCauseToSdkStatus = function (cause) {
@@ -36672,6 +40527,23 @@ var CrocSDK = {};
 	 * rejected the session).</li>
 	 * @property {Number} [acceptTimeout=300]
 	 * Time (in seconds) after which pending inbound sessions will be rejected.
+	 * @property {Array<String>} [features]
+	 * The CrocSDK library features to enable for the current application.
+	 * <p>
+	 * The available features are as follows:
+	 * <ul>
+	 * <li><code>video</code>: Request access to a webcam at startup (to
+	 * determine whether one is available).
+	 * <li><code>audio</code>: Request access to a microphone at startup (to
+	 * determine whether one is available).
+	 * <li><code>presence</code>: Start the presence API automatically.
+	 * <li><code>pagedata</code>: Advertise the ability to receive page-mode
+	 * messages.
+	 * <li><code>transfer</code>: Advertise the ability to receive transfer
+	 * requests.
+	 * </ul>
+	 * If not provided, the default behaviour is to enable the <code>video</code>,
+	 * <code>audio</code> and <code>pagedata</code> features.
 	 * @property {Function} [onConnected]
 	 * Handler for the {@link CrocSDK.Croc#event:onConnected onConnected} event.
 	 * @property {Function} [onDisconnected]
