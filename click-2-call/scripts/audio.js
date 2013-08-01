@@ -58,21 +58,6 @@ function requestAudio(crocApiKey, addressToCall) {
 			// Show the warning light to indicate a call is live
 			$('.warning-light').show();
 			
-			switch (orientationOfClick2Call) {
-			case 'top':
-				if (mediaWidget === 'audio' && orientationOfClick2Call === 'top') {
-					$('.tab-container').removeClass('audio-tab-top');
-					$('.tab-container').addClass('audio-tab-top-light-on');
-				}
-				break;
-			default:
-			case 'left':
-				$('.tab-container').css({top: '94px'});
-				break;
-			case 'bottom':
-				break;
-			}
-			
 			// Set remote party's address
 			$('.ui_uri').html(address);
 			
@@ -139,22 +124,6 @@ function requestAudio(crocApiKey, addressToCall) {
 				
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
-				
-				switch (orientationOfClick2Call) {
-				case 'top':
-					if (mediaWidget === 'audio' && orientationOfClick2Call === 'top') {
-						$('.tab-container').removeClass('audio-tab-top-light-on');
-						$('.tab-container').addClass('audio-tab-top');
-					}
-					break;
-				default:
-				case 'left':
-				case 'right':
-					$('.tab-container').css({top: '100px'});
-					break;
-				case 'bottom':
-					break;
-				}
 				
 				// Close down connection to network.
 				crocObject.disconnect();

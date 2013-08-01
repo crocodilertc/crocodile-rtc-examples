@@ -124,21 +124,6 @@ function requestVideo(crocApiKey, addressToCall) {
 			// Show the warning light to indicate a call is live
 			$('.warning-light').show();
 			
-			switch (orientationOfClick2Call) {
-			case 'top':
-				if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
-					$('.tab-container').removeClass('video-top-tab');
-					$('.tab-container').addClass('video-top-tab-light-on');
-				}
-				break;
-			default:
-			case 'left':
-				$('.tab-container').css({top: '94px'});
-				break;
-			case 'bottom':
-				break;
-			}
-			
 			// Set remote party's address
 			$('.ui_uri').html(address);
 			
@@ -208,22 +193,6 @@ function requestVideo(crocApiKey, addressToCall) {
 				
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
-				
-				switch (orientationOfClick2Call) {
-				case 'top':
-					if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
-						$('.tab-container').removeClass('video-top-tab-light-on');
-						$('.tab-container').addClass('video-top-tab');
-					}
-					break;
-				default:
-				case 'left':
-				case 'right':
-					$('.tab-container').css({top: '100px'});
-					break;
-				case 'bottom':
-					break;
-				}
 				
 				// Close down connection to network
 				crocObject.disconnect();

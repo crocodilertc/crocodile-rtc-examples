@@ -3,8 +3,7 @@
 	font-family: proxima-nova-condensed,sans-serif;
 }
 .tab-wrapper {
-	width: 30px;
-	height: 195px; /* 200px = side tab + tab content */
+	width: 41px;
 	position: fixed;
 	top: 100px; /* 100px */
 	right: 0;
@@ -16,35 +15,35 @@
 	outline: none;
 }
 .tab-wrapper-video {
-	width: 30px;
-	height: 195px;
+	width: 41px;
 	position: fixed;
 	top: 100px;
-	right: 0em;
+	right: 0;
 	-webkit-transition: right 2s;
 	-moz-transition: right 2s;
+	-ms-transition: right 2s;
+	-o-transition: right 2s;
 	transition: right 2s;
 	outline: none;
 }
 .tab-logo {
-	width: 23px;
-	height: 16px;
+	width: 47px;
+	height: 25px;
 	position: relative;
-	top: 3px;
 	z-index: 1030;
 	cursor: pointer;
 	pointer-events: none;
 }
 .side-tab {
-	padding: 10px 5px 0;
-	width: 120px;
+	padding: 5px;
+	width: 102px;
 	height: 30px;
 	position: relative;
-	top: 17px;
-	left: -55px;
+	top: 36px;
+	left: -36px;
 	background-color: #000000;
 	color: #FFFFFF;
-	font-size: 20px;
+	font-size: 15px;
 	cursor: pointer;
 }
 .side-tab  p {
@@ -54,6 +53,9 @@
 	font-size: 100%;
 	font: inherit;
 	vertical-align: baseline;
+	position: relative;
+	top: -18px;
+	left: 30px;
 }
 .side-tab-content  p {
 	margin: 0;
@@ -69,8 +71,8 @@
 	width: 384.5px;
 	height: 187px;
 	position: relative;
-	top: -68px;
-	left: 30px;
+	top: -40px;
+	left: 40px;
 	background: #409F89 url('../images/background-1.jpg') no-repeat center;
 	display: none;
 }
@@ -80,8 +82,8 @@
 	width: 516.85px;
 	height: 359px;
 	position: relative;
-	top: -68px;
-	left: 30px;
+	top: -40px;
+	left: 40px;
 	background: #409F89 url('../images/background-1.jpg') no-repeat center;
 	display: none;
 }
@@ -108,13 +110,13 @@
 
 /* Convert right tab to left tab for audio */
 .tab-wrapper.audio-left-tab {
-	left: 0;
+	left: 0px;
 	-webkit-transition: left 2s;
 	-moz-transition: left 2s;
 	transition: left 2s;
 }
-.side-tab-content.audio-content-left {
-	left: -407px;
+.side-tab-content.audio-left-content {
+	left: -400px;
 }
 
 /* Convert right tab to left tab for video*/
@@ -124,15 +126,12 @@
 	-moz-transition: left 2s;
 	transition: left 2s;
 }
-/* .tab-wrapper-video.video-left-tab:focus {
-	left: 532px;
-} */
-.side-tab-content-video.video-content-left {
-	left: -535.35px;
+.side-tab-content-video.video-left-content {
+	left: -532.35px;
 }
 
 /* Convert right tab to bottom tab for audio */
-.audio-tab-bottom {
+.audio-bottom-tab {
 	bottom: 0px;
 	left: 615px;
 	-webkit-transition: bottom 2s;
@@ -143,24 +142,13 @@
 	top: 0px;
 	left: 0px;
 }
-.tab-logo.horizontal-tab-align {
-	left: 100px;
-	top: 33px;
-}
 .side-tab-content.audio-bottom-content {
-	top: 0px;
-	left: 0px;
+	top: 0;
+	left: 0;
 }
 
 /* Convert right tab to botton tab for video */
-.video-tab-bottom {
-	left:  615px;
-	bottom: 0px;
-	-webkit-transition: bottom 2s;
-	-moz-transition: bottom 2s;
-	transition: bottom 2s;
-}
-.video-tab-bottom-light-on{
+.video-bottom-tab {
 	left:  615px;
 	bottom: 0px;
 	-webkit-transition: bottom 2s;
@@ -171,10 +159,6 @@
 	left: 0px;
 	top: 0px;
 }
-.tab-logo.horizontal-tab-align-bottom {
-	left: 100px;
-	top: 33px;
-}
 .side-tab-content-video.video-bottom-content {
 	top: 0px;
 	left: 0px;
@@ -182,14 +166,7 @@
 
 /* Convert right tab to top tab for video */
 .video-top-tab {
-	top: 0px;
-	left: 615px;
-	-webkit-transition: top 2s;
-	-moz-transition: top 2s;
-	transition: top 2s;
-}
-.video-top-tab-light-on {
-	top: -6px;
+	top: 0;
 	left: 615px;
 	-webkit-transition: top 2s;
 	-moz-transition: top 2s;
@@ -197,38 +174,27 @@
 }
 .side-tab.video-top-side-tab {
 	left:  0px;
-	top: -20px;
+	top: 0;
 }
 .side-tab-content-video.video-top-content {
 	left: 0;
-	top: -432px;
+	top: -412px;
 }
 
 /* Convert right tab to top tab for audio */
-.audio-tab-top {
+.audio-top-tab {
 	top: 0px;
 	left: 615px;
 	-webkit-transition: top 2s;
 	-moz-transition: top 2s;
 	transition: top 2s;
 }
-.audio-tab-top-light-on {
-	top: -6px;
-	left: 615px;
-	-webkit-transition: top 2s;
-	-moz-transition: top 2s;
-	transition: top 2s;
-}
 .side-tab.audio-side-tab-top {
-	top: -20px;
-	left: 0px;
-}
-.tab-logo.horizontal-tab-align {
-	left: 100px;
-	top: 12px;
+	top: 0;
+	left: 0;
 }
 .side-tab-content.audio-top-content {
-	top: -260px;
+	top: -240px;
 	left: 0px;
 }
 
@@ -263,8 +229,8 @@
 	width:6px;
 	display: none;
 	position: relative;
-	top: 18px;
-	left: 12px;
+	top: -29px;
+	left: 95px;
 }
 .warning-light .warning-light-circle {
 	height:5px;
@@ -274,24 +240,6 @@
 	position: relative;
 	z-index: 9999;
 	background-color:rgba(255,0,0,255);
-}
-
-/* Position for top tab */
-.warning-light.top-light-horizontal {
-	top: 26px;
-	left: 112px;
-}
-
-/* Position for bottom tab */
-.warning-light.bottom-light-horizontal {
-	top: 47px;
-	left: 112px;
-}
-
-/* account for shift when warning light displays */
-.shift-content  .shift-content:focus{
-	position: relative;
-	top: -6px;
 }
 
 /* Creates an infinite pulsating effect */

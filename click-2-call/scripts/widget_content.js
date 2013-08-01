@@ -1,14 +1,14 @@
-	/*		
+	/*
 	 * Create the html to append to the appenClick2callTo element.
 	 * Using strings but could have used a document fragment.
 	 */
 	var audioWidgetHtml = '<div class="tab-wrapper tab-container">';
+	audioWidgetHtml += '<div class="side-tab rotate-vertical">';
+	audioWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
+	audioWidgetHtml += '<p>Call Now</p>';
 	audioWidgetHtml += '<div class="warning-light">';
 	audioWidgetHtml += '<div class="warning-light-circle"></div>';
 	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
-	audioWidgetHtml += '<div class="side-tab rotate-vertical">';
-	audioWidgetHtml += '<p>Call Now</p>';
 	audioWidgetHtml += '</div>';
 	audioWidgetHtml += '<div class="side-tab-content">';
 	audioWidgetHtml += '<div class="audio-widget-container">';
@@ -61,17 +61,17 @@
 	audioWidgetHtml += '</div>';
 	audioWidgetHtml += '</div>';
 	
-	/*		
+	/*
 	 * Create the html to append to the appenClick2callTo element.
 	 * Using strings but could have used a document fragment.
 	 */
 	var videoWidgetHtml = '<div class="tab-wrapper-video tab-container">';
+	videoWidgetHtml += '<div class="side-tab rotate-vertical">';
+	videoWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
+	videoWidgetHtml += '<p>Call Now</p>';
 	videoWidgetHtml += '<div class="warning-light">';
 	videoWidgetHtml += '<div class="warning-light-circle"></div>';
 	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
-	videoWidgetHtml += '<div class="side-tab rotate-vertical">';
-	videoWidgetHtml += '<p>Call Now</p>';
 	videoWidgetHtml += '</div>';
 	videoWidgetHtml += '<div class="side-tab-content-video">';
 	videoWidgetHtml += '<div class="video-widget-container">';
