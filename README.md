@@ -3,10 +3,6 @@
 Example web applications using the crocodile-rtc library.
 
 ## Getting Started
-If you're only interested in using a particular example, you can download concatenated or minified versions from [crocodile-rtc-examples][examples]. 
-
-Alternatively you can build your own copy using _[Node.js][node]_ with the following steps:
-
 get a copy of this repository:
 
 ````
@@ -15,20 +11,22 @@ git clone https://github.com/crocodilertc/crocodile-rtc-examples.git
 
 Alternatively, download a zip file of the repository by clicking on the button to the right labelled _Download ZIP_.
 
+The directory _dist_ contains concatenated, minified CSS and JavaScript files. _[Node.js][node]_ can be used to create a clean build of the _dist_ directory:
+
 On the command line, If you have _[Node.js][node]_ installed, navigate to the directory of the example you would like to use and run the install command:
 
 ````
 npm install
 ````
 
-This downloads any dependencies that are needed to build a distribution of the project. Now in the command line run GRUNT to build a distribution of the project:
+This downloads any dependencies that are needed to build a distribution of the project. Now on the command line run GRUNT to build a distribution of the project:
 
 ````
 grunt
 ````
 
-Once the command has finished loading, it will create a new folder in the project labelled _dist_. Add this folder to the same location of the web page you would like to use the example in.
-For example; if i had a web page called _click2call.html_ in a folder labelled _www_ i would place a copy of the _dist_ folder in the _www_ folder.
+Once the command has finished loading, it will re-create the folder labelled _dist_. Add this folder to the same location of the web page you would like to use the example in.
+For example; if the web page called _click2call.html_ lcoated in the folder labelled _www_ place a copy of the _dist_ folder in the _www_ folder.
 
 Now you can use the example in your web page. The example below uses the _click-2-call_ application:
 
@@ -49,7 +47,6 @@ This will create a click-2-call tab on the right hand side of your web page. You
 * The _apiKey_ property requires an API key registered to the Crocodile network. To register go to [https://www.crocodilertc.net/](https://www.crocodilertc.net/)
 * The _addresssToCall_ property requires the address of a registered user for free calls. To make calls to non-registered numbers you will need to add balance to your API key.
 
-[examples]: https://demos.crocodilertc.net/download/
 [node]: http://nodejs.org/
 
 ## Documentation
