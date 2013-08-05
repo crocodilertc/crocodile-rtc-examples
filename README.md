@@ -26,7 +26,7 @@ grunt
 ````
 
 Once the command has finished loading, it will re-create the folder labelled _dist_. Add this folder to the same location of the web page you would like to use the example in.
-For example; if the web page called _click2call.html_ lcoated in the folder labelled _www_ place a copy of the _dist_ folder in the _www_ folder.
+For example; if the web page called _click2call.html_ located in the folder _www_ a copy of the _dist_ folder should be placed in the _www_ folder.
 
 Now you can use the example in your web page. The example below uses the _click-2-call_ application:
 
