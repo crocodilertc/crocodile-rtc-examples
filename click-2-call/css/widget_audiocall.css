@@ -1,7 +1,7 @@
 .widget_audiocall {
-	height:10.875em;
+	height:11em;
 	position:absolute;
-	width: 23.063em;
+	width: 23em;
 }
 
 .widget_audiocall .ui_container .ui_content {
@@ -9,10 +9,10 @@
 	right: 0px;
 	left: 0px;
 	bottom: 0px;
-	top: 2.688em;
+	top: 2.5em;
 }
 
-.widget_audiocall .ui_container .ui_content .tpl_content {
+.widget_audiocall .ui_container .ui_content > .tpl_content {
 	position: absolute;
 	right: 0;
 	left: 0;
@@ -20,227 +20,62 @@
 	top: 0;
 }
 
-.widget_audiocall .ui_container .ui_actions {
-	display:none;
-}
-
 .widget_audiocall .ui_container .ui_content .tpl_actions {
 	border-radius: 0px 0px 10px 10px;
-	display: block;
 	left: 0;
 	right: 0;
 	bottom: 0;
 	position: absolute;
-}
-
-.widget_audiocall .widget_content {
-	top:0;
-	position:relative;
+	background: #409F89;
+	height:3em;
+	text-align: center;
 }
 
 .widget_audiocall .tpl_info {
-	height:2.5em;
-	position:relative;
-	margin-top: 1.563em;
-}
-
-.widget_audiocall .tpl_info .tpl_remoteid {
-	left: 0;
-	right: 0;
-	top:0;
-	bottom:0;
-	white-space:nowrap;
-	overflow:hidden;
+	margin-top:1.5em;
 }
 
 .widget_audiocall .tpl_info .tpl_remoteid .ui_label {
 	display: block;
-	color: #1a3e36;
 	font-size: 18px;
-	line-height: 18px;
 	font-weight: bold;
 	text-align: center;
 }
 
 .widget_audiocall .tpl_info .tpl_details {
-	display: block;
-	margin-top: 0.31em;
+	margin-top: 0.5em;
 	text-align: center;
-}
-
-.widget_audiocall .tpl_info .tpl_details .wrapper_details {
-	display: inline-block;
-	margin: auto;
 }
 
 .widget_audiocall .tpl_info .tpl_details .tpl_status,
 .widget_audiocall .tpl_info .tpl_details .ui_duration {
-	color: #64857d;
 	display: inline-block;
-	padding: 0 0.31em 0 0.31em;
+	padding: 0 0.25em;
 	font-size: 13px;
 }
 
-.widget_audiocall .tpl_actions {
-	background: #409f89;
-	height:3em;
-	text-align: center;
+.widget_audiocall .tpl_actions > .tpl_group > .ui_popout {
+	display:inline-block;
 }
 
-.widget_audiocall .tpl_actions .ui_input_button {
-	height: 1.625em;
-	width: 2.500em;
-	float: left;
+.widget_audiocall .tpl_actions > .tpl_group > .ui_input_button,
+.widget_audiocall .tpl_actions > .tpl_group > .ui_popout > .ui_input_button {
+	height: 1.75em;
+	width: 2.5em;
+	display:inline-block;
 }
 
-
-.widget_audiocall .tpl_actions .wrapper_actions {
-	display: inline-block;
-	margin: 0.438em auto 0 auto;
+.widget_audiocall .ui_keypad {
+	width:8em;
+	height:10em;
+}
+.widget_audiocall .ui_keypad table {
+	font-size:12px;
 }
 
-.widget_audiocall .tpl_actions .ui_action {
-	border-radius: 3px;
-	height: 1.625em;
-	margin: 0 0.1em 0 0.1em;
-	width: 2.500em;
+.widget_audiocall .tpl_actions .tpl_group {
+	position:relative;
+	top:50%;
+	margin-top:-1em;
 }
 
-.widget_audiocall .tpl_actions .ui_text {
-	border-radius: 4px;
-	display:block;
-	height: 1.625em;
-	width: 2.500em;
-}
-
-.widget_audiocall .tpl_actions .btn_transfer {
-	background: url(../images/icons.png) no-repeat -1px -170px;
-	border-bottom: 1px solid rgba(0,0,0, .0);
-}
-
-.widget_audiocall .tpl_actions .btn_hold {
-	background: url(../images/icons.png) no-repeat -42px -170px;
-	border-bottom: 1px solid rgba(0,0,0, .0);
-}
-
-.widget_audiocall .tpl_actions .btn_mute {
-	background: url(../images/icons.png) no-repeat -83px -170px;
-	border-bottom: 1px solid rgba(0,0,0, .0);
-}
-
-.widget_audiocall .tpl_actions .btn_changemedia_video {
-	background: url(../images/icons.png) no-repeat -124px -170px;
-	border-bottom: 1px solid rgba(0,0,0, .0);
-}
-
-.widget_audiocall .tpl_actions .btn_endcall {
-	background: url(../images/icons.png) no-repeat -165px -170px;
-	border-bottom: 1px solid rgba(0,0,0, .0);
-}
-
-.widget_audiocall .tpl_actions .btn_startchat {
-	background: url(../images/icons.png) no-repeat -206px -170px;
-	border-bottom: 1px solid rgba(0,0,0, .0);
-}
-
-/*	selected buttons background	*/
-
-.widget_audiocall .tpl_actions .btn_transfer.selected,
-.widget_audiocall .tpl_actions .btn_transfer.selected:hover {
-	background: url(../images/icons.png) no-repeat -1px -170px rgba(57, 143, 123, 1);
-	border-bottom: 1px solid #6fad9f;
-}
-
-.widget_audiocall .tpl_actions .btn_hold.selected,
-.widget_audiocall .tpl_actions .btn_hold.selected:hover {
-	background: url(../images/icons.png) no-repeat -42px -170px rgba(57, 143, 123, 1);
-	border-bottom: 1px solid #6fad9f;
-}
-
-.widget_audiocall .tpl_actions .btn_mute.selected,
-.widget_audiocall .tpl_actions .btn_mute.selected:hover {
-	background: url(../images/icons.png) no-repeat -83px -170px rgba(57, 143, 123, 1);
-	border-bottom: 1px solid #6fad9f;
-}
-
-.widget_audiocall .tpl_actions .btn_changemedia_video.selected,
-.widget_audiocall .tpl_actions .btn_changemedia_video.selected:hover {
-	background: url(../images/icons.png) no-repeat -124px -170px rgba(57, 143, 123, 1);
-	border-bottom: 1px solid #6fad9f;
-}
-
-.widget_audiocall .tpl_actions .btn_endcall.selected,
-.widget_audiocall .tpl_actions .btn_endcall.selected:hover {
-	background: url(../images/icons.png) no-repeat -165px -170px rgba(57, 143, 123, 1);
-	border-bottom: 1px solid #6fad9f;
-}
-
-.widget_audiocall .tpl_actions .btn_startchat.selected,
-.widget_audiocall .tpl_actions .btn_startchat.selected:hover {
-	background: url(../images/icons.png) no-repeat -206px -170px rgba(57, 143, 123, 1);
-	border-bottom: 1px solid #6fad9f;
-}
-
-/*	disabled buttons background	*/
-
-.widget_audiocall .tpl_actions .btn_transfer.disabled,
-.widget_audiocall .tpl_actions .btn_transfer.disabled:hover {
-	background: url(../images/icons.png) no-repeat -1px -368px;
-}
-
-.widget_audiocall .tpl_actions .btn_hold.disabled,
-.widget_audiocall .tpl_actions .btn_hold.disabled:hover {
-	background: url(../images/icons.png) no-repeat -42px -368px;
-}
-
-.widget_audiocall .tpl_actions .btn_mute.disabled,
-.widget_audiocall .tpl_actions .btn_mute.disabled:hover {
-	background: url(../images/icons.png) no-repeat -83px -368px;
-}
-
-.widget_audiocall .tpl_actions .btn_changemedia_video.disabled,
-.widget_audiocall .tpl_actions .btn_changemedia_video.disabled:hover {
-	background: url(../images/icons.png) no-repeat -124px -368px;
-}
-
-.widget_audiocall .tpl_actions .btn_endcall.disabled,
-.widget_audiocall .tpl_actions .btn_endcall.disabled:hover {
-	background: url(../images/icons.png) no-repeat -165px -368px;
-}
-
-.widget_audiocall .tpl_actions .btn_startchat.disabled,
-.widget_audiocall .tpl_actions .btn_startchat.disabled:hover {
-	background: url(../images/icons.png) no-repeat -206px -368px;
-}
-
-/*	enabled hover buttons background	*/
-
-.widget_audiocall .tpl_actions .btn_transfer:hover {
-	background: url(../images/icons.png) no-repeat -1px -170px rgba(255, 255, 255, .1);
-	border-bottom: 1px solid #5f5e61;
-}
-
-.widget_audiocall .tpl_actions .btn_hold:hover {
-	background: url(../images/icons.png) no-repeat -42px -170px rgba(255, 255, 255, .1);
-	border-bottom: 1px solid #5f5e61;
-}
-
-.widget_audiocall .tpl_actions .btn_mute:hover {
-	background: url(../images/icons.png) no-repeat -83px -170px rgba(255, 255, 255, .1);
-	border-bottom: 1px solid #5f5e61;
-}
-
-.widget_audiocall .tpl_actions .btn_changemedia_video:hover {
-	background: url(../images/icons.png) no-repeat -124px -170px rgba(255, 255, 255, .1);
-	border-bottom: 1px solid #5f5e61;
-}
-
-.widget_audiocall .tpl_actions .btn_endcall:hover {
-	background: url(../images/icons.png) no-repeat -165px -170px rgba(255, 255, 255, .1);
-	border-bottom: 1px solid #5f5e61;
-}
-
-.widget_audiocall .tpl_actions .btn_startchat:hover {
-	background: url(../images/icons.png) no-repeat -206px -170px rgba(255, 255, 255, .1);
-	border-bottom: 1px solid #5f5e61;
-}

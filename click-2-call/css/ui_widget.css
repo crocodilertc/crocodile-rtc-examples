@@ -1,4 +1,4 @@
-/*	reset	*/
+/* reset */
 
 h1, h2, h3, h4, h5, h6 {
 	margin: 0px;
@@ -12,7 +12,7 @@ ul, li, ol {
 }
 
 
-/*	Widget Styles	*/
+/* Widget Styles */
 
 .ui_widget {
 	position:absolute;
@@ -23,9 +23,6 @@ ul, li, ol {
 }
 
 .ui_widget .ui_container {
-	border-radius:10px;
-	background-color:rgba(230,235,234, 1);
-	box-shadow: 0px 0px 10px 1px #343434;
 	position: absolute;
 	left: 0;
 	right: 0;
@@ -33,7 +30,7 @@ ul, li, ol {
 	bottom: 0;
 }
 
-.tpl_title {
+.ui_widget .tpl_title {
 	background: #ffffff; /* Old browsers */
 	background: -moz-linear-gradient(top,  #ffffff 0%, #e7eceb 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e7eceb)); /* Chrome,Safari4+ */
@@ -42,16 +39,14 @@ ul, li, ol {
 	background: -ms-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* IE10+ */
 	background: linear-gradient(to bottom,  #ffffff 0%,#e7eceb 100%); /* W3C */
 	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e7eceb',GradientType=0 ); /* IE6-9 */
+
 	border-radius: 10px 10px 0px 0px;
 	-moz-border-radius: 10px 10px 0px 0px;
-    -webkit-border-radius: 10px 10px 0px 0px;
-    -o-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	-o-border-radius: 10px 10px 0px 0px;
+
 	border-bottom: 1px solid #c2d3cf;
-	display: block;
-	font-size: 12px;
-	height: 42px;
-	color:#64857d;
-	font-family:Arial;
+	height: 2.5em;
 	cursor:default;
 	width: 100%;
 }
@@ -77,10 +72,48 @@ ul, li, ol {
 	margin:0;
 	box-shadow:none;
 	border:none;
-	background-color:transparent;
+	background-color:transparent;_
 }
+
+/*
+.ui_widget .ui_actions .ui_input_button {
+	
+	width:20px;
+	height:20px;
+	padding:0;
+	margin:0;
+	float:left;
+}
+*/
 
 .ui_widget .ui_actions .ui_input_button .ui_input:active {
 	box-shadow:inset 0 3px 5px #000;
 	border-radius:5px;
+}
+
+.scheme_widget {
+	border-radius:10px;
+	box-shadow:0px 0px 10px 1px #343434;
+}
+
+.ui_title_toolbar {
+	position: absolute;
+	top: 7px;
+	right: 13px;
+}
+
+.ui_title_toolbar .ui_input_button {
+	display: block;
+	float: left;
+	height: 26px;
+	margin-left: 2px;
+	width: 26px;
+}
+
+.ui_title_toolbar .ui_input_button .ui_text {
+	display:none;
+}
+
+.ui_title_toolbar .selected {
+	border-color:#409f89;
 }

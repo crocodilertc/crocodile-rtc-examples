@@ -44,7 +44,7 @@ Now you can use the example in your web page. The example below uses the _click-
 
 This will create a click-2-call tab on the right hand side of your web page. You will need to replace the _FIXME_ place holder with appropriate values.
 
-* The _apiKey_ property requires an API key registered to the Crocodile network. To register go to [https://www.crocodilertc.net/](https://www.crocodilertc.net/)
+* The _apiKey_ property requires an API key registered on the Crocodile network. To register go to [https://www.crocodilertc.net/](https://www.crocodilertc.net/)
 * The _addresssToCall_ property requires the address of a registered user for free calls. To make calls to non-registered numbers you will need to add balance to your API key.
 
 [node]: http://nodejs.org/

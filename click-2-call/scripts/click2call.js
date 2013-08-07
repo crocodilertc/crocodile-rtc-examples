@@ -14,7 +14,7 @@ var croc_click2call = function(userConfig) {
 	var defaultConfig = $.extend({
 		apiKey: 'FIXME',
 		addressToCall: 'FIXME@crocodilertc.net',
-		appendClick2callTo: 'html',
+		appendClick2callTo: 'body',
 		click2callPosition: 'absolute',
 		click2callOrientation: 'right',
 		click2callMediaWidget: 'audio',
@@ -112,13 +112,13 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// End audio session when clicked
-		$('.btn_endcall').click(function() {
+		$('.btn_endcall_s').click(function() {
 			// End the audio call
 			endAudio();
 		});
 		
 		// Set mute call button
-		$('#mute_audio').click(function () {
+		$('.mute_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudioCall();
@@ -126,7 +126,42 @@ var croc_click2call = function(userConfig) {
 				toggleOnMute = false;
 				unmuteAudioCall();
 			}
-		});		
+		});
+
+		// Setup keypad popout
+		$('.ui_popout').click(function(evt){
+			$('body').click(function(evt2){
+				// Dont close if popout content is pressed
+				var currentTarget = $(evt.target);
+				while(currentTarget[0]){
+					if(currentTarget[0] === evt.target[0])
+						return;
+					currentTarget = currentTarget.parent();
+				}
+
+				$('body').off('click');
+
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
+			});
+
+			evt.stopPropagation();
+			$('.ui_popout').addClass('ui_popout_open');
+			$('.tpl_titlebar').addClass('ui_shown');
+			$('.tpl_actions').addClass('ui_shown');
+		});
+
+		$('.ui_popout').removeClass('ui_popout_open');
+		$('.tpl_titlebar').removeClass('ui_shown');
+		$('.tpl_actions').removeClass('ui_shown');
+
+		// Setup keypad buttons
+		var keypad = $('.ui_keypad');
+		keypad.find('.tpl_key').click(function(){
+			var value = $(this).find('.tpl_main').text();
+			audioSession.sendDTMF(value);
+		});
 	};
 	
 	/*
@@ -211,7 +246,7 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// Setup end call button
-		$('.btn_endcall').click(function() {
+		$('.btn_endcall_s').click(function() {
 			// End the video call
 			endVideo();
 		});
@@ -219,7 +254,7 @@ var croc_click2call = function(userConfig) {
 		var togglePauseVideo = false;
 		
 		// Set pause video button
-		$('.btn_pausevideo').click(function () {
+		$('.btn_pausevideo_s').click(function () {
 			if (!togglePauseVideo) {
 				togglePauseVideo = true;
 				pauseVideo();
@@ -232,7 +267,7 @@ var croc_click2call = function(userConfig) {
 		var toggleOnMute = false;
 		
 		// Set mute audio button
-		$('#mute_video_audio').click(function () {
+		$('.mute_video_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudio();
@@ -248,12 +283,10 @@ var croc_click2call = function(userConfig) {
 		$('.btn_localvideo').click(function () {
 			if (toggleLocalVideo) {
 				toggleLocalVideo = false;
-				$('.wrapper_local_video').removeClass("enabled_local_video");
-				$('.wrapper_local_video').addClass("disabled_local_video");
+				$('.tpl_controls').removeClass("ui_localvideoshown");
 			} else {
 				toggleLocalVideo = true;
-				$('.wrapper_local_video').removeClass("disabled_local_video");
-				$('.wrapper_local_video').addClass("enabled_local_video");
+				$('.tpl_controls').addClass("ui_localvideoshown");
 			}
 		});
 		
@@ -266,6 +299,41 @@ var croc_click2call = function(userConfig) {
 				isFullscreen = false;
 				setVideoToFullscreen(false);
 			}
+		});
+		
+		// Setup keypad popout
+		$('.ui_popout').click(function(evt){
+			$('body').click(function(evt2){
+				// Dont close if popout content is pressed
+				var currentTarget = $(evt.target);
+				while(currentTarget[0]){
+					if(currentTarget[0] === evt.target[0])
+						return;
+					currentTarget = currentTarget.parent();
+				}
+
+				$('body').off('click');
+
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
+			});
+
+			evt.stopPropagation();
+			$('.ui_popout').addClass('ui_popout_open');
+			$('.tpl_titlebar').addClass('ui_shown');
+			$('.tpl_actions').addClass('ui_shown');
+		});
+
+		$('.ui_popout').removeClass('ui_popout_open');
+		$('.tpl_titlebar').removeClass('ui_shown');
+		$('.tpl_actions').removeClass('ui_shown');
+
+		// Setup keypad buttons
+		var keypad = $('.ui_keypad');
+		keypad.find('.tpl_key').click(function(){
+			var value = $(this).find('.tpl_main').text();
+			videoSession.sendDTMF(value);
 		});
 	};
 	

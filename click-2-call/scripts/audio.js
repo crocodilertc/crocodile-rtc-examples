@@ -10,20 +10,20 @@ function endAudio() {
 function muteAudioCall() {
 	
 	// Mute the sessions audio track
-	audioSession.localStream.getAudioTracks()[0].enabled=false;
+	audioSession.mute();
 	
 	// Add transparency to show mute button has been pressed
-	$('.btn_mute').addClass('disabled');
+	$('.btn_mute_s').addClass('disabled');
 }
 
 // Un-mute the audio call
 function unmuteAudioCall() {
 	
 	// Un-mute the sessions audio track
-	audioSession.localStream.getAudioTracks()[0].enabled=true;
+	audioSession.unmute();
 	
 	// Restore icon back to white by removing transparency
-	$('.btn_mute').removeClass('disabled');
+	$('.btn_mute_s').removeClass('disabled');
 }
 
 // Audio session set-up
@@ -124,6 +124,14 @@ function requestAudio(crocApiKey, addressToCall) {
 				
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
+				
+				// Un-mute audio
+				unmuteAudio();
+				
+				// Reset pop-out
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
 				
 				// Close down connection to network.
 				crocObject.disconnect();

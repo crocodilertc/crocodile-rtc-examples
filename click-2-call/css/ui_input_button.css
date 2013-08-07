@@ -1,6 +1,10 @@
 .ui_input_button {
 	cursor:pointer;
 	position:relative;
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	outline:none;
 }
 
 .ui_input_button .ui_image {
@@ -14,37 +18,114 @@
 
 .ui_input_button.ui_action_button {
 	border-radius:3px;
-	padding:7px;
 	overflow:hidden;
 	text-overflow:ellipsis;
 	white-space:nowrap;
 }
 
 .ui_input_button.scheme_button_1 {
-	font-weight:bold;
-	background-color:#409F89;
-	color:#FFFFFF;
+	border-radius:5px;
+}
+.ui_input_button.scheme_button_1 .ui_image {
+	top:50%;
+	left:50%;
+	height:2em;
+	width:2em;
+	margin-top:-1em;
+	margin-left:-1em;
+}
+.ui_input_button.scheme_button_1 .ui_text {
+	position:relative;
+	top:50%;
+	height:1em;
+	margin:-0.5em 0.5em 0 0.5em;
+	text-align:center;
 }
 
-.ui_input_button.scheme_button_2 {
-	font-weight:bold;
-	background-color:#C62828;
-	color:#FFFFFF;
+.ui_input_button.scheme_button_2 .ui_text {
+	top:50%;
+	height:1em;
+	margin-top:-0.5em;
+	position:relative;
 }
-
+.ui_input_button.scheme_button_2 .ui_image {
+	display:none;
+}
 .ui_input_button.scheme_button_3 {
-	background: #ffffff;
-	background: -moz-linear-gradient(top, #ffffff 0%, #e7eceb 100%);
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e7eceb));
-	background: -webkit-linear-gradient(top, #ffffff 0%,#e7eceb 100%);
-	background: -o-linear-gradient(top, #ffffff 0%,#e7eceb 100%);
-	background: -ms-linear-gradient(top, #ffffff 0%,#e7eceb 100%);
-	background: linear-gradient(to bottom, #ffffff 0%,#e7eceb 100%);
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e7eceb',GradientType=0 );
-	border:1px solid #c2d3cf;
-	color:#409f89;
-	font-size:14px;
-	font-weight:bold;
+	border-width:1px;
+	border-style:solid;
 	border-radius:3px;
 	margin:-1px;
+}
+
+.ui_input_button.scheme_button_3 .ui_text {
+	margin:-0.5em 0.5em 0 0.5em;
+	top:50%;
+	position:relative;
+	height:1em;
+	text-align:center;
+}
+
+.ui_input_button.scheme_button_4 .ui_text {
+	top:50%;
+	height:1.1em;
+	margin-top:-0.55em;
+	position:relative;
+	text-align:center;
+}
+
+.ui_input_button.scheme_button_5 {
+	border-radius:3px;
+	font-size:12px;
+	text-indent:15px;
+}
+
+.ui_input_button.scheme_button_5 .ui_image {
+	position:absolute;
+	left:0;
+	top:50%;
+	height:1em;
+	width:1em;
+	margin-top:-0.5em;
+}
+
+.ui_input_button.scheme_button_5 .ui_text {
+	position:relative;
+	top:50%;
+	height:1em;
+	margin-top:-0.5em;
+	text-align:left;
+}
+
+.ui_input_button.scheme_button_6 {
+	border-width:1px;
+	border-style:solid;
+	border-radius:4px;
+}
+.ui_input_button.scheme_button_7 .ui_image {
+	top:50%;
+	left:50%;
+	height:2em;
+	width:2em;
+	margin-top:-1em;
+	margin-left:-1em;
+}
+.ui_input_button.scheme_button_7 .ui_text {
+	position:relative;
+	top:50%;
+	height:1em;
+	margin:-0.5em 0.5em 0 0.5em;
+}
+
+.ui_input_button.scheme_button_8 {
+
+}
+.ui_input_button.scheme_button_8 .ui_image {
+	position:relative;
+	height:2em;
+	width:2em;
+	left:50%;
+	top:50%;
+	margin-left:-1em;
+	margin-top:-1em;
 }

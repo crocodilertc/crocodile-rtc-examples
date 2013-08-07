@@ -10,20 +10,20 @@ function endVideo() {
 function muteAudio() {
 	
 	// Disable the sessions audio track
-	videoSession.localStream.getAudioTracks()[0].enabled=false;
+	videoSession.mute();
 	
 	// Turn icon green to show its been pressed
-	$('.btn_mute').addClass('selected');
+	$('.btn_mute_s').addClass('selected');
 }
 
 // Un-mute the audio
 function unmuteAudio() {
 	
 	// Un-mute the sessions audio track
-	videoSession.localStream.getAudioTracks()[0].enabled=true;
+	videoSession.unmute();
 	
 	// Restore icon back to white
-	$('.btn_mute').removeClass('selected');
+	$('.btn_mute_s').removeClass('selected');
 }
 
 // Pause the remote video
@@ -33,11 +33,10 @@ function pauseVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=false;
 	
 	// Turn icon green to show its been pressed
-	$('.btn_pausevideo').addClass('selected');
+	$('.btn_pausevideo_s').addClass('selected');
 	
 	// Add disabled icon to local video
-	$('.tpl_videopicture').removeClass('enabled_picture');
-	$('.tpl_videopicture').addClass('disabled_picture');
+	$('.tpl_controls').addClass('ui_localvideodisabled');
 }
 
 // Un-Pause the remote video
@@ -47,11 +46,10 @@ function resumeVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=true;
 	
 	// Restore icon back to white
-	$('.btn_pausevideo').removeClass('selected');
+	$('.btn_pausevideo_s').removeClass('selected');
 	
 	// Remove disabled icon on local video
-	$('.tpl_videopicture').removeClass('disabled_picture');
-	$('.tpl_videopicture').addClass('enabled_picture');
+	$('.tpl_controls').removeClass('ui_localvideodisabled');
 }
 
 // Determine whether to go full screen or not
@@ -135,7 +133,7 @@ function requestVideo(crocApiKey, addressToCall) {
 			setDuration(callStartDate);
 
 			// The DOM video element used for playing the local party's video.
-			videoSession.localVideoElement = $('.tpl_localvideo')[0];
+			videoSession.localVideoElement = $('.receive_localVideo')[0];
 			
 			// The DOM video element used for playing the remote party's video.
 			videoSession.remoteVideoElement = $('.tpl_remotevideo')[0];
@@ -193,6 +191,17 @@ function requestVideo(crocApiKey, addressToCall) {
 				
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
+				
+				// Un-mute audio
+				unmuteAudio();
+				
+				// Resume video
+				resumeVideo();
+				
+				// Reset pop-out
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
 				
 				// Close down connection to network
 				crocObject.disconnect();

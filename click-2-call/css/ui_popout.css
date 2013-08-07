@@ -1,0 +1,64 @@
+.ui_popout {
+	position:relative;
+}
+
+.ui_popout .tpl_content,
+.ui_popout .tpl_deco {
+	display: none;
+}
+.ui_popout_open .tpl_deco {
+	display: block;
+}
+
+.ui_popout_open .tpl_content {
+	background:#f7f7f7;
+	border-radius: 0px 5px 5px 5px;
+	box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+	display: block;
+	font-weight: bold;
+	left: 0px;
+	padding: 10px;
+	position: absolute;
+	top: 24px;
+	z-index: 10001;
+
+}
+
+.ui_popout .tpl_content div {
+	position:relative;
+	bottom:0;
+	top:0;
+	left:0;
+	right:0;
+}
+
+.ui_popout .ui_text {
+	padding-right: 10px;
+}
+
+.tpl_moreactions .ui_listitem span {
+	cursor: pointer;
+}
+
+.scheme_popout_1 > .tpl_content {
+	position:absolute;
+	bottom:100%;
+	top:auto;
+	left:50%;
+	margin-left:-4.625em;
+	margin-bottom:-1px;
+	border:1px solid;
+	border-radius:5px;
+}
+
+.ui_popout.scheme_popout_1 .tpl_deco {
+	position:absolute;
+	left:50%;
+	bottom:100%;
+	height:1em;
+	width:1em;
+	margin-bottom:-1em;
+	margin-left:-0.5em;
+	z-index:10001;
+	background:url(../images/icons.png) no-repeat -24px -453px;
+}

@@ -1,9 +1,5 @@
 /* Generic styles */
-.ui_text {
-	cursor: pointer;
-}
 
-/* Input Controls */
 .ui-resizable-e {
 	position:absolute;
 	right:0;
@@ -49,6 +45,26 @@
 	height:auto !important;
 }
 
+/* Generic */
+
+html, body {
+	padding:0;
+	margin:0;
+	
+	cursor:default;
+	font-family: Arial;
+	user-select:none;
+	-moz-user-select:none;
+	-o-user-select:none;
+	-webkit-user-select:none;
+	-khtml-user-select:none;
+	-webkit-touch-callout:none;
+	overflow:hidden;
+	font-size: 16px;
+	width:100%;
+	height:100%;
+}
+
 .ui_communicator_logo {
 	position:absolute;
 	right:1em;
@@ -70,7 +86,6 @@
 }
 
 .ui_hidden {
-	opacity:0 !important;
 	display:none !important;
 }
 
@@ -79,80 +94,202 @@
 	transition:opacity 0.25s;
 }
 
-.disabled,
-.has_no_webrtc .requires_webrtc,
-.has_no_audio .requires_webrtc_audio,
-.has_no_video .requires_webrtc_video,
-.has_no_websockets .requires_websockets {
+*:focus {
+	outline:none;
+}
+
+a:visited {
+	color:#000;
+}
+
+a:link {
+	color:#000;
+}
+
+.disabled {
 	opacity:0.25;
 }
 
-.scheme_icons {
-	background-image:url('../images/icons.png');
+.btn_clear_s .ui_image {
+	background: url(../images/icons.png) no-repeat -212px -143px;
+}
+.btn_audio_s .ui_image {
+	background:url(../images/icons.png) no-repeat -164px -254px;
+}
+.btn_audio2_s .ui_image {
+	background:url(../images/icons.png) no-repeat -165px -319px;
+}
+.btn_video_s .ui_image {
+	background:url(../images/icons.png) no-repeat -127px -169px;
+}
+.btn_video2_s .ui_image {
+	background:url(../images/icons.png) no-repeat -182px -319px;
+}
+.btn_chat_s .ui_image {
+	background:url(../images/icons.png) no-repeat -210px -168px;
+}
+.btn_transfer_s .ui_image {
+	background: url(../images/icons.png) no-repeat -1px -170px;
+}
+.btn_transfer_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -1px -170px;
+}
+.btn_transfer_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -1px -199px;
+}
+.btn_hold_s .ui_image {
+	background: url(../images/icons.png) no-repeat -42px -170px;
+}
+.btn_hold_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -42px -170px;
+}
+.btn_hold_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -42px -199px;
+}
+.btn_mute_s .ui_image {
+	background: url(../images/icons.png) no-repeat -83px -170px;
+}
+.btn_mute_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -83px -170px;
+}
+.btn_mute_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -83px -199px;
+}
+.btn_pausevideo_s .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_pausevideo_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_pausevideo_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -199px;
+}
+.btn_endcall_s .ui_image {
+	background: url(../images/icons.png) no-repeat -165px -170px;
+}
+.btn_endcall_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -165px -170px;
+}
+.btn_endcall_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -165px -199px;
+}
+.btn_startchat_s .ui_image {
+	background: url(../images/icons.png) no-repeat -206px -170px;
+}
+.btn_startchat_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -206px -170px;
+}
+.btn_startchat_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -206px -199px;
+}
+.btn_audiocall_s .ui_image {
+	background:url(../images/icons.png) no-repeat -17px -258px;
+}
+.btn_videocall_s .ui_image {
+	background:url(../images/icons.png) no-repeat -65px -258px;
+	width:4em !important;
+	margin-left:-2em !important;
+}
+.btn_changemedia_video_s .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_changemedia_video_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_changemedia_video_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_changemedia_audio_s .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_changemedia_audio_s:hover .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_changemedia_audio_s.selected .ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.btn_acceptcall_s .ui_image {
+	background:url(../images/icons.png) no-repeat -168px -258px;
+}
+.btn_rejectcall_s .ui_image {
+	background:url(../images/icons.png) no-repeat -127px -258px;
+}
+.btn_keypad .ui_image {
+	background:url(../images/icons.png) no-repeat -165px -395px;
 }
 
-.btn_small,
-.btn_audio_small,
-.btn_video_small,
-.btn_chat_small {
-	height: 26px;
-	width: 40px;
+.btn_edit .ui_image {
+	background: url(../images/icons.png) no-repeat -201px -270px;
+}
+.btn_audio .ui_image {
+	background:url(../images/icons.png) no-repeat -1px -115px;
+}
+.btn_video .ui_image {
+	background:url(../images/icons.png) no-repeat -64px -115px;
+}
+.btn_startchat .ui_image {
+	background:url(../images/icons.png) no-repeat -127px -115px;
+}
+.btn_about .ui_image {
+	background:url(../images/icons.png) no-repeat -137px -340px;
+}
+.btn_addcontact .ui_image {
+	background:url(../images/icons.png) no-repeat -165px -284px;
+}
+.btn_addcontact:hover .ui_image {
+	background-position: -200px -284px;
+}
+.btn_addgroup .ui_image {
+	background:url(../images/icons.png) no-repeat -29px -464px;
+}
+.btn_addgroup:hover .ui_image {
+	background-position: -59px -464px;
+}
+.btn_settings .ui_image {
+	background:url(../images/icons.png) no-repeat -1px -341px;
+}
+.btn_logout .ui_image {
+	background:url(../images/icons.png) no-repeat -28px -341px;
+}
+.btn_close .ui_image {
+	background:url(../images/icons.png) no-repeat -109px -341px;
+}
+.btn_delete .ui_image {
+	background:url(../images/icons.png) no-repeat -201px -257px;
+}
+.btn_fullscreen .ui_image {
+	background:url(../images/icons.png) no-repeat -82px -341px;
+}
+.btn_localvideo .ui_image {
+	background:url(../images/icons.png) no-repeat -192px -144px;
+}
+.btn_back .ui_image {
+	background:url(../images/icons.png) -475px -254px;
+	height:0.9em !important;
+}
+.btn_togglefold .ui_image {
+	background:url(../images/icons.png) no-repeat -13px -470px;
+}
+.ui_collapsed .btn_togglefold .ui_image {
+	background:url(../images/icons.png) no-repeat 0px -470px;
 }
 
-.btn_audio_small {
-	background: url(../images/icons.png) no-repeat -160px -257px #409f89;
+.icon_audio {
+	background:url(../images/icons.png) no-repeat -1px -284px;
+}
+.icon_video {
+	background:url(../images/icons.png) no-repeat -42px -284px;
+}
+.icon_file {
+	background:url(../images/icons.png) no-repeat -124px -284px;
+}
+.icon_chat {
+	background:url(../images/icons.png) no-repeat -83px -284px;
+}
+.icon_warning {
+	background: url('../images/icons.png') no-repeat -80px -410px;
 }
 
-.btn_video_small {
-	background: url(../images/icons.png) no-repeat -123px -172px #409f89
-}
-
-.btn_chat_small {
-	background: url(../images/icons.png) no-repeat -206px -171px #409f89;
-}
-
-.ui_title_toolbar {
-	position: absolute;
-	top: 7px;
-	right: 13px;
-}
-
-.ui_title_toolbar .ui_input_button {
-	background: #FFF;
-	border: 1px solid #e4e4e4;
-	border-radius: 4px;
-	display: block;
-	float: left;
-	height: 26px;
-	margin-left: 2px;
-	width: 26px;
-
-}
-
-.ui_title_toolbar .ui_input_button:hover {
-	border: 1px solid #c2d3cf;
-}
-
-.ui_title_toolbar .selected,
-.ui_title_toolbar .selected:hover {
-	border: 1px solid #409f89;
-}
-
-.ui_title_toolbar .ui_text {
-	background: url(../images/icons.png) no-repeat;
-	display: block;
-	float: left;
-	width: 26px;
-	height: 26px;
-	text-indent: -9999px;
-}
-
-.ui_title_toolbar .btn_settings .ui_text {
-	background-position: -1px -341px;
-}
-.ui_title_toolbar .btn_logout .ui_text {
-	background-position: -28px -341px;
-}
-.ui_title_toolbar .btn_close .ui_text {
-	background-position: -109px -341px;
+.ui_input_checkbox .ui_image {
+	background:url('../images/icons.png') no-repeat -92px -473px;
 }
