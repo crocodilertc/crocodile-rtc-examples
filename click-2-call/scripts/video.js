@@ -192,11 +192,12 @@ function requestVideo(crocApiKey, addressToCall) {
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
 				
-				// Un-mute audio
-				unmuteAudio();
+				// Reset mute button
+				$('.btn_mute_s').removeClass('selected');
 				
-				// Resume video
-				resumeVideo();
+				// Reset video pause button
+				$('.btn_pausevideo_s').removeClass('selected');
+				$('.tpl_controls').removeClass('ui_localvideodisabled');
 				
 				// Reset pop-out
 				$('.ui_popout').removeClass('ui_popout_open');

@@ -125,8 +125,8 @@ function requestAudio(crocApiKey, addressToCall) {
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
 				
-				// Un-mute audio
-				unmuteAudio();
+				// Reset mute button
+				$('.btn_mute_s').removeClass('disabled');
 				
 				// Reset pop-out
 				$('.ui_popout').removeClass('ui_popout_open');

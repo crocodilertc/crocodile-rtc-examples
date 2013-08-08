@@ -134,8 +134,10 @@ var croc_click2call = function(userConfig) {
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
 				while(currentTarget[0]){
-					if(currentTarget[0] === evt.target[0])
+					if(currentTarget[0] === evt.target[0]) {
 						return;
+					}
+					
 					currentTarget = currentTarget.parent();
 				}
 
@@ -307,8 +309,10 @@ var croc_click2call = function(userConfig) {
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
 				while(currentTarget[0]){
-					if(currentTarget[0] === evt.target[0])
+					if(currentTarget[0] === evt.target[0]) {
 						return;
+					}
+					
 					currentTarget = currentTarget.parent();
 				}
 

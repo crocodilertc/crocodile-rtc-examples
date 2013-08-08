@@ -50424,20 +50424,20 @@ function endAudio() {
 function muteAudioCall() {
 	
 	// Mute the sessions audio track
-	audioSession.localStream.getAudioTracks()[0].enabled=false;
+	audioSession.mute();
 	
 	// Add transparency to show mute button has been pressed
-	$('.btn_mute').addClass('disabled');
+	$('.btn_mute_s').addClass('disabled');
 }
 
 // Un-mute the audio call
 function unmuteAudioCall() {
 	
 	// Un-mute the sessions audio track
-	audioSession.localStream.getAudioTracks()[0].enabled=true;
+	audioSession.unmute();
 	
 	// Restore icon back to white by removing transparency
-	$('.btn_mute').removeClass('disabled');
+	$('.btn_mute_s').removeClass('disabled');
 }
 
 // Audio session set-up
@@ -50539,6 +50539,14 @@ function requestAudio(crocApiKey, addressToCall) {
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
 				
+				// Reset mute button
+				$('.btn_mute_s').removeClass('disabled');
+				
+				// Reset pop-out
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
+				
 				// Close down connection to network.
 				crocObject.disconnect();
 			};
@@ -50586,7 +50594,7 @@ var croc_click2call = function(userConfig) {
 	var defaultConfig = $.extend({
 		apiKey: 'FIXME',
 		addressToCall: 'FIXME@crocodilertc.net',
-		appendClick2callTo: 'html',
+		appendClick2callTo: 'body',
 		click2callPosition: 'absolute',
 		click2callOrientation: 'right',
 		click2callMediaWidget: 'audio',
@@ -50684,13 +50692,13 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// End audio session when clicked
-		$('.btn_endcall').click(function() {
+		$('.btn_endcall_s').click(function() {
 			// End the audio call
 			endAudio();
 		});
 		
 		// Set mute call button
-		$('#mute_audio').click(function () {
+		$('.mute_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudioCall();
@@ -50698,7 +50706,44 @@ var croc_click2call = function(userConfig) {
 				toggleOnMute = false;
 				unmuteAudioCall();
 			}
-		});		
+		});
+
+		// Setup keypad popout
+		$('.ui_popout').click(function(evt){
+			$('body').click(function(evt2){
+				// Dont close if popout content is pressed
+				var currentTarget = $(evt.target);
+				while(currentTarget[0]){
+					if(currentTarget[0] === evt.target[0]) {
+						return;
+					}
+					
+					currentTarget = currentTarget.parent();
+				}
+
+				$('body').off('click');
+
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
+			});
+
+			evt.stopPropagation();
+			$('.ui_popout').addClass('ui_popout_open');
+			$('.tpl_titlebar').addClass('ui_shown');
+			$('.tpl_actions').addClass('ui_shown');
+		});
+
+		$('.ui_popout').removeClass('ui_popout_open');
+		$('.tpl_titlebar').removeClass('ui_shown');
+		$('.tpl_actions').removeClass('ui_shown');
+
+		// Setup keypad buttons
+		var keypad = $('.ui_keypad');
+		keypad.find('.tpl_key').click(function(){
+			var value = $(this).find('.tpl_main').text();
+			audioSession.sendDTMF(value);
+		});
 	};
 	
 	/*
@@ -50783,7 +50828,7 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// Setup end call button
-		$('.btn_endcall').click(function() {
+		$('.btn_endcall_s').click(function() {
 			// End the video call
 			endVideo();
 		});
@@ -50791,7 +50836,7 @@ var croc_click2call = function(userConfig) {
 		var togglePauseVideo = false;
 		
 		// Set pause video button
-		$('.btn_pausevideo').click(function () {
+		$('.btn_pausevideo_s').click(function () {
 			if (!togglePauseVideo) {
 				togglePauseVideo = true;
 				pauseVideo();
@@ -50804,7 +50849,7 @@ var croc_click2call = function(userConfig) {
 		var toggleOnMute = false;
 		
 		// Set mute audio button
-		$('#mute_video_audio').click(function () {
+		$('.mute_video_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudio();
@@ -50820,12 +50865,10 @@ var croc_click2call = function(userConfig) {
 		$('.btn_localvideo').click(function () {
 			if (toggleLocalVideo) {
 				toggleLocalVideo = false;
-				$('.wrapper_local_video').removeClass("enabled_local_video");
-				$('.wrapper_local_video').addClass("disabled_local_video");
+				$('.tpl_controls').removeClass("ui_localvideoshown");
 			} else {
 				toggleLocalVideo = true;
-				$('.wrapper_local_video').removeClass("disabled_local_video");
-				$('.wrapper_local_video').addClass("enabled_local_video");
+				$('.tpl_controls').addClass("ui_localvideoshown");
 			}
 		});
 		
@@ -50838,6 +50881,43 @@ var croc_click2call = function(userConfig) {
 				isFullscreen = false;
 				setVideoToFullscreen(false);
 			}
+		});
+		
+		// Setup keypad popout
+		$('.ui_popout').click(function(evt){
+			$('body').click(function(evt2){
+				// Dont close if popout content is pressed
+				var currentTarget = $(evt.target);
+				while(currentTarget[0]){
+					if(currentTarget[0] === evt.target[0]) {
+						return;
+					}
+					
+					currentTarget = currentTarget.parent();
+				}
+
+				$('body').off('click');
+
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
+			});
+
+			evt.stopPropagation();
+			$('.ui_popout').addClass('ui_popout_open');
+			$('.tpl_titlebar').addClass('ui_shown');
+			$('.tpl_actions').addClass('ui_shown');
+		});
+
+		$('.ui_popout').removeClass('ui_popout_open');
+		$('.tpl_titlebar').removeClass('ui_shown');
+		$('.tpl_actions').removeClass('ui_shown');
+
+		// Setup keypad buttons
+		var keypad = $('.ui_keypad');
+		keypad.find('.tpl_key').click(function(){
+			var value = $(this).find('.tpl_main').text();
+			videoSession.sendDTMF(value);
 		});
 	};
 	
@@ -53089,20 +53169,20 @@ function endVideo() {
 function muteAudio() {
 	
 	// Disable the sessions audio track
-	videoSession.localStream.getAudioTracks()[0].enabled=false;
+	videoSession.mute();
 	
 	// Turn icon green to show its been pressed
-	$('.btn_mute').addClass('selected');
+	$('.btn_mute_s').addClass('selected');
 }
 
 // Un-mute the audio
 function unmuteAudio() {
 	
 	// Un-mute the sessions audio track
-	videoSession.localStream.getAudioTracks()[0].enabled=true;
+	videoSession.unmute();
 	
 	// Restore icon back to white
-	$('.btn_mute').removeClass('selected');
+	$('.btn_mute_s').removeClass('selected');
 }
 
 // Pause the remote video
@@ -53112,11 +53192,10 @@ function pauseVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=false;
 	
 	// Turn icon green to show its been pressed
-	$('.btn_pausevideo').addClass('selected');
+	$('.btn_pausevideo_s').addClass('selected');
 	
 	// Add disabled icon to local video
-	$('.tpl_videopicture').removeClass('enabled_picture');
-	$('.tpl_videopicture').addClass('disabled_picture');
+	$('.tpl_controls').addClass('ui_localvideodisabled');
 }
 
 // Un-Pause the remote video
@@ -53126,11 +53205,10 @@ function resumeVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=true;
 	
 	// Restore icon back to white
-	$('.btn_pausevideo').removeClass('selected');
+	$('.btn_pausevideo_s').removeClass('selected');
 	
 	// Remove disabled icon on local video
-	$('.tpl_videopicture').removeClass('disabled_picture');
-	$('.tpl_videopicture').addClass('enabled_picture');
+	$('.tpl_controls').removeClass('ui_localvideodisabled');
 }
 
 // Determine whether to go full screen or not
@@ -53214,7 +53292,7 @@ function requestVideo(crocApiKey, addressToCall) {
 			setDuration(callStartDate);
 
 			// The DOM video element used for playing the local party's video.
-			videoSession.localVideoElement = $('.tpl_localvideo')[0];
+			videoSession.localVideoElement = $('.receive_localVideo')[0];
 			
 			// The DOM video element used for playing the remote party's video.
 			videoSession.remoteVideoElement = $('.tpl_remotevideo')[0];
@@ -53273,6 +53351,18 @@ function requestVideo(crocApiKey, addressToCall) {
 				// Hide the warning light to indicate there are no calls
 				$('.warning-light').hide();
 				
+				// Reset mute button
+				$('.btn_mute_s').removeClass('selected');
+				
+				// Reset video pause button
+				$('.btn_pausevideo_s').removeClass('selected');
+				$('.tpl_controls').removeClass('ui_localvideodisabled');
+				
+				// Reset pop-out
+				$('.ui_popout').removeClass('ui_popout_open');
+				$('.tpl_titlebar').removeClass('ui_shown');
+				$('.tpl_actions').removeClass('ui_shown');
+				
 				// Close down connection to network
 				crocObject.disconnect();
 			};
@@ -53304,146 +53394,313 @@ function requestVideo(crocApiKey, addressToCall) {
 	// Instantiation of croc object with basic configuration
 	crocObject = $.croc(crocConfig);
 }
-var audioWidgetHtml = '<div class="tab-wrapper tab-container">';
-	audioWidgetHtml += '<div class="side-tab rotate-vertical">';
-	audioWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
-	audioWidgetHtml += '<p>Call Now</p>';
-	audioWidgetHtml += '<div class="warning-light">';
-	audioWidgetHtml += '<div class="warning-light-circle"></div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="side-tab-content">';
-	audioWidgetHtml += '<div class="audio-widget-container">';
-	audioWidgetHtml += '<div class="ui_widget widget_audiocall">';
-	audioWidgetHtml += '<div class="ui_container">';
-	audioWidgetHtml += '<div class="tpl_title">';
-	audioWidgetHtml += '<div class="title_control">';
-	audioWidgetHtml += '<h1 class="ui_title"></h1>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="ui_title_toolbar">';
-	audioWidgetHtml += '<div class="ui_input_button ui_input btn_close">';
-	audioWidgetHtml += '<div class="ui_image"></div>';
-	audioWidgetHtml += '<div class="ui_text"></div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="ui_content">';
-	audioWidgetHtml += '<div class="tpl_content">';
-	audioWidgetHtml += '<div class="tpl_info">';
-	audioWidgetHtml += '<div class="tpl_remoteid">';
-	audioWidgetHtml += '<span class="ui_label ui_uri"></span>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="tpl_details">';
-	audioWidgetHtml += '<div class="wrapper_details">';
-	audioWidgetHtml += '<span class="ui_label tpl_status"></span>';
-	audioWidgetHtml += '<span class="ui_label ui_duration"></span>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="tpl_actions">';
-	audioWidgetHtml += '<div class="wrapper_actions">';
-	audioWidgetHtml += '<div id="mute_audio" class="ui_input_button ui_input ui_action btn_mute">';
-	audioWidgetHtml += '<div class="ui_image"></div>';
-	audioWidgetHtml += '<div class="ui_text"></div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="ui_input_button ui_input ui_action btn_endcall">';
-	audioWidgetHtml += '<div class="ui_image"></div>';
-	audioWidgetHtml += '<div class="ui_text"></div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '<div class="ui_hidden">';
-	audioWidgetHtml += '<audio class="tpl_tpl receive-audio" autoplay="autoplay"></audio>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
-	audioWidgetHtml += '</div>';
+var audioWidgetHtml = '<div class="tab-wrapper tab-container">' +
+		'<div class="side-tab rotate-vertical">' +
+			'<img class="tab-logo" src="dist/images/croc-logo.png"></img>' +
+			'<p>Call Now</p>' +
+			'<div class="warning-light">' +
+				'<div class="warning-light-circle"></div>' +
+			'</div>' +
+		'</div>' +
+		'<div class="side-tab-content">' +
+			'<div class="ui_widget widget_audiocall hidden">' +
+				'<div class="ui_container scheme_widget">' +
+					'<div class="tpl_title">' +
+						'<div class="title_control">' +
+							'<h1 class="ui_title"></h1>' +
+						'</div>' +
+						'<div class="ui_title_toolbar">' +
+							'<div class="ui_input_button ui_input btn_close scheme_button_6">' +
+								'<div class="ui_image"></div>' +
+								'<div class="ui_text"></div>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+					'<div class="ui_content">' +
+						'<div class="tpl_content">' +
+							'<div class="tpl_info">' +
+								'<div class="tpl_remoteid">' +
+									'<span class="ui_label scheme_label_1 ui_uri"></span>' +
+								'</div>' +
+								'<div class="tpl_details scheme_label_2">' +
+									'<span class="ui_label tpl_status"></span>' +
+									'<span class="ui_label ui_duration"></span>' +
+								'</div>' +
+							'</div>' +
+							'<div class="tpl_actions">' +
+								'<div class="tpl_group">' +
+									'<div class="ui_popout scheme_popout_1 ui_popout_open">' +
+										'<div class="ui_input_button ui_input scheme_action_button btn_keypad" tabindex="0">' +
+											'<div class="ui_image"></div>' +
+											'<div class="ui_text"></div>' +
+										'</div>' +
+										'<div class="ui_panel tpl_content">' +
+											'<div class="ui_keypad">' +
+												'<table>' +
+													'<tr>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">1</div>' +
+																'<div class="tpl_alternate"></div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">2</div>' +
+																'<div class="tpl_alternate">ABC</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">3</div>' +
+																'<div class="tpl_alternate">DEF</div>' +
+															'</div>' +
+														'</td>' +
+													'</tr>' +
+													'<tr>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">4</div>' +
+																'<div class="tpl_alternate">GHI</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">5</div>' +
+																'<div class="tpl_alternate">JKL</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">6</div>' +
+																'<div class="tpl_alternate">MNO</div>' +
+															'</div>' +
+														'</td>' +
+													'</tr>' +
+													'<tr>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">7</div>' +
+																'<div class="tpl_alternate">PQRS</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">8</div>' +
+																'<div class="tpl_alternate">TUV</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">9</div>' +
+																'<div class="tpl_alternate">WXYZ</div>' +
+															'</div>' +
+														'</td>' +
+													'</tr>' +
+													'<tr>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">*</div>' +
+																'<div class="tpl_alternate"></div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">0</div>' +
+																'<div class="tpl_alternate">+</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="ui_input_button tpl_key" tabindex="0">' +
+																'<div class="tpl_main">#</div>' +
+																'<div class="tpl_alternate"></div>' +
+															'</div>' +
+														'</td>' +
+													'</tr>' +
+												'</table>' +
+											'</div>' +
+										'</div>' +
+										'<div class="tpl_deco"></div>' +
+									'</div>' +
+									'<div class="ui_input_button ui_input scheme_action_button btn_mute_s mute_audio">' +
+										'<div class="ui_image"></div>' +
+										'<div class="ui_text"></div>' +
+									'</div>' +
+									'<div class="ui_input_button ui_input scheme_action_button btn_endcall_s">' +
+										'<div class="ui_image"></div>' +
+										'<div class="ui_text"></div>' +
+									'</div>' +
+								'</div>' +
+							'</div>' +
+							'<div class="ui_hidden">' +
+								'<audio class="tpl_tpl receive-audio" autoplay="autoplay"></audio>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+			'</div>' +
+		'</div>' +
+	'</div>';
 	
 	/*
 	 * Create the html to append to the appenClick2callTo element.
 	 * Using strings but could have used a document fragment.
 	 */
-	var videoWidgetHtml = '<div class="tab-wrapper-video tab-container">';
-	videoWidgetHtml += '<div class="side-tab rotate-vertical">';
-	videoWidgetHtml += '<img class="tab-logo" src="dist/images/croc-logo.png"></img>';
-	videoWidgetHtml += '<p>Call Now</p>';
-	videoWidgetHtml += '<div class="warning-light">';
-	videoWidgetHtml += '<div class="warning-light-circle"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="side-tab-content-video">';
-	videoWidgetHtml += '<div class="video-widget-container">';
-	videoWidgetHtml += '<div class="ui_widget widget_videocall ui-draggable ui-resizable">';
-	videoWidgetHtml += '<div class="ui_container">';
-	videoWidgetHtml += '<div class="tpl_title">';
-	videoWidgetHtml += '<div class="title_control">';
-	videoWidgetHtml += '<h1 class="ui_title"></h1>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_title_toolbar">';
-	videoWidgetHtml += '<div class="ui_input_button ui_input btn_close">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_content">';
-	videoWidgetHtml += '<div class="tpl_content">';
-	videoWidgetHtml += '<div class="wrapper_title_bar">';
-	videoWidgetHtml += '<div class="content">';
-	videoWidgetHtml += '<div class="videocall_info_bar">';
-	videoWidgetHtml += '<span class="ui_label ui_uri"></span>';
-	videoWidgetHtml += '<span class="ui_label ui_duration"></span>';
-	videoWidgetHtml += '<span class="ui_label ui_status"></span>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_toolbar">';
-	videoWidgetHtml += '<div class="ui_input_button ui_input ui_action btn_fullscreen">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_input_button ui_input ui_action btn_close">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="wrapper_video_content">';
-	videoWidgetHtml += '<video class="tpl_video tpl_remotevideo" autoplay="autoplay"></video>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="wrapper_video_controls enabled_local_video">';
-	videoWidgetHtml += '<div class="wrapper_local_video">';
-	videoWidgetHtml += '<div class="tpl_videopicture enabled_picture"></div>';
-	videoWidgetHtml += '<video class="tpl_video tpl_localvideo" autoplay="autoplay"></video>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_bar">';
-	videoWidgetHtml += '<div class="ui_input_button ui_input ui_action btn_localvideo">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_group">';
-	videoWidgetHtml += '<div id="mute_video_audio" class="ui_input_button ui_input ui_action btn_mute">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_input_button ui_input ui_action btn_pausevideo">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '<div class="ui_input_button ui_input ui_action btn_endcall">';
-	videoWidgetHtml += '<div class="ui_image"></div>';
-	videoWidgetHtml += '<div class="ui_text"></div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
-	videoWidgetHtml += '</div>';
+	var videoWidgetHtml = '<div class="tab-wrapper-video tab-container">' +
+			'<div class="side-tab rotate-vertical">' +
+				'<img class="tab-logo" src="dist/images/croc-logo.png"></img>' +
+				'<p>Call Now</p>' +
+				'<div class="warning-light">' +
+					'<div class="warning-light-circle"></div>' +
+				'</div>' +
+			'</div>' +
+		'<div class="side-tab-content-video">' +
+			'<div class="ui_widget widget_videocall hidden">' +
+				'<div class="ui_container scheme_widget">' +
+					'<div class="tpl_titlebar">' +
+						'<div class="tpl_title">' +
+							'<div class="title_control">' +
+								'<span class="ui_label ui_uri scheme_label_1"></span> - <span class="ui_label ui_duration scheme_label_1"></span> - <span class="ui_label ui_status scheme_label_1"></span>' +
+							'</div>' +
+							'<div class="ui_title_toolbar">' +
+								'<div class="ui_input_button ui_input btn_fullscreen scheme_button_6">' +
+									'<div class="ui_image"></div>' +
+									'<div class="ui_text"></div>' +
+								'</div>' +
+								'<div class="ui_input_button ui_input btn_close scheme_button_6">' +
+									'<div class="ui_image"></div>' +
+									'<div class="ui_text"></div>' +
+								'</div>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+					'<div class="ui_content">' +
+						'<div class="tpl_content">' +
+							'<video class="tpl_video tpl_remotevideo" autoplay="autoplay"></video>' +
+							'<div class="tpl_controls ui_localvideoshown">' +
+								'<div class="tpl_actions">' +
+									'<div class="tpl_bar">' +
+										'<div class="ui_input_button ui_input btn_localvideo">' +
+											'<div class="ui_image"></div>' +
+											'<div class="ui_text"></div>' +
+										'</div>' +
+										'<div class="tpl_callactions">' +
+											'<div class="ui_popout scheme_popout_1 ui_popout_open">' +
+												'<div class="ui_input_button ui_input scheme_action_button btn_keypad" tabindex="0">' +
+													'<div class="ui_image"></div>' +
+													'<div class="ui_text"></div>' +
+												'</div>' +
+												'<div class="ui_panel tpl_content">' +
+													'<div class="ui_keypad">' +
+														'<table>' +
+															'<tr>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">1</div>' +
+																		'<div class="tpl_alternate"></div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">2</div>' +
+																		'<div class="tpl_alternate">ABC</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">3</div>' +
+																		'<div class="tpl_alternate">DEF</div>' +
+																	'</div>' +
+																'</td>' +
+															'</tr>' +
+															'<tr>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">4</div>' +
+																		'<div class="tpl_alternate">GHI</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">5</div>' +
+																		'<div class="tpl_alternate">JKL</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">6</div>' +
+																		'<div class="tpl_alternate">MNO</div>' +
+																	'</div>' +
+																'</td>' +
+															'</tr>' +
+															'<tr>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">7</div>' +
+																		'<div class="tpl_alternate">PQRS</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">8</div>' +
+																		'<div class="tpl_alternate">TUV</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">9</div>' +
+																		'<div class="tpl_alternate">WXYZ</div>' +
+																	'</div>' +
+																'</td>' +
+															'</tr>' +
+															'<tr>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">*</div>' +
+																		'<div class="tpl_alternate"></div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">0</div>' +
+																		'<div class="tpl_alternate">+</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="ui_input_button tpl_key" tabindex="0">' +
+																		'<div class="tpl_main">#</div>' +
+																		'<div class="tpl_alternate"></div>' +
+																	'</div>' +
+																'</td>' +
+															'</tr>' +
+														'</table>' +
+													'</div>' +
+												'</div>' +
+												'<div class="tpl_deco"></div>' +
+											'</div>' +
+											'<div class="ui_input_button ui_input scheme_action_button btn_mute_s mute_video_audio">' +
+												'<div class="ui_image"></div>' +
+												'<div class="ui_text"></div>' +
+											'</div>' +
+											'<div class="ui_input_button ui_input scheme_action_button btn_pausevideo_s">' +
+												'<div class="ui_image"></div>' +
+												'<div class="ui_text"></div>' +
+											'</div>' +
+											'<div class="ui_input_button ui_input scheme_action_button btn_endcall_s">' +
+												'<div class="ui_image"></div>' +
+												'<div class="ui_text"></div>' +
+											'</div>' +
+										'</div>' +
+									'</div>' +
+								'</div>' +
+								'<div class="tpl_localvideo">' +
+									'<div class="tpl_disabledvideo"></div>' +
+									'<video class="tpl_video receive_localVideo" autoplay="autoplay"></video>' +
+								'</div>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+			'</div>' +
+		'</div>' +
+	'</div>';
