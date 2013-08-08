@@ -123,7 +123,7 @@ function requestVideo(crocApiKey, addressToCall) {
 			$('.warning-light').show();
 			
 			// Set remote party's address
-			$('.ui_uri').html(address);
+			/*$('.ui_uri').html(address);*/
 			
 			// Set the status element text to 'Connecting'
 			$('.ui_status').html('Connecting');

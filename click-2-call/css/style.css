@@ -35,11 +35,12 @@
 	pointer-events: none;
 }
 .side-tab {
+	border-radius: 10px 10px 0 0;
 	padding: 5px;
 	width: 102px;
 	height: 30px;
 	position: relative;
-	top: 36px;
+	top: 52px;
 	left: -36px;
 	background-color: #000000;
 	color: #FFFFFF;
@@ -66,25 +67,19 @@
 	vertical-align: baseline;
 }
 .side-tab-content {
-	padding-top: 13px;
-	padding-left: 15.5px;
-	width: 384.5px;
-	height: 187px;
+	width: 370px;
+	height: 176px;
 	position: relative;
 	top: -40px;
-	left: 40px;
-	background: #409F89 url('../images/background-1.jpg') no-repeat center;
+	left: 45px;
 	display: none;
 }
 .side-tab-content-video {
-	padding-top: 13px;
-	padding-left: 15.5px;
-	width: 516.85px;
-	height: 359px;
+	width: 501px;
+	height: 333px;
 	position: relative;
 	top: -40px;
-	left: 40px;
-	background: #409F89 url('../images/background-1.jpg') no-repeat center;
+	left: 45px;
 	display: none;
 }
 
@@ -116,7 +111,7 @@
 	transition: left 2s;
 }
 .side-tab-content.audio-left-content {
-	left: -400px;
+	left: -374px;
 }
 
 /* Convert right tab to left tab for video*/
@@ -127,7 +122,7 @@
 	transition: left 2s;
 }
 .side-tab-content-video.video-left-content {
-	left: -532.35px;
+	left: -506px;
 }
 
 /* Convert right tab to bottom tab for audio */
@@ -140,14 +135,14 @@
 }
 .side-tab.rotate-horizontal {
 	top: 0px;
-	left: 0px;
+	left: 15px;
 }
 .side-tab-content.audio-bottom-content {
-	top: 0;
+	top: 5px;
 	left: 0;
 }
 
-/* Convert right tab to botton tab for video */
+/* Convert right tab to bottom tab for video */
 .video-bottom-tab {
 	left:  615px;
 	bottom: 0px;
@@ -156,11 +151,11 @@
 	transition: bottom 2s;
 }
 .side-tab.video-side-tab-bottom {
-	left: 0px;
+	left: 15px;
 	top: 0px;
 }
 .side-tab-content-video.video-bottom-content {
-	top: 0px;
+	top: 5px;
 	left: 0px;
 }
 
@@ -173,12 +168,12 @@
 	transition: top 2s;
 }
 .side-tab.video-top-side-tab {
-	left:  0px;
+	left: 15px;
 	top: 0;
 }
 .side-tab-content-video.video-top-content {
 	left: 0;
-	top: -412px;
+	top: -378px;
 }
 
 /* Convert right tab to top tab for audio */
@@ -191,10 +186,10 @@
 }
 .side-tab.audio-side-tab-top {
 	top: 0;
-	left: 0;
+	left: 15px;
 }
 .side-tab-content.audio-top-content {
-	top: -240px;
+	top: -220px;
 	left: 0px;
 }
 
@@ -263,9 +258,4 @@
 	animation-duration: 1s;
 	animation-iteration-count: infinite;
 	animation-direction: alternate;
-}
-
-/* Remove caller id  */
-.tpl_remoteid {
-	display: none;
 }

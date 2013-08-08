@@ -38,21 +38,24 @@ var croc_click2call = function(userConfig) {
 				case 'top':
 					// Expand tab.
 					$('.tab-container').animate({
-						top: '200px'
+						top: '185px'
 					});
 					break;
 				case 'bottom':
+					$('.audio-bottom-tab').animate({
+						bottom: '10px'
+					});
 					break;
 				case 'left':
 					// Expand tab.
 					$('.tab-container').animate({
-						left: '400px'
+						left: '379px'
 					});
 					break;
 				default:
 					// Expand tab.
 					$('.tab-container').animate({
-						right: '400px'
+						right: '379px'
 					});
 					break;
 				}
@@ -76,7 +79,9 @@ var croc_click2call = function(userConfig) {
 					});					
 					break;
 				case 'bottom':
-					
+					$('.audio-bottom-tab').animate({
+						bottom: '0px'
+					});
 					break;
 				case 'left':
 					// Collapse tab.
@@ -179,21 +184,24 @@ var croc_click2call = function(userConfig) {
 				case 'top':
 					// Expand tab.
 					$('.tab-container').animate({
-						top: '372px'
+						top: '343px'
 					});
 					break;
 				case 'bottom':
+					$('.video-bottom-tab').animate({
+						bottom: '10px'
+					});
 					break;
 				case 'left':
 					// Expand tab.
 					$('.tab-container').animate({
-						left: '532px'
+						left: '511px'
 					});
 					break;
 				default:
 					// Expand tab.
 					$('.tab-container').animate({
-						right: '532px'
+						right: '511px'
 					});
 					break;
 				}
@@ -217,7 +225,9 @@ var croc_click2call = function(userConfig) {
 					});					
 					break;
 				case 'bottom':
-					
+					$('.video-bottom-tab').animate({
+						bottom: '0px'
+					});
 					break;
 				case 'left':
 					// Collapse tab.
@@ -434,28 +444,24 @@ var croc_click2call = function(userConfig) {
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
 			$('.tab-container').removeClass('tab-wrapper-video');
 			$('.tab-container').addClass('video-top-tab');
-			$('.warning-light').addClass('top-light-horizontal');
-			$('.tab-logo').addClass('horizontal-tab-align');
 			$('.side-tab').removeClass('rotate-vertical');
 			$('.side-tab').addClass('video-top-side-tab');
 			$('.side-tab-content-video').addClass('video-top-content');
+			$('.side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'top') {
 			$('.tab-container').removeClass('tab-wrapper');
 			$('.tab-container').addClass('audio-top-tab');
-			$('.warning-light').addClass('top-light-horizontal');
-			$('.tab-logo').addClass('horizontal-tab-align');
 			$('.side-tab').removeClass('rotate-vertical');
 			$('.side-tab').addClass('audio-side-tab-top');
 			$('.side-tab-content').addClass('audio-top-content');
+			$('.side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		break;
 	case 'bottom':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'bottom') {
 			$('.tab-container').removeClass('tab-wrapper-video');
 			$('.tab-container').addClass('video-bottom-tab');
-			$('.warning-light').addClass('bottom-light-horizontal');
-			$('.tab-logo').addClass('horizontal-tab-align-bottom');
 			$('.side-tab').removeClass('rotate-vertical');
 			$('.side-tab').addClass('video-side-tab-bottom');
 			$('.side-tab-content-video').addClass('video-bottom-content');
@@ -463,8 +469,6 @@ var croc_click2call = function(userConfig) {
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'bottom') {
 			$('.tab-container').removeClass('tab-wrapper');
 			$('.tab-container').addClass('audio-bottom-tab');
-			$('.warning-light').addClass('bottom-light-horizontal');
-			$('.tab-logo').addClass('horizontal-tab-align-bottom');
 			$('.side-tab').removeClass('rotate-vertical');
 			$('.side-tab').addClass('rotate-horizontal');
 			$('.side-tab-content').addClass('audio-bottom-content');
@@ -474,10 +478,12 @@ var croc_click2call = function(userConfig) {
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'left') {
 			$('.tab-container').addClass('video-left-tab');
 			$('.side-tab-content-video').addClass('video-left-content');
+			$('.side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'left') {
 			$('.tab-container').addClass('audio-left-tab');
 			$('.side-tab-content').addClass('audio-left-content');
+			$('.side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		break;
 	default:
