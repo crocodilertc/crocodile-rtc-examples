@@ -1,7 +1,7 @@
 // Global variables
 var videoSession, ringtone;
 
-//End the call by closing media session
+// End the call by closing media session
 function endVideo() {
 	videoSession.close();
 }
@@ -88,12 +88,18 @@ function setVideoToFullscreen(enabled) {
 }
 
 // video session set-up
-function requestVideo(crocApiKey, addressToCall) {
+function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 	
 	// CrocSDK API Configuration
 	var crocConfig = {
 		// The API Key registered to the Crocodile RTC SDK Network
 		apiKey: crocApiKey,
+		
+		// The text to display to call recipient
+		displayName: crocDisplayName,
+		
+		// The features that the application will implement
+		features: ['audio', 'video', 'transfer'],
 		
 		// The event handler to fire when connected to the network
 		onConnected: function() {
@@ -132,19 +138,19 @@ function requestVideo(crocApiKey, addressToCall) {
 			var callStartDate = new Date().getTime();
 			setDuration(callStartDate);
 
-			// The DOM video element used for playing the local party's video.
+			// The DOM video element used for playing the local party's video
 			videoSession.localVideoElement = $('.receive_localVideo')[0];
 			
-			// The DOM video element used for playing the remote party's video.
+			// The DOM video element used for playing the remote party's video
 			videoSession.remoteVideoElement = $('.tpl_remotevideo')[0];
 			
-			// Set up ring tone frequency to Great Britain. 
+			// Set up ring tone frequency
 			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
 			
-			// Set up ring tone timing to Great Britain.
+			// Set up ring tone timing
 			var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
 			
-			// Create an instance of the ring tone object.
+			// Create an instance of the ring tone object
 			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
 			
 			/* 
@@ -153,7 +159,7 @@ function requestVideo(crocApiKey, addressToCall) {
 			 */
 			videoSession.onProvisional = function () {
 				
-				// Start the ring tone.
+				// Start the ring tone
 				ringtone.start();
 				
 				// Set the status element text to 'Ringing'
@@ -165,7 +171,7 @@ function requestVideo(crocApiKey, addressToCall) {
 			 */
 			videoSession.onConnect = function () {
 				
-				// Stop the ring tone.
+				// Stop the ring tone
 				ringtone.stop();
 				
 				// Set the status element text to 'Connected'

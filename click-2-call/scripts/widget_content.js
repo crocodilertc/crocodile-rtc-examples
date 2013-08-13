@@ -1,6 +1,5 @@
 	/*
 	 * Create the html to append to the appenClick2callTo element.
-	 * Using strings but could have used a document fragment.
 	 */ 
 	var audioWidgetHtml = '<div class="tab-wrapper tab-container">' +
 		'<div class="side-tab rotate-vertical">' +
@@ -152,7 +151,6 @@
 	
 	/*
 	 * Create the html to append to the appenClick2callTo element.
-	 * Using strings but could have used a document fragment.
 	 */
 	var videoWidgetHtml = '<div class="tab-wrapper-video tab-container">' +
 			'<div class="side-tab rotate-vertical">' +

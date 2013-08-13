@@ -1,11 +1,7 @@
 // Global variables
-var crocObjectConnected = false;
-var isFullscreen = false; 
-var isDurationTimerSet = false;
+var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, isFullscreen = false; 
 var setCallDuration = null;
-var crocObject, orientationOfClick2Call, mediaWidget;
-var ringtoneToUse;
-var isClicked = false;
+var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 
 // The function to set up a click to call tab
 var croc_click2call = function(userConfig) {	
@@ -15,13 +11,19 @@ var croc_click2call = function(userConfig) {
 		apiKey: 'FIXME',
 		addressToCall: 'FIXME@crocodilertc.net',
 		appendClick2callTo: 'body',
-		click2callPosition: 'absolute',
-		click2callOrientation: 'right',
+		click2callDisplayName: null,
 		click2callMediaWidget: 'audio',
+		click2callOrientation: 'right',
+		click2callPosition: 'absolute',
 		countryRingtoneCode: 'gb'
 	}, userConfig||{});
 	
 	orientationOfClick2Call = defaultConfig.click2callOrientation;
+	
+	// Check for a display name
+	if (!defaultConfig.click2callDisplayName) {
+		throw new TypeError("Please set a display name");
+	}
 	
 	/*
 	 * Setup event handlers for the audio widget
@@ -65,7 +67,7 @@ var croc_click2call = function(userConfig) {
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestAudio(defaultConfig.apiKey, defaultConfig.addressToCall);
+					requestAudio(defaultConfig.apiKey, defaultConfig.addressToCall, defaultConfig.click2callDisplayName);
 				}
 				
 				isClicked = true;
@@ -97,7 +99,7 @@ var croc_click2call = function(userConfig) {
 					break;
 				}
 				
-				// Show tab content
+				// Hide tab content
 				$('.side-tab-content').hide(1000);
 				
 				isClicked = false;
@@ -112,12 +114,14 @@ var croc_click2call = function(userConfig) {
 		
 		// End audio session when clicked
 		$('.btn_close').click(function(){
+
 			// End the audio call
 			endAudio();
 		});
 		
 		// End audio session when clicked
 		$('.btn_endcall_s').click(function() {
+			
 			// End the audio call
 			endAudio();
 		});
@@ -159,6 +163,7 @@ var croc_click2call = function(userConfig) {
 			$('.tpl_actions').addClass('ui_shown');
 		});
 
+		// Make sure keypad and tool bars aren't displayed
 		$('.ui_popout').removeClass('ui_popout_open');
 		$('.tpl_titlebar').removeClass('ui_shown');
 		$('.tpl_actions').removeClass('ui_shown');
@@ -211,7 +216,7 @@ var croc_click2call = function(userConfig) {
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestVideo(defaultConfig.apiKey, defaultConfig.addressToCall);
+					requestVideo(defaultConfig.apiKey, defaultConfig.addressToCall, defaultConfig.click2callDisplayName);
 				}
 				
 				isClicked = true;
@@ -339,6 +344,7 @@ var croc_click2call = function(userConfig) {
 			$('.tpl_actions').addClass('ui_shown');
 		});
 
+		// Make sure keypad and tool bars aren't displayed
 		$('.ui_popout').removeClass('ui_popout_open');
 		$('.tpl_titlebar').removeClass('ui_shown');
 		$('.tpl_actions').removeClass('ui_shown');
@@ -381,6 +387,7 @@ var croc_click2call = function(userConfig) {
 				}
 			}
 		} else {
+			
 			// If the HTML element specified doesn't exist, add to HTML
 			$('html').append(audioWidgetHtml);
 		}
@@ -408,6 +415,7 @@ var croc_click2call = function(userConfig) {
 				}
 			}
 		} else {
+			
 			// If the HTML element specified doesn't exist, add to HTML
 			$('html').append(videoWidgetHtml);
 		}

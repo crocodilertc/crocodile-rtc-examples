@@ -27,12 +27,19 @@ function unmuteAudioCall() {
 }
 
 // Audio session set-up
-function requestAudio(crocApiKey, addressToCall) {
+function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
 	
 	// CrocSDK API Configuration
 	var crocConfig = {
+			
 		// The API Key registered to the Crocodile RTC SDK Network
 		apiKey: crocApiKey,
+		
+		// The text to display to call recipient
+		displayName: crocDisplayName,
+		
+		// The features that the application will implement
+		features: ['audio', 'video', 'transfer'],
 		
 		// The event handler to fire when connected to the network
 		onConnected: function() {
@@ -68,16 +75,16 @@ function requestAudio(crocApiKey, addressToCall) {
 			var callStartDate = new Date().getTime();
 			setDuration(callStartDate);
 			
-			// The DOM audio element used for playing the remote party's audio.
+			// The DOM audio element used for playing the remote party's audio
 			audioSession.remoteAudioElement = $('.receive-audio')[0];
 			
-			// Set up ring tone frequency to Great Britain. 
+			// Set up ring tone frequency 
 			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
 			
-			// Set up ring tone timing to Great Britain.
+			// Set up ring tone timing
 			var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
 			
-			// Create an instance of the ring tone object.
+			// Create an instance of the ring tone object
 			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
 			
 			/* 
@@ -86,10 +93,10 @@ function requestAudio(crocApiKey, addressToCall) {
 			 */
 			audioSession.onProvisional = function () {
 				
-				// Start the ring tone.
+				// Start the ring tone
 				ringtone.start();
 				
-				// Set the state element text to 'Ringing'.
+				// Set the state element text to 'Ringing'
 				$('.tpl_status').html('Ringing');
 			};
 			
@@ -98,10 +105,10 @@ function requestAudio(crocApiKey, addressToCall) {
 			 */
 			audioSession.onConnect = function () {
 				
-				// Stop the ring tone.
+				// Stop the ring tone
 				ringtone.stop();
 				
-				// Set the status element text to 'Connected'.
+				// Set the status element text to 'Connected'
 				$('.tpl_status').html('Connected');
 			};
 			
@@ -133,7 +140,7 @@ function requestAudio(crocApiKey, addressToCall) {
 				$('.tpl_titlebar').removeClass('ui_shown');
 				$('.tpl_actions').removeClass('ui_shown');
 				
-				// Close down connection to network.
+				// Close down connection to network
 				crocObject.disconnect();
 			};
 		},
@@ -144,7 +151,7 @@ function requestAudio(crocApiKey, addressToCall) {
 		 */
 		onDisconnected: function () {
 			
-			// Make sure it stops the ring tone.
+			// Make sure it stops the ring tone
 			if (ringtone) {
 				ringtone.stop();
 			}
@@ -155,7 +162,7 @@ function requestAudio(crocApiKey, addressToCall) {
 			// Make sure duration of call has stopped
 			clearInterval(setCallDuration);
 
-			// Trigger click to collapse the tab.
+			// Trigger click to collapse the tab
 			isClicked = true;
 			$('.side-tab').trigger('click');
 		}
