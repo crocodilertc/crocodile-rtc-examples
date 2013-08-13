@@ -34,11 +34,12 @@ Now you can use the example in your web page. The example below uses the _click-
 <link href='dist/css/crocodilertc-click2call-plugin.min.css' rel='stylesheet' type='text/css'/>
 <script src="dist/js/crocodilertc-click2call-plugin.min.js"></script>
 <script>
-	var config = {
-		apiKey: 'FIXME',
-		addressToCall: 'FIXME@crocodilertc.net'
-	};
-	croc_click2call(config);
+  var config = {
+    apiKey: 'FIXME',
+    addressToCall: 'FIXME@crocodilertc.net',
+    click2callDisplayName: 'FIXME'
+  };
+  croc_click2call(config);
 </script>
 ````
 
@@ -46,6 +47,7 @@ This will create a click-2-call tab on the right hand side of your web page. You
 
 * The _apiKey_ property requires an API key registered on the Crocodile network. To register go to [https://www.crocodilertc.net/](https://www.crocodilertc.net/)
 * The _addresssToCall_ property requires the address of a registered user for free calls. To make calls to non-registered numbers you will need to add balance to your API key.
+* The _click2callDisplayName_ property requires a string of any characters except " This will be displayed to the caller of the recipient.
 
 [node]: http://nodejs.org/
 
