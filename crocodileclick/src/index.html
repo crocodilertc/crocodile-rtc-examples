@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Crocodile Click</title>
+
+		<!-- Stylesheets -->
+		<link href='example.css' rel='stylesheet' type='text/css'/>
+
+		<!-- Scripts -->
+		<script type="text/javascript" src="//use.typekit.net/fsj5kgm.js"></script><script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+		<script src="example.js"></script>
+		<script>
+			window.onload = function(){
+				var callSession = null;
+				var apiKey = 'T9Kaiio92IylC8f6gh6X';
+				var callElement = $('#call_element');
+
+				// Show/Hide notification
+				var notification = $('.notification');
+				notification.hide();
+				gUM = JsSIP.WebRTC.getUserMedia;
+				var numGums = 0;
+
+				JsSIP.WebRTC.getUserMedia = function(config, success, failure){
+					numGums++;
+					var notificationTimer = setTimeout(function(){
+						notification.show();
+					}, 5000);
+
+					var hideNotification = function(){
+						clearTimeout(notificationTimer);
+
+						if(--numGums)
+							return;
+
+						notification.hide();
+					};
+
+					var onSuccessWrapper = function(stream){
+						hideNotification();
+						success(stream);
+					};
+					var onFailureWrapper = function(){
+						hideNotification();
+						failure();
+					};
+
+					gUM.call(navigator, config, onSuccessWrapper, onFailureWrapper);
+				};
+
+				var hideCallElement = function(){
+					setTimeout(function(){
+						callElement.hide();
+					}, 1000);
+				};
+
+				hideCallElement();
+
+				$('#call_crocodile').click(function(){
+					callElement.show();
+					// Allow only one call at a time
+					if(callSession)
+						return;
+					callSession = new CrocExample({
+						address : '+441489668620@crocodilertc.net',
+						callType : 'audio',
+						location : callElement,
+						apiKey : apiKey
+					});
+
+					callSession.onClose = function(){
+						callSession = null;
+						hideCallElement();
+					};
+				});
+
+				$('#call_talk_audio').click(function(){
+					callElement.show();
+
+					// Allow only one call at a time
+					var address = $('#input_talk_destination').val();
+
+					if(callSession || !address)
+						return;
+
+					if(address.indexOf('crocodiletalk.com') === -1)
+						address += '@crocodiletalk.com';
+
+					callSession = new CrocExample({
+						address : address,
+						callType : 'audio',
+						location : callElement,
+						apiKey : apiKey
+					});
+
+					callSession.onClose = function(){
+						callSession = null;
+						hideCallElement();
+					};
+				});
+
+				$('#call_talk_video').click(function(){
+					callElement.show();
+
+					// Allow only one call at a time
+					var address = $('#input_talk_destination').val();
+
+					if(callSession || !address)
+						return;
+
+					if(address.indexOf('crocodiletalk.com') === -1)
+						address += '@crocodiletalk.com';
+
+					callSession = new CrocExample({
+						address : address,
+						callType : 'video',
+						location : callElement,
+						apiKey : apiKey
+					});
+
+					callSession.onClose = function(){
+						callSession = null;
+						hideCallElement();
+					};
+				});
+			};
+		</script>
+	</head>
+	<body>
+		<div class="header">
+			<div class="header_content">
+				<a href="https://www.crocodilertc.net/"><img class="icon" src="images/croc-full.png"></img></a>
+				<a class="title" href="https://www.crocodiletalk.com/en/register/" target="_blank">Register for Crocodile Talk</a>
+				<div class="notification">
+					<div class="arrow"></div>
+					<div class="notification_content" style="display:none;">Allow access to webcam/mic to continue.</div>
+				</div>
+			</div>
+		</div>
+		<div class="heading">
+			Crocodile Click Demo Site
+		</div>
+		<div class="content">
+			<p>Crocodile Click allows your customers to call you direct from your website</p>
+			<p>You choose how the buttons look on your web page and how you'd like to receive your calls - either to your Crocodile Talk web client (<b>completely free</b> to you and the caller) or to your phone number (special low prices for you, free for the caller)</p>
+		</div>
+		<div id="call_element" class="call_element content"></div>
+		</div>
+		<div class="content">
+			<div class="subsection" style="font-size:2em;font-weight:bold;color:#F00;text-align:center;">Try it Now</div>
+			<div class="subsection" style="font-style:italic;color:#F00;text-align:center;">Your browser will ask permission to use your camera and microphone.</div>
+			<div class="call_buttons">
+				<div class="call_pstn">
+					<div class="heading">Call Crocodile Agent</div>
+					<div id="call_crocodile" class="button">Via PSTN</div>
+					<div class="browser_logos">
+						<div class="browserlogo logo_chrome">Chrome</div>
+					</div>
+				</div>
+				<div class="call_talk">
+					<div class="heading">Call Crocodile Talk User:<input id="input_talk_destination" class="input_talk_destination" value="audiotest" type="text"/></div>
+					<div id="call_talk_audio" class="button">Audio</div>
+					<div id="call_talk_video" class="button">Video</div>
+					<div class="browser_logos">
+						<div class="browserlogo logo_chrome">Chrome</div>
+						<div class="browserlogo logo_firefox">Firefox (except <i>audiotest</i>)</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<a href="https://wiki.crocodilertc.net/index.php/Click_2_Call" target="_blank" style="display:block;text-align:center;font-size:1.5em;text-decoration:none;color:#0070C0;">How to add Click-2-Call to your website</a>
+	</body>
+</html>
