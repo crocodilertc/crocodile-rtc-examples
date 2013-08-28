@@ -1,4 +1,4 @@
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-08-12
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-08-28
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -570,6 +570,16 @@ Transport.prototype = {
       console.log(LOG_PREFIX +'closing WebSocket ' + this.server.ws_uri);
       this.ws.close();
     }
+
+    if (this.reconnectTimer !== null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+      this.ua.emit('disconnected', this.ua, {
+        transport: this,
+        code: this.lastTransportError.code,
+        reason: this.lastTransportError.reason
+      });
+    }
   },
 
   /**
@@ -625,7 +635,12 @@ Transport.prototype = {
 
     console.log(LOG_PREFIX +'WebSocket ' + this.server.ws_uri + ' connected');
     // Clear reconnectTimer since we are not disconnected
-    window.clearTimeout(this.reconnectTimer);
+    if (this.reconnectTimer !== null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    // Reset reconnection_attempts
+    this.reconnection_attempts = 0;
     // Disable closed
     this.closed = false;
     // Trigger onTransportConnected callback
@@ -652,8 +667,6 @@ Transport.prototype = {
       this.ua.onTransportClosed(this);
       // Check whether the user requested to close.
       if(!this.closed) {
-        // Reset reconnection_attempts
-        this.reconnection_attempts = 0;
         this.reConnect();
       } else {
         this.ua.emit('disconnected', this.ua, {
@@ -767,7 +780,9 @@ Transport.prototype = {
       console.log(LOG_PREFIX +'trying to reconnect to WebSocket ' + this.server.ws_uri + ' (reconnection attempt ' + this.reconnection_attempts + ')');
 
       this.reconnectTimer = window.setTimeout(function() {
-        transport.connect();}, this.ua.configuration.ws_server_reconnection_timeout * 1000);
+        transport.connect();
+        transport.reconnectTimer = null;
+      }, this.ua.configuration.ws_server_reconnection_timeout * 1000);
     }
   }
 };
@@ -1039,6 +1054,7 @@ Parser.parseMessage = function(data, sipfrag) {
         break;
       } else {
         // Malformed message
+        console.warn(LOG_PREFIX +'error parsing message: no empty line terminating headers');
         return;
       }
     }
@@ -1046,6 +1062,7 @@ Parser.parseMessage = function(data, sipfrag) {
     parsed = parseHeader(message, data, headerStart, headerEnd);
 
     if(!parsed) {
+      console.warn(LOG_PREFIX +'error parsing header: "' + data.substring(headerStart, headerEnd) + '"');
       return;
     }
 
@@ -1941,6 +1958,15 @@ var NonInviteClientTransactionPrototype = function() {
     window.clearTimeout(this.F);
     window.clearTimeout(this.K);
     delete this.request_sender.ua.transactions.nict[this.id];
+
+    switch (this.state) {
+    case C.STATUS_COMPLETED:
+    case C.STATUS_TERMINATED:
+      // We already processed a response, so don't need to notify the sender
+      return;
+    }
+
+    // Notify the sender of the bad news
     this.request_sender.onTransportError();
   };
 
@@ -2017,6 +2043,16 @@ var InviteClientTransactionPrototype = function() {
     window.clearTimeout(this.D);
     window.clearTimeout(this.M);
     delete this.request_sender.ua.transactions.ict[this.id];
+
+    switch (this.state) {
+    case C.STATUS_ACCEPTED:
+    case C.STATUS_COMPLETED:
+    case C.STATUS_TERMINATED:
+      // We already processed a response, so don't need to notify the sender
+      return;
+    }
+
+    // Notify the sender of the bad news
     this.request_sender.onTransportError();
   };
 
@@ -3144,7 +3180,7 @@ Registrator = function(ua, transport) {
 
   if(reg_id) {
     this.contact += ';reg-id='+ reg_id;
-    this.contact += ';+sip.instance="<urn:uuid:'+ this.ua.configuration.instance_id+'>"';
+    this.contact += ';+sip.instance="<urn:'+ this.ua.configuration.instance_id+'>"';
   }
 };
 
@@ -4482,6 +4518,8 @@ var Update          = /**
     this.session.dialog.processSessionTimerHeaders(this.request);
     this.session.dialog.addSessionTimerResponseHeaders(extraHeaders);
 
+    extraHeaders.push('Contact: ' + this.session.contact);
+
     this.request.reply(200, null, extraHeaders, body);
     this.accepted = true;
   };
@@ -4517,6 +4555,751 @@ var Update          = /**
   return Update;
 }(JsSIP));
 
+
+var Refer           = /**
+ * @fileoverview Refer
+ */
+
+/**
+ * @param {JsSIP} JsSIP - The JsSIP namespace
+ * @returns The Refer constructor
+ */
+(function(JsSIP) {
+  var Refer,
+    LOG_PREFIX = JsSIP.name +' | '+ 'IN-DIALOG REFER' +' | ',
+    DEFAULT_EXPIRES = 3 * 60 * 1000;
+
+  /**
+   * @class Class representing an in-dialog SIP REFER request.
+   * @augments EventEmitter
+   * @param {JsSIP.RTCSession} session
+   */
+  Refer = function(session) {
+    var events = [
+      'accepted',
+      'failed',
+      'notify'
+    ];
+
+    this.session = session;
+    this.ua = session.ua;
+    this.closed = false;
+    this.request = null;
+    this.id = null;
+    this.contact = session.contact;
+    this.notify_timer = null;
+    this.dialog = session.dialog;
+    this.subscription_state = 'pending';
+    this.subscription_expires = null;
+    this.expire_timer = null;
+    this.last_notify_body = null;
+    this.accepted = false;
+    this.rejected = false;
+
+    // Public properties
+    this.direction = null;
+    this.refer_uri = null;
+
+    // Custom Refer empty object for high level use
+    this.data = {};
+
+    this.initEvents(events);
+  };
+  Refer.prototype = new JsSIP.EventEmitter();
+
+  Refer.prototype.send = function(refer_uri, options) {
+    var request_sender, event, contentType, eventHandlers, extraHeaders, request,
+      failCause = null;
+
+    if (refer_uri === undefined) {
+      throw new TypeError('Not enough arguments');
+    }
+
+    // Check RTCSession Status
+    if (this.session.status !== JsSIP.RTCSession.C.STATUS_CONFIRMED &&
+        this.session.status !== JsSIP.RTCSession.C.STATUS_WAITING_FOR_ACK) {
+      throw new JsSIP.Exceptions.InvalidStateError(this.session.status);
+    }
+  
+    // Get call options
+    options = options || {};
+    extraHeaders = options.extraHeaders || [];
+    eventHandlers = options.eventHandlers || {};
+    contentType = options.contentType || 'text/plain';
+
+    // Set event handlers
+    for (event in eventHandlers) {
+      this.on(event, eventHandlers[event]);
+    }
+
+    // Check refer-to validity
+    try {
+      refer_uri = JsSIP.Utils.normalizeURI(refer_uri, this.ua.configuration.hostport_params);
+    } catch(e) {
+      refer_uri = JsSIP.URI.parse(JsSIP.C.INVALID_TARGET_URI);
+      failCause = JsSIP.C.causes.INVALID_REFER_TO_TARGET;
+    }
+
+    // Refer parameter initialization
+    this.direction = 'outgoing';
+    this.refer_uri = refer_uri;
+
+    request = this.dialog.createRequest(JsSIP.C.REFER, extraHeaders);
+    this.request = request;
+    this.id = request.call_id + this.dialog.id.local_tag;
+
+    request.setHeader('contact', this.contact);
+    request.setHeader('refer-to', refer_uri);
+
+    if(options.body) {
+      request.setHeader('content-type', contentType);
+      request.body = options.body;
+    }
+
+    request_sender = new RequestSender(this);
+
+    this.ua.emit('newRefer', this.ua, {
+      originator: 'local',
+      refer: this,
+      request: this.request
+    });
+
+    if (failCause) {
+      this.emit('failed', this, {
+        originator: 'local',
+        cause: failCause
+      });
+    } else {
+      request_sender.send();
+      console.log(LOG_PREFIX + this.id + ' sent');
+      this.notify_timer = setTimeout(
+          this.onNotifyTimeout.bind(this),
+          JsSIP.Timers.TIMER_F);
+    }
+  };
+
+  /**
+  * @private
+  */
+  Refer.prototype.receiveResponse = function(response) {
+    var cause;
+
+    if(this.closed) {
+      return;
+    }
+
+    switch(true) {
+      case /^1[0-9]{2}$/.test(response.status_code):
+        // Ignore provisional responses.
+        break;
+
+      case /^2[0-9]{2}$/.test(response.status_code):
+        // The initial NOTIFY creates the dialog, not the 2xx response
+        console.log(LOG_PREFIX + this.id + ' accepted');
+        this.emit('accepted', this, {
+          originator: 'remote',
+          response: response
+        });
+        break;
+
+      default:
+        console.log(LOG_PREFIX + this.id + ' rejected (early)');
+        this.close();
+        cause = JsSIP.Utils.sipErrorCause(response.status_code);
+        this.emit('failed', this, {
+          originator: 'remote',
+          message: response,
+          cause: cause
+        });
+        break;
+    }
+  };
+
+  /**
+   * @private
+   */
+  Refer.prototype.onRequestTimeout = function() {
+    if(this.closed) {
+      return;
+    }
+    console.log(LOG_PREFIX + this.id + ' request timeout');
+    this.close();
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.REQUEST_TIMEOUT
+    });
+  };
+
+  /**
+   * @private
+   */
+  Refer.prototype.onTransportError = function() {
+    if(this.closed) {
+      return;
+    }
+    console.log(LOG_PREFIX + this.id + ' transport error');
+    this.close();
+    this.emit('failed', this, {
+      originator: 'system',
+      cause: JsSIP.C.causes.CONNECTION_ERROR
+    });
+  };
+
+  /**
+   * @private
+   */
+  Refer.prototype.onNotifyTimeout = function() {
+    if (this.closed || this.subscription_state !== 'pending') {
+      return;
+    }
+    console.log(LOG_PREFIX + this.id + ' notify timeout');
+    this.emitFinalNotify();
+    this.close();
+  };
+
+  /**
+   * Re-emit the last notify, or a 100 Trying if we never received one.
+   * @private
+   */
+  Refer.prototype.emitFinalNotify = function() {
+    var sessionEvent,
+      parsed = this.last_notify_body;
+
+    if (!parsed) {
+      parsed = JsSIP.Parser.parseMessage('SIP/2.0 100 Trying\r\n', true);
+    }
+  
+    if (parsed.status_code < 200) {
+      sessionEvent = 'progress';
+    } else if (parsed.status_code < 300) {
+      sessionEvent = 'started';
+    } else {
+      sessionEvent = 'failed';
+    }
+  
+    this.emit('notify', this, {
+      originator: 'system',
+      request: null,
+      sipFrag: parsed,
+      sessionEvent: sessionEvent,
+      finalNotify: true
+    });
+  };
+
+  /**
+   * @private
+   */
+  Refer.prototype.close = function() {
+    if (this.subscription_state === 'active') {
+      console.warn(LOG_PREFIX + this.id + ' closed with active subscription');
+
+      if (this.direction === 'incoming') {
+        // Send a NOTIFY that terminates the subscription
+        this.notify({
+          body: this.last_notify_body,
+          finalNotify: true
+        });
+      } else {
+        this.emitFinalNotify();
+      }
+    }
+
+    if (this.expire_timer !== null) {
+      clearTimeout(this.expire_timer);
+      this.expire_timer = null;
+    }
+
+    if (this.notify_timer !== null) {
+      clearTimeout(this.notify_timer);
+      this.notify_timer = null;
+    }
+
+    this.closed = true;
+    console.log(LOG_PREFIX + this.id + ' closed');
+  };
+
+  /**
+   * @private
+   */
+  Refer.prototype.subscriptionExpired = function() {
+    if (this.subscription_state === 'terminated') {
+      return;
+    }
+
+    this.notify({
+      body: this.last_notify_body,
+      finalNotify: true,
+      terminateReason: 'timeout'
+    });
+    // Don't close the refer in case they re-subscribe as a result of this notify
+    this.expire_timer = null;
+    console.log(LOG_PREFIX + this.id + ' subscription expired');
+  };
+
+  /**
+   * @private
+   * @param {IncomingRequest} request
+   */
+  Refer.prototype.init_incoming = function(request) {
+    this.direction = 'incoming';
+    this.request = request;
+    this.id = request.call_id + request.from_tag;
+
+    // Check Refer-To header
+    if (!request.hasHeader('refer-to')) {
+      request.reply(400, 'Missing Refer-To header field');
+      return false;
+    }
+    if (request.countHeader('refer-to') > 1) {
+      request.reply(400, 'Too many Refer-To header fields');
+      return false;
+    }
+    this.refer_uri = request.parseHeader('refer-to').uri;
+
+    console.log(LOG_PREFIX + this.id + ' received');
+    this.ua.emit('newRefer', this.ua, {
+      originator: 'remote',
+      refer: this,
+      request: request,
+      session: this.session
+    });
+
+    if (!this.accepted && !this.rejected) {
+      this.accept();
+    }
+
+    return this.accepted;
+  };
+
+  /**
+   * Call the refer URI. The referrer will be notified of the progress and
+   * result of the call establishment process.
+   *
+   * @param {Object} [options]
+   * Call options as used with the <code>UA.call</code> method.
+   * @returns {JsSIP.RTCSession}
+   *
+   * @throws {TypeError}
+   * @throws {JsSIP.Exceptions.InvalidTargetError}
+   */
+  Refer.prototype.call = function(options) {
+    var session,
+      uri = this.refer_uri;
+
+    if (uri.scheme !== JsSIP.C.SIP) {
+      throw new JsSIP.Exceptions.InvalidTargetError(uri);
+    }
+
+    if (!this.accepted) {
+      this.accept();
+    }
+
+    session = new JsSIP.RTCSession(this.ua);
+    session.connect(uri, options);
+    this.addSessionNotifyHandlers(session);
+
+    return session;
+  };
+
+  /**
+   * Adds handlers to the provided session to send appropriate NOTIFY
+   * messages to the referrer.
+   * @param {JsSIP.RTCSession} session
+   */
+  Refer.prototype.addSessionNotifyHandlers = function(session) {
+    var self = this;
+
+    session.on('progress', function(event) {
+      var response = event.data.response;
+      self.notify({
+        status_code: response.status_code,
+        reason_phrase: response.reason_phrase
+      });
+    });
+
+    session.once('started', function(event) {
+      var response = event.data.response;
+      self.notify({
+        status_code: response.status_code,
+        reason_phrase: response.reason_phrase
+      });
+      self.close();
+    });
+
+    session.once('failed', function(event) {
+      var status_code = 500,
+        reason_phrase = null,
+        message = event.data.message;
+
+      if (message && message instanceof JsSIP.IncomingResponse) {
+        status_code = message.status_code;
+        reason_phrase = message.reason_phrase;
+      }
+
+      self.notify({
+        status_code: status_code,
+        reason_phrase: reason_phrase
+      });
+      self.close();
+    });
+  };
+
+  /**
+   * Accept the incoming Refer. Use this for non-SIP refer URIs; for SIP URIs
+   * use the <code>call</code> method instead.
+   * <p>
+   * After calling this method, the application should call the
+   * <code>notify</code> method to inform the referrer of the progress/result
+   * of the refer. This is handled automatically if the <code>call</code>
+   * method is used instead.
+   * 
+   * @param {Object} [options]
+   * @param {String[]} [options.extraHeaders]
+   * Extra headers to add to the response.
+   * @param {String} [options.body]
+   * A message body to include in the response.
+   */
+  Refer.prototype.accept = function(options) {
+    options = options || {};
+
+    var
+      extraHeaders = options.extraHeaders || [],
+      body = options.body;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "accept" for an outgoing refer');
+    }
+
+    if (this.closed) {
+      return;
+    }
+
+    // Set the subscription state and expiry
+    this.subscription_state = 'active';
+    this.subscription_expires = Date.now() + DEFAULT_EXPIRES;
+    this.expire_timer = setTimeout(this.subscriptionExpired.bind(this),
+        DEFAULT_EXPIRES);
+
+    extraHeaders.push('Contact: ' + this.contact);
+
+    this.request.reply(202, null, extraHeaders, body);
+    // Send initial notify
+    this.notify();
+    this.accepted = true;
+    console.log(LOG_PREFIX + this.id + ' accepted');
+  };
+
+  /**
+   * Reject the incoming Refer.
+   *
+   * @param {Object} [options]
+   * @param {Number} [options.status_code]
+   * @param {String} [options.reason_phrase]
+   * @param {String[]} [options.extraHeaders]
+   * @param {String} [options.body]
+   */
+  Refer.prototype.reject = function(options) {
+    options = options || {};
+
+    var
+      status_code = options.status_code || 603,
+      reason_phrase = options.reason_phrase,
+      extraHeaders = options.extraHeaders || [],
+      body = options.body;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "reject" for an outgoing refer');
+    }
+
+    if (status_code < 300 || status_code >= 700) {
+      throw new TypeError('Invalid status_code: '+ status_code);
+    }
+
+    if (this.closed) {
+      return;
+    }
+
+    if (this.accepted) {
+      // Delayed reject (required user input)
+      console.log(LOG_PREFIX + this.id + ' rejected (late)');
+      this.notify({
+        status_code: status_code,
+        reason_phrase: reason_phrase
+      });
+    } else {
+      // Immediate reject (policy)
+      console.log(LOG_PREFIX + this.id + ' rejected (early)');
+      this.request.reply(status_code, reason_phrase, extraHeaders, body);
+      this.rejected = true;
+    }
+
+    this.close();
+  };
+
+  /**
+   * Notify the referrer of the current refer progress, or final result.
+   * <p>
+   * The application should either provide a SIP status code, or a message body
+   * of type <code>message/sipfrag</code>. If neither is provided, a
+   * <code>100 Trying</code> message will be constructed. If a message body is
+   * provided, the <code>finalNotify</code> flag should also be set to indicate
+   * whether this is the final NOTIFY message.
+   *
+   * @param {Object} [options]
+   * @param {Number} [options.status_code]
+   * @param {String} [options.reason_phrase]
+   * @param {String} [options.body]
+   * @param {Boolean} [options.finalNotify]
+   * @param {String} [options.terminateReason]
+   * @param {String[]} [options.extraHeaders]
+   */
+  Refer.prototype.notify = function(options) {
+    var status_code, reason_phrase, finalNotify, newState, reason, stateHeader,
+      body, notify,
+      self = this;
+
+    if (this.direction !== 'incoming') {
+      throw new TypeError('Invalid method "notify" for an outgoing refer');
+    }
+
+    options = options || {};
+    if (options.body && typeof options.finalNotify === 'undefined') {
+      throw new TypeError('Must specify finalNotify when providing notify body');
+    }
+
+    if (this.subscription_state !== 'active') {
+      // Ignore
+      return;
+    }
+
+    status_code = options.status_code || 100;
+    reason_phrase = options.reason_phrase || JsSIP.C.REASON_PHRASE[status_code] || '';
+    finalNotify = options.finalNotify || status_code >= 200;
+
+    if (finalNotify) {
+      newState = 'terminated';
+      reason = options.terminateReason || 'noresource';
+      stateHeader = newState + ';reason=' + reason;
+    } else {
+      newState = 'active';
+      stateHeader = newState + ';expires=' +
+          Math.round((this.subscription_expires - Date.now()) / 1000);
+    }
+
+    body = options.body || 'SIP/2.0 ' + status_code + ' ' + reason_phrase + '\r\n';
+    this.last_notify_body = body;
+
+    notify = new JsSIP.Notify(this);
+    notify.send('refer;id=' + this.request.cseq, stateHeader, {
+      extraHeaders: options.extraHeaders,
+      eventHandlers: options.eventHandlers,
+      content_type: 'message/sipfrag',
+      body: body
+    });
+
+    this.subscription_state = newState;
+
+    if (!finalNotify) {
+      // If the notify fails, terminate the subscription
+      notify.on('failed', function(){
+        self.subscription_state = 'terminated';
+        console.log(LOG_PREFIX + self.id + ' unsubscribed (rejected notify)');
+        self.close();
+      });
+    }
+  };
+
+  /**
+   * Receives further messages on the Refer dialog (i.e. NOTIFYs for outgoing
+   * refers, and possibly SUBSCRIBEs for incoming refers).
+   * @private
+   * @param {IncomingRequest} request
+   * @returns <code>true</code> if a success response was sent,
+   * <code>false</code> otherwise.
+   */
+  Refer.prototype.receiveRequest = function(request) {
+    switch (request.method) {
+    case JsSIP.C.NOTIFY:
+      return this.receiveNotify(request);
+    case JsSIP.C.SUBSCRIBE:
+      return this.receiveSubscribe(request);
+    }
+
+    request.reply(405, null, ['Allow: '+ JsSIP.Utils.getAllowedMethods(this.ua)]);
+    return false;
+  };
+
+  /**
+   * Receives NOTIFY messages on the Refer dialog.
+   * @private
+   * @param {IncomingRequest} request
+   * @returns <code>true</code> if a success response was sent,
+   * <code>false</code> otherwise.
+   */
+  Refer.prototype.receiveNotify = function(request) {
+    var eventHeader, stateHeader, typeHeader, parsed, sessionEvent,
+      extraHeaders, sipfrag,
+      finalNotify = false;
+
+    if (this.direction !== 'outgoing' ||
+        (this.subscription_state !== 'active' &&
+            this.subscription_state !== 'pending')) {
+      request.reply(481, 'Subscription Does Not Exist');
+      return false;
+    }
+
+    eventHeader = request.parseHeader('event');
+    if (!eventHeader || eventHeader.event !== 'refer') {
+      request.reply(489);
+      this.close();
+      return false;
+    }
+
+    stateHeader = request.parseHeader('subscription-state');
+    if (!stateHeader) {
+      request.reply(400, 'Missing Subscription-State Header');
+      this.close();
+      return false;
+    }
+
+    typeHeader = request.getHeader('content-type');
+    if (typeHeader && typeHeader.indexOf('message/sipfrag') < 0) {
+      request.reply(415);
+      this.close();
+      return false;
+    }
+
+    sipfrag = request.body;
+    if (!/\r\n$/.test(sipfrag)) {
+      // Strictly this is an invalid sipfrag, but fudge it by appending the
+      // expected end-line characters.
+      sipfrag += '\r\n';
+    }
+
+    parsed = JsSIP.Parser.parseMessage(sipfrag, true);
+    if (!parsed || !parsed instanceof JsSIP.IncomingResponse) {
+      request.reply(400, 'Bad Message Body');
+      this.close();
+      return false;
+    }
+
+    if (this.listeners('notify').length === 0) {
+      console.log(LOG_PREFIX + this.id + ' no notify listeners; unsubscribing');
+      request.reply(603);
+      this.subscription_state = 'terminated';
+      this.close();
+      return false;
+    }
+
+    this.subscription_state = stateHeader.state;
+    this.subscription_expires = Date.now() + stateHeader.expires * 1000;
+    this.last_notify_body = parsed;
+    if (this.notify_timer !== null) {
+      clearTimeout(this.notify_timer);
+      this.notify_timer = null;
+    }
+    if (this.expire_timer !== null) {
+      clearTimeout(this.expire_timer);
+      this.expire_timer = null;
+    }
+
+    extraHeaders = ['Contact: ' + this.contact];
+    request.reply(200, null, extraHeaders);
+
+    if (parsed.status_code < 200) {
+      sessionEvent = 'progress';
+    } else if (parsed.status_code < 300) {
+      sessionEvent = 'started';
+    } else {
+      sessionEvent = 'failed';
+    }
+
+    console.log(LOG_PREFIX + this.id + ' notify: ' + sessionEvent);
+
+    if (this.subscription_state === 'terminated') {
+      finalNotify = true;
+      this.close();
+    } else {
+      this.expire_timer = setTimeout(this.close.bind(this),
+          (stateHeader.expires + JsSIP.Timers.T4) * 1000);
+    }
+
+    this.emit('notify', this, {
+      originator: 'remote',
+      request: request,
+      sipFrag: parsed,
+      sessionEvent: sessionEvent,
+      finalNotify: finalNotify
+    });
+
+    return true;
+  };
+
+  /**
+   * Receives SUBSCRIBE messages on the Refer dialog.
+   * @private
+   * @param {IncomingRequest} request
+   */
+  Refer.prototype.receiveSubscribe = function(request) {
+    var eventHeader, expires, extraHeaders;
+
+    if (this.direction !== 'incoming') {
+      request.reply(481);
+      return false;
+    }
+
+    if (this.subscription_state !== 'active' &&
+        this.subscription_state !== 'terminated') {
+      request.reply(403);
+      return false;
+    }
+
+    eventHeader = request.parseHeader('event');
+    if (!eventHeader || eventHeader.event !== 'refer') {
+      request.reply(489);
+      return false;
+    }
+
+    expires = request.parseHeader('expires');
+    if (expires === 0) {
+      console.log(LOG_PREFIX + this.id + ' unsubscribed (expires=0)');
+      // Remote party is unsubscribing, send a final notify
+      this.notify({
+        body: this.last_notify_body,
+        finalNotify: true
+      });
+      extraHeaders = [
+        'Contact: ' + this.contact
+      ];
+      request.reply(200, null, extraHeaders);
+      this.close();
+      return true;
+    }
+
+    if (expires > 0) {
+      expires = expires * 1000;
+    } else {
+      expires = DEFAULT_EXPIRES;
+    }
+
+    this.subscription_state = 'active';
+    this.subscription_expires = Date.now() + expires;
+    if (this.expire_timer !== null) {
+      clearTimeout(this.expire_timer);
+    }
+    this.expire_timer = setTimeout(this.subscriptionExpired.bind(this), expires);
+
+    extraHeaders = [
+      'Contact: ' + this.contact,
+      'Expires: ' + expires / 1000
+    ];
+    request.reply(200, null, extraHeaders);
+    console.log(LOG_PREFIX + this.id + ' subscription extended');
+    return true;
+  };
+
+  return Refer;
+}(JsSIP));
 
 
 var RTCSession,
@@ -4556,6 +5339,8 @@ RTCSession = function(ua) {
   this.tones = null;
   this.allowed = null;
   this.supported = null;
+  this.incoming_refer = null;
+  this.outgoing_refer = null;
 
   // Session Timers
   this.timers = {
@@ -4988,27 +5773,35 @@ RTCSession.prototype.sendUpdate = function(options) {
  * @param {String} [options.body]
  */
 RTCSession.prototype.sendRefer = function(refer_uri, options) {
-  var target = this.dialog.remote_target;
+  var refer,
+    target = this.dialog.remote_target;
 
   options = options || {};
   options.targetDialog = this.dialog;
 
-  // First check: do they support REFER at all
+  // Do they support REFER?
   if (!this.isMethodAllowed(JsSIP.C.REFER, false)) {
     throw new JsSIP.Exceptions.RemoteSupportError(JsSIP.C.REFER);
   }
-  // Next check: can we use out-of-dialog REFER
-  // We don't support in-dialog REFER, because it's nasty (see RFC 5589, 5057)
-  if (!this.isOptionSupported(JsSIP.C.SIP_EXTENSIONS.GRUU ||
-      !target.hasParam('gr'))) {
-    throw new JsSIP.Exceptions.RemoteSupportError(JsSIP.C.SIP_EXTENSIONS.GRUU);
-  }
-  if (!this.isOptionSupported(JsSIP.C.SIP_EXTENSIONS.TARGET_DIALOG)) {
-    throw new JsSIP.Exceptions.RemoteSupportError(JsSIP.C.SIP_EXTENSIONS.TARGET_DIALOG);
+
+  // Can we use out-of-dialog REFER?
+  if (this.isOptionSupported(JsSIP.C.SIP_EXTENSIONS.GRUU) &&
+      target.hasParam('gr') &&
+      this.isOptionSupported(JsSIP.C.SIP_EXTENSIONS.TARGET_DIALOG)) {
+    refer = new JsSIP.Refer(this.ua);
+    refer.send(target, refer_uri, options);
+    return;
   }
 
-  var refer = new JsSIP.Refer(this.ua);
-  refer.send(target, refer_uri, options);
+  // Resort to in-dialog refer
+  refer = this.outgoing_refer;
+  if (refer && !refer.closed) {
+    throw new JsSIP.Exceptions.InvalidStateError('Refer in progress');
+  }
+
+  refer = new Refer(this);
+  refer.send(refer_uri, options);
+  this.outgoing_refer = refer;
 };
 
 
@@ -5301,6 +6094,15 @@ RTCSession.prototype.close = function() {
 
   // 2nd Step. Terminate signaling.
 
+  // Close down any refers sharing the dialog
+  if(this.incoming_refer) {
+    this.incoming_refer.close();
+  }
+
+  if(this.outgoing_refer) {
+    this.outgoing_refer.close();
+  }
+
   // Clear session timers
   for(idx in this.timers) {
     window.clearTimeout(this.timers[idx]);
@@ -5398,7 +6200,7 @@ RTCSession.prototype.createDialog = function(message, type, early) {
  * @returns true if the request is accepted, false otherwise
  */
 RTCSession.prototype.receiveRequest = function(request) {
-  var contentType;
+  var contentType, reinvite, update, refer, eventHeader;
 
   if(request.method === JsSIP.C.CANCEL) {
     /* RFC3261 15 States that a UAS may have accepted an invitation while a CANCEL
@@ -5459,7 +6261,7 @@ RTCSession.prototype.receiveRequest = function(request) {
           return false;
         }
       }
-      var reinvite = new Reinvite(this);
+      reinvite = new Reinvite(this);
       reinvite.init_incoming(request);
       this.lastReinvite = reinvite;
       break;
@@ -5472,8 +6274,51 @@ RTCSession.prototype.receiveRequest = function(request) {
       }
       break;
     case JsSIP.C.UPDATE:
-      var update = new Update(this);
+      update = new Update(this);
       return update.init_incoming(request);
+    case JsSIP.C.REFER:
+      if (this.incoming_refer && !this.incoming_refer.closed) {
+        request.reply(491, 'Existing Refer In Progress');
+        return false;
+      }
+      refer = new Refer(this);
+      this.incoming_refer = refer;
+      return refer.init_incoming(request);
+    case JsSIP.C.NOTIFY:
+      if (!request.hasHeader('event')) {
+        request.reply(400, 'Missing Event Header');
+        return false;
+      }
+      eventHeader = request.parseHeader('event');
+      if (eventHeader && eventHeader.event === 'refer') {
+        refer = this.outgoing_refer;
+        if (refer) {
+          return refer.receiveRequest(request);
+        }
+        // RFC 6665 section 4.1.3 says we MUST send a 481 unless another
+        // 4xx/5xx response is more appropriate - note that this will tear down
+        // the INVITE session as well.
+        request.reply(481, 'Subscription Does Not Exist');
+        return false;
+      }
+      request.reply(489);
+      return false;
+    case JsSIP.C.SUBSCRIBE:
+      if (!request.hasHeader('event')) {
+        request.reply(400, 'Missing Event Header');
+        return false;
+      }
+      eventHeader = request.parseHeader('event');
+      if (eventHeader && eventHeader.event === 'refer') {
+        refer = this.incoming_refer;
+        if (refer) {
+          return refer.receiveRequest(request);
+        }
+        request.reply(403);
+        return false;
+      }
+      request.reply(489);
+      return false;
   }
 
   return true;
@@ -6997,7 +7842,9 @@ UA.prototype.loadConfig = function(configuration) {
   }
 
   // Instance-id for GRUU
-  settings.instance_id = JsSIP.Utils.newUUID();
+  if (!settings.instance_id) {
+    settings.instance_id = 'uuid:' + JsSIP.Utils.newUUID();
+  }
 
   // jssip_id instance parameter. Static random tag of length 5
   settings.jssip_id = JsSIP.Utils.createRandomToken(5);
@@ -7091,7 +7938,6 @@ UA.configuration_skeleton = (function() {
     skeleton = {},
     parameters = [
       // Internal parameters
-      "instance_id",
       "jssip_id",
       "register_min_expires",
       "ws_server_max_reconnection",
@@ -7110,6 +7956,7 @@ UA.configuration_skeleton = (function() {
       "hack_via_tcp", // false.
       "hack_ip_in_contact", //false
       "handle_media", //true
+      "instance_id",
       "no_answer_timeout", // 30 seconds.
       "password",
       "register_expires", // 600 seconds.
@@ -7278,6 +8125,18 @@ UA.configuration_check = {
     handle_media: function(handle_media) {
       if (typeof handle_media === 'boolean') {
         return handle_media;
+      }
+    },
+
+    instance_id: function(instance_id) {
+      if (!(/^uuid?:/.test(instance_id))) {
+        instance_id = 'uuid:' + instance_id;
+      }
+
+      if(JsSIP.Grammar.parse(instance_id, 'uuid_URI') === -1) {
+        return;
+      } else {
+        return instance_id;
       }
     },
 
@@ -8326,7 +9185,7 @@ JsSIP.WebRTC = WebRTC;
     DEFAULT_EXPIRES = 3 * 60 * 1000;
 
   /**
-   * @class Class creating SIP REFER request.
+   * @class Class representing an out-of-dialog SIP REFER request.
    * @augments EventEmitter
    * @param {JsSIP.UA} ua
    */
@@ -8569,7 +9428,8 @@ JsSIP.WebRTC = WebRTC;
       if (this.direction === 'incoming') {
         // Send a NOTIFY that terminates the subscription
         this.notify({
-          status_code: 500
+          body: this.last_notify_body,
+          finalNotify: true
         });
       } else {
         this.emitFinalNotify();
@@ -8944,6 +9804,7 @@ JsSIP.WebRTC = WebRTC;
    */
   Refer.prototype.receiveNotify = function(request) {
     var eventHeader, stateHeader, typeHeader, parsed, sessionEvent,
+      extraHeaders, sipfrag,
       finalNotify = false;
 
     if (this.direction !== 'outgoing' ||
@@ -8974,7 +9835,14 @@ JsSIP.WebRTC = WebRTC;
       return;
     }
 
-    parsed = JsSIP.Parser.parseMessage(request.body, true);
+    sipfrag = request.body;
+    if (!/\r\n$/.test(sipfrag)) {
+      // Strictly this is an invalid sipfrag, but fudge it by appending the
+      // expected end-line characters.
+      sipfrag += '\r\n';
+    }
+
+    parsed = JsSIP.Parser.parseMessage(sipfrag, true);
     if (!parsed || !parsed instanceof JsSIP.IncomingResponse) {
       request.reply(400, 'Bad Message Body');
       this.close();
@@ -9020,7 +9888,8 @@ JsSIP.WebRTC = WebRTC;
       this.expire_timer = null;
     }
 
-    request.reply(200);
+    extraHeaders = ['Contact: ' + this.contact];
+    request.reply(200, null, extraHeaders);
 
     if (parsed.status_code < 200) {
       sessionEvent = 'progress';
@@ -9055,7 +9924,7 @@ JsSIP.WebRTC = WebRTC;
    * @param {IncomingRequest} request
    */
   Refer.prototype.receiveSubscribe = function(request) {
-    var eventHeader, expires;
+    var eventHeader, expires, extraHeaders;
 
     if (this.direction !== 'incoming') {
       request.reply(481);
@@ -9082,6 +9951,10 @@ JsSIP.WebRTC = WebRTC;
         body: this.last_notify_body,
         finalNotify: true
       });
+      extraHeaders = [
+        'Contact: ' + this.contact
+      ];
+      request.reply(200, null, extraHeaders);
       this.close();
       return;
     }
@@ -9099,7 +9972,11 @@ JsSIP.WebRTC = WebRTC;
     }
     this.expire_timer = setTimeout(this.subscriptionExpired.bind(this), expires);
 
-    request.reply(200, null, ['Expires: ' + expires / 1000]);
+    extraHeaders = [
+      'Contact: ' + this.contact,
+      'Expires: ' + expires / 1000
+    ];
+    request.reply(200, null, extraHeaders);
     console.log(LOG_PREFIX + this.id + ' subscription extended');
   };
 
@@ -9176,7 +10053,9 @@ JsSIP.WebRTC = WebRTC;
       request.body = options.body;
     }
   
-    request_sender = new JsSIP.InDialogRequestSender(this);
+    // Don't use InDialogRequestSender, as we don't need the special 408/481
+    // response handling - any error terminates the subscribe dialog.
+    request_sender = new JsSIP.RequestSender(this, this.session.ua);
   
     this.session.emit('notify', this.session, {
       originator: 'local',
@@ -9514,7 +10393,12 @@ JsSIP.Grammar = (function(){
         "sub_delims": parse_sub_delims,
         "turn_URI": parse_turn_URI,
         "turn_scheme": parse_turn_scheme,
-        "turn_transport": parse_turn_transport
+        "turn_transport": parse_turn_transport,
+        "uuid_URI": parse_uuid_URI,
+        "uuid": parse_uuid,
+        "hex4": parse_hex4,
+        "hex8": parse_hex8,
+        "hex12": parse_hex12
       };
       
       if (startRule !== undefined) {
@@ -21959,6 +22843,219 @@ JsSIP.Grammar = (function(){
         return result0;
       }
       
+      function parse_uuid_URI() {
+        var result0, result1;
+        var pos0;
+        
+        pos0 = pos;
+        if (input.substr(pos, 5) === "uuid:") {
+          result0 = "uuid:";
+          pos += 5;
+        } else {
+          result0 = null;
+          if (reportFailures === 0) {
+            matchFailed("\"uuid:\"");
+          }
+        }
+        if (result0 !== null) {
+          result1 = parse_uuid();
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos0;
+          }
+        } else {
+          result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_uuid() {
+        var result0, result1, result2, result3, result4, result5, result6, result7, result8;
+        var pos0, pos1;
+        
+        pos0 = pos;
+        pos1 = pos;
+        result0 = parse_hex8();
+        if (result0 !== null) {
+          if (input.charCodeAt(pos) === 45) {
+            result1 = "-";
+            pos++;
+          } else {
+            result1 = null;
+            if (reportFailures === 0) {
+              matchFailed("\"-\"");
+            }
+          }
+          if (result1 !== null) {
+            result2 = parse_hex4();
+            if (result2 !== null) {
+              if (input.charCodeAt(pos) === 45) {
+                result3 = "-";
+                pos++;
+              } else {
+                result3 = null;
+                if (reportFailures === 0) {
+                  matchFailed("\"-\"");
+                }
+              }
+              if (result3 !== null) {
+                result4 = parse_hex4();
+                if (result4 !== null) {
+                  if (input.charCodeAt(pos) === 45) {
+                    result5 = "-";
+                    pos++;
+                  } else {
+                    result5 = null;
+                    if (reportFailures === 0) {
+                      matchFailed("\"-\"");
+                    }
+                  }
+                  if (result5 !== null) {
+                    result6 = parse_hex4();
+                    if (result6 !== null) {
+                      if (input.charCodeAt(pos) === 45) {
+                        result7 = "-";
+                        pos++;
+                      } else {
+                        result7 = null;
+                        if (reportFailures === 0) {
+                          matchFailed("\"-\"");
+                        }
+                      }
+                      if (result7 !== null) {
+                        result8 = parse_hex12();
+                        if (result8 !== null) {
+                          result0 = [result0, result1, result2, result3, result4, result5, result6, result7, result8];
+                        } else {
+                          result0 = null;
+                          pos = pos1;
+                        }
+                      } else {
+                        result0 = null;
+                        pos = pos1;
+                      }
+                    } else {
+                      result0 = null;
+                      pos = pos1;
+                    }
+                  } else {
+                    result0 = null;
+                    pos = pos1;
+                  }
+                } else {
+                  result0 = null;
+                  pos = pos1;
+                }
+              } else {
+                result0 = null;
+                pos = pos1;
+              }
+            } else {
+              result0 = null;
+              pos = pos1;
+            }
+          } else {
+            result0 = null;
+            pos = pos1;
+          }
+        } else {
+          result0 = null;
+          pos = pos1;
+        }
+        if (result0 !== null) {
+          result0 = (function(offset, uuid) {
+                          data = input.substring(pos+5, offset); })(pos0, result0[0]);
+        }
+        if (result0 === null) {
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_hex4() {
+        var result0, result1, result2, result3;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_HEXDIG();
+        if (result0 !== null) {
+          result1 = parse_HEXDIG();
+          if (result1 !== null) {
+            result2 = parse_HEXDIG();
+            if (result2 !== null) {
+              result3 = parse_HEXDIG();
+              if (result3 !== null) {
+                result0 = [result0, result1, result2, result3];
+              } else {
+                result0 = null;
+                pos = pos0;
+              }
+            } else {
+              result0 = null;
+              pos = pos0;
+            }
+          } else {
+            result0 = null;
+            pos = pos0;
+          }
+        } else {
+          result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_hex8() {
+        var result0, result1;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_hex4();
+        if (result0 !== null) {
+          result1 = parse_hex4();
+          if (result1 !== null) {
+            result0 = [result0, result1];
+          } else {
+            result0 = null;
+            pos = pos0;
+          }
+        } else {
+          result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
+      function parse_hex12() {
+        var result0, result1, result2;
+        var pos0;
+        
+        pos0 = pos;
+        result0 = parse_hex4();
+        if (result0 !== null) {
+          result1 = parse_hex4();
+          if (result1 !== null) {
+            result2 = parse_hex4();
+            if (result2 !== null) {
+              result0 = [result0, result1, result2];
+            } else {
+              result0 = null;
+              pos = pos0;
+            }
+          } else {
+            result0 = null;
+            pos = pos0;
+          }
+        } else {
+          result0 = null;
+          pos = pos0;
+        }
+        return result0;
+      }
+      
       
       function cleanupExpected(expected) {
         expected.sort();
@@ -31771,6 +32868,7 @@ var CrocSDK = {};
 	// Default Croc object configuration
 	var defaultConfig = {
 		acceptTimeout : 300,
+		autostart: true,
 		capabilities : {},
 		capability : {
 			refreshPeriod : 15
@@ -31782,7 +32880,6 @@ var CrocSDK = {};
 		features: ['audio', 'video', 'pagedata'],
 		register : false,
 		requireMatchingVersion : false,
-		start: true,
 		useTLS : true,
 		iceServers : [ {
 			url : 'stun:stun.l.google.com:19302'
@@ -31802,6 +32899,7 @@ var CrocSDK = {};
 		address : [ 'string' ],
 		apiKey : [ 'string' ],
 		authorizationUser : [ 'string' ],
+		autostart : [ 'boolean' ],
 		capabilities : [ 'object' ],
 		capability : [ 'object' ],
 		data : [ 'object' ],
@@ -31824,7 +32922,6 @@ var CrocSDK = {};
 		register : [ 'boolean' ],
 		requireMatchingVersion : [ 'boolean' ],
 		sipProxySet : [ 'string', 'string[]' ],
-		start : [ 'boolean' ],
 		turnManagerUrl : [ 'string' ],
 		turnManagerUsername : [ 'string' ],
 		useTLS : [ 'boolean' ],
@@ -31939,24 +33036,13 @@ var CrocSDK = {};
 	}
 
 	/**
-	 * Used to test if browser supports method navigator.getUserMedia.
-	 * 
-	 * @private
-	 * @return {Boolean}
-	 */
-	function hasGetUserMedia() {
-		// navigator.getUserMedia() different browser variations
-		return (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
-	}
-
-	/**
-	 * Used to test if browser has the capabilities for audio and video.
+	 * Gets the initial capabilities, based on the croc config.
 	 * 
 	 * @private
 	 * @param config
 	 * @returns {CrocSDK.Croc~Capabilities}
 	 */
-	function detectCapabilities(config) {
+	function initialCapabilities(config) {
 		var cap = {
 			"sip.audio": true,
 			"sip.video": true,
@@ -31977,38 +33063,9 @@ var CrocSDK = {};
 			cap["sip.data"] = false;
 		}
 
-		if (!hasGetUserMedia()) {
+		if (!JsSIP.WebRTC.getUserMedia) {
 			cap["sip.audio"] = false;
 			cap["sip.video"] = false;
-
-			return cap;
-		}
-
-		var stopStream = function(stream) {
-			stream.stop();
-		};
-		var detectMicrophone = function() {
-			if (cap["sip.audio"]) {
-				JsSIP.WebRTC.getUserMedia({
-					audio: true
-				}, stopStream, function() {
-					cap["sip.audio"] = false;
-				});
-			}
-		};
-
-		if (cap["sip.video"]) {
-			// Request access to webcam to determine whether one is present
-			JsSIP.WebRTC.getUserMedia({
-				video: true,
-				audio: true
-			}, stopStream, function() {
-				cap["sip.video"] = false;
-				// Fall back to microphone check
-				detectMicrophone();
-			});
-		} else {
-			detectMicrophone();
 		}
 
 		return cap;
@@ -32043,6 +33100,13 @@ var CrocSDK = {};
 			sipProxySet[i] = scheme.concat('://', sipProxySet[i], '/', apiKey);
 		}
 
+		// Check for an existing UUID instance id in local storage
+		var instance = localStorage['croc.rtc.sip.instance'];
+		if (!instance) {
+			instance = JsSIP.Utils.newUUID();
+			localStorage['croc.rtc.sip.instance'] = instance;
+		}
+
 		// Configuration object to use for JsSIP user agent
 		var sipConfig = {
 			ws_servers : sipProxySet,
@@ -32053,7 +33117,8 @@ var CrocSDK = {};
 			authorization_user : croc.authorizationUser,
 			display_name : croc.displayName,
 			no_answer_timeout : croc.acceptTimeout,
-			handle_media : false
+			handle_media : false,
+			instance_id: instance
 		};
 
 		// Create the JsSIP User Agent
@@ -32062,114 +33127,121 @@ var CrocSDK = {};
 		// Handle events for JsSIP
 		croc.sipUA.on('connected', function() {
 			/**
-			 * <p>
-			 * Dispatched when the Crocodile RTC JavaScript Library has
-			 * successfully connected to the network.
-			 * </p>
-			 * 
+			 * Dispatched when the croc object has successfully connected to the
+			 * network.
 			 * <p>
 			 * No action is taken when this event occurs if the event handler is
 			 * not defined.
-			 * </p>
 			 * 
 			 * @event CrocSDK.Croc#onConnected
-			 * @param {CrocSDK.Croc~OnConnectedEvent}
-			 *            onConnectedEvent The event object associated to this
-			 *            event
+			 * @param {CrocSDK.Croc~ConnectedEvent} event
+			 * The event object associated with this event.
 			 */
 			CrocSDK.Util.fireEvent(croc, 'onConnected', {});
 		});
 		croc.sipUA.on('disconnected', function(event) {
 			/**
+			 * Dispatched when the croc object has disconnected from the
+			 * network, or a connection attempt has failed.
 			 * <p>
-			 * Dispatched when the Crocodile RTC JavaScript Library has
-			 * disconnected from the network.
-			 * </p>
-			 * 
-			 * <p>
-			 * No action is taken when this event occurs if the event handler is
-			 * not defined.
-			 * </p>
+			 * The croc object will automatically attempt to re-establish
+			 * dropped connections as long as it is still running.
 			 * 
 			 * @event CrocSDK.Croc#onDisconnected
-			 * @param {CrocSDK.Croc~OnDisconnectedEvent}
-			 *            onDisconnectedEvent The event object associated to
-			 *            this event
+			 * @param {CrocSDK.Croc~DisconnectedEvent} event
+			 * The event object associated with this event.
 			 */
 			CrocSDK.Util.fireEvent(croc, 'onDisconnected', {
 				status : CrocSDK.Util.websocketCauseToSdkStatus(event.data.code)
 			});
 		});
-		croc.sipUA.on('registered', function() {
+		croc.sipUA.on('registered', function(event) {
 			/**
-			 * <p>
-			 * Dispatched when the Crocodile RTC JavaScript Library has
-			 * registered to the network.
-			 * </p>
-			 * 
-			 * <p>
-			 * No action is taken when this event occurs if the event handler is
-			 * not defined.
-			 * </p>
+			 * Dispatched when the croc object has successfully registered on
+			 * the network.
 			 * 
 			 * @event CrocSDK.Croc#onRegistered
-			 * @param {CrocSDK.Croc~OnRegisteredEvent}
-			 *            onRegisteredEvent The event object associated to
-			 *            this event
+			 * @param {CrocSDK.Croc~RegisteredEvent} event
+			 * The event object associated with this event.
 			 */
-			CrocSDK.Util.fireEvent(croc, 'onRegistered', {});
+			var response = event.data.response;
+			var numContacts = response.countHeader('contact');
+			var idx, contactHeader;
+			var gruus = [];
+			for (idx = 0; idx < numContacts; idx++) {
+				contactHeader = response.parseHeader('contact', idx);
+				if (contactHeader.uri.user !== croc.sipUA.contact.uri.user) {
+					var gruu = contactHeader.getParam('pub-gruu');
+					if (gruu) {
+						gruus.push(gruu.replace(/"/g,''));
+					}
+				}
+			}
+			CrocSDK.Util.fireEvent(croc, 'onRegistered', {
+				instanceAddresses: gruus
+			});
 		});
-		croc.sipUA.on('unregistered', function() {
+		croc.sipUA.on('unregistered', function(event) {
 			/**
+			 * Dispatched when the croc object has unregistered from the
+			 * network, or a periodic re-register attempt has failed.
 			 * <p>
-			 * Dispatched when the Crocodile RTC JavaScript Library has
-			 * unregistered from the network.
-			 * </p>
-			 * 
-			 * <p>
-			 * No action is taken when this event occurs if the event handler is
-			 * not defined.
-			 * </p>
+			 * If registration fails due to an authentication error, the croc
+			 * object will automatically stop; no further connection attempts
+			 * will be made.
 			 * 
 			 * @event CrocSDK.Croc#onUnregistered
-			 * @param {CrocSDK.Croc~OnUnregisteredEvent}
-			 *            onUnregisteredEvent The event object associated to
-			 *            this event
+			 * @param {CrocSDK.Croc~UnregisteredEvent} event
+			 * The event object associated with this event.
 			 */
 			CrocSDK.Util.fireEvent(croc, 'onUnregistered', {});
+
+			// Auth failures should trigger croc object to stop
+			switch (event.data.cause) {
+			case JsSIP.C.causes.AUTHENTICATION_ERROR:
+			case JsSIP.C.causes.REJECTED:
+				console.log('Registration authentication failed - stopping');
+				croc.stop();
+				break;
+			}
 		});
 		croc.sipUA.on('registrationFailed', function(event) {
 			var cause = 'other';
-			var causes = JsSIP.C.causes;
 
 			switch (event.data.cause) {
-			case causes.REQUEST_TIMEOUT:
+			case JsSIP.C.causes.REQUEST_TIMEOUT:
 				cause = 'timeout';
 				break;
-			case causes.AUTHENTICATION_ERROR:
+			case JsSIP.C.causes.AUTHENTICATION_ERROR:
+			case JsSIP.C.causes.REJECTED:
 				cause = 'auth';
 				break;
 			}
 
 			/**
+			 * Dispatched when the croc object has failed to register on the
+			 * network.
 			 * <p>
-			 * Dispatched when the Crocodile RTC JavaScript Library has
-			 * failed to register to the network.
-			 * </p>
-			 * 
-			 * <p>
-			 * No action is taken when this event occurs if the event handler is
-			 * not defined.
-			 * </p>
+			 * If registration fails due to an authentication error, the croc
+			 * object will automatically stop; no further connection attempts
+			 * will be made.
 			 * 
 			 * @event CrocSDK.Croc#onRegistrationFailed
-			 * @param {CrocSDK.Croc~OnRegistrationFailedEvent}
-			 *            onRegistrationFailedEvent The event object associated to
-			 *            this event
+			 * @param {CrocSDK.Croc~RegistrationFailedEvent} event
+			 * The event object associated with this event.
 			 */
 			CrocSDK.Util.fireEvent(croc, 'onRegistrationFailed', {
 				cause : cause
 			});
+
+			// Auth failures should trigger croc object to stop
+			switch (event.data.cause) {
+			case JsSIP.C.causes.AUTHENTICATION_ERROR:
+			case JsSIP.C.causes.REJECTED:
+				console.log('Registration authentication failed - stopping');
+				croc.stop();
+				break;
+			}
 		});
 
 		// We've customised the newRTCSession event behaviour so that we can
@@ -32274,7 +33346,7 @@ var CrocSDK = {};
 		}
 	};
 	EphemeralCredentialsManager.prototype.stop = function() {
-		if (this.timerId) {
+		if (this.timerId !== null) {
 			clearTimeout(this.timerId);
 			this.timerId = null;
 		}
@@ -32289,17 +33361,24 @@ var CrocSDK = {};
 			queryParams.username = this.username;
 		}
 
+		if (this.timerId !== null) {
+			clearTimeout(this.timerId);
+			this.timerId = null;
+		}
+
 		this.jQuery.getJSON(this.url, queryParams).done(function(response) {
 			var nextAttemptDelay = Math.max(response.ttl - 5, 60);
 
 			console.log('Next credential refresh in', nextAttemptDelay, 'seconds');
 			manager.timerId = setTimeout(function() {
+				manager.timerId = null;
 				manager.query();
 			}, nextAttemptDelay * 1000);
 			CrocSDK.Util.fireEvent(manager, 'onUpdate', response);
 		}).fail(function(jqxhr, textStatus, error) {
 			console.warn('Ephemeral credential request failed:', textStatus, error);
 			manager.timerId = setTimeout(function() {
+				manager.timerId = null;
 				manager.query();
 			}, manager.retryPeriod * 1000);
 		});
@@ -32446,8 +33525,13 @@ var CrocSDK = {};
 		// Check for apiKey or sipProxySet
 		checkConfig(config);
 
-		var detectedConfig = {
-			capabilities : detectCapabilities(config),
+		// Squash address/username to make it case insensitive in the auth hash
+		if (config.address) {
+			config.address = config.address.toLowerCase();
+		}
+
+		var initialConfig = {
+			capabilities : initialCapabilities(config),
 			register : !!config.address
 		};
 
@@ -32455,9 +33539,9 @@ var CrocSDK = {};
 		var mergedConfig;
 		if (config.apiKey) {
 			mergedConfig = config.jQuery.extend(true, {}, defaultConfig,
-					crocNetworkDefaultConfig, detectedConfig, config);
+					crocNetworkDefaultConfig, initialConfig, config);
 		} else {
-			mergedConfig = config.jQuery.extend(true, {}, defaultConfig, detectedConfig, config);
+			mergedConfig = config.jQuery.extend(true, {}, defaultConfig, initialConfig, config);
 		}
 		// We don't want to merge the arrays in provided config with arrays in
 		// the default config; override them instead.
@@ -32507,6 +33591,9 @@ var CrocSDK = {};
 
 		// Merge the apis and config into this Croc object instance
 		config.jQuery.extend(this, mergedConfig, apis);
+
+		// Kick off media capability detection (async)
+		this._detectCapabilities();
 
 		// Initialise JsSIP
 		initJsSip(this);
@@ -32595,27 +33682,75 @@ var CrocSDK = {};
 		this.media.init();
 		this.presence.init();
 
-		if (this.start) {
+		if (this.autostart) {
 			// Start a connection to the service
-			this.connect();
+			this.start();
+		}
+	};
+
+	CrocSDK.Croc.prototype._detectCapabilities = function() {
+		var cap = this.capabilities;
+		var mst = window.MediaStreamTrack;
+
+		if (mst && mst.getSources) {
+			// Check capabilities without requesting access to media
+			var detectedSourceTypes = {
+				audio: false,
+				video: false
+			};
+
+			mst.getSources(function(sources) {
+				for (var idx = 0, len = sources.length; idx < len; idx++) {
+					detectedSourceTypes[sources[idx].kind] = true;
+				}
+
+				cap["sip.audio"] = cap["sip.audio"] && detectedSourceTypes.audio;
+				cap["sip.video"] = cap["sip.video"] && detectedSourceTypes.video;
+			});
+		} else if (JsSIP.WebRTC.getUserMedia) {
+			// Check capabilities by requesting access to media
+			var stopStream = function(stream) {
+				stream.stop();
+			};
+			var detectMicrophone = function() {
+				if (cap["sip.audio"]) {
+					JsSIP.WebRTC.getUserMedia({
+						audio: true
+					}, stopStream, function() {
+						cap["sip.audio"] = false;
+					});
+				}
+			};
+
+			if (cap["sip.video"]) {
+				// Request access to webcam to determine whether one is present
+				JsSIP.WebRTC.getUserMedia({
+					video: true,
+					audio: true
+				}, stopStream, function() {
+					cap["sip.video"] = false;
+					// Fall back to microphone check
+					detectMicrophone();
+				});
+			} else {
+				detectMicrophone();
+			}
 		}
 	};
 
 	// Public methods
 	/**
+	 * Starts the croc object.
 	 * <p>
-	 * Connects to the real-time communications network (Crocodile RTC Network
-	 * by default). The connection process is started automatically when the
-	 * Crocodile RTC JavaScript Library object is constructed; this method
-	 * should only be explicitly called to reconnect after
-	 * <code>disconnect()</code> has been used.
-	 * </p>
-	 * 
+	 * This will create the connection to the network, and retry failed
+	 * connections, until the croc object is stopped.
 	 * <p>
-	 * Exceptions: {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
+	 * By default, the croc object automatically starts when it is constructed,
+	 * so this method does not need to be called.
+	 * <p>
+	 * This method replaces the deprecated <code>connect</code> method.
 	 */
-	CrocSDK.Croc.prototype.connect = function() {
+	CrocSDK.Croc.prototype.start = function() {
 		// Start a connection using JsSIP
 		if (!this.started) {
 			var croc = this;
@@ -32631,7 +33766,7 @@ var CrocSDK = {};
 				// Start a graceful disconnect, so we at least try to clean
 				// up properly. We can't wait for responses, so no chance of
 				// ACKs or authorising requests. :-(
-				croc.disconnect();
+				croc.stop();
 				// Force the WS close now, so the WS server at least sees a
 				// Connection Close frame.
 				croc.sipUA.transport.disconnect();
@@ -32656,17 +33791,29 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
-	 * Disconnects from the network. Crocodile RTC JavaScript Library will
-	 * automatically disconnect when the browser tab is closed. This method will
-	 * be rarely be explicitly used.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: <i>none</i>
-	 * </p>
+	 * Synonym for the {@link CrocSDK.Croc#start start} method.
+	 * @deprecated
 	 */
-	CrocSDK.Croc.prototype.disconnect = function() {
+	CrocSDK.Croc.prototype.connect = function() {
+		this.start();
+	};
+
+	/**
+	 * Stops the croc object.
+	 * <p>
+	 * This will close any outstanding sessions, unregister from the network
+	 * network, and disconnect any WebSockets. No further connection attempts
+	 * will be made unless the croc object is started again.
+	 * <p>
+	 * The library registers a <code>beforeunload</code> handler which should
+	 * call this method automatically if the user closes or navigates away from
+	 * the current page. Where possible, it is preferable to call this method
+	 * at an earlier stage, so these actions have more time to complete
+	 * successfully.
+	 * <p>
+	 * This method replaces the deprecated <code>disconnect</code> method.
+	 */
+	CrocSDK.Croc.prototype.stop = function() {
 		// Stop a connection using JsSIP
 		if (this.started) {
 			this.started = false;
@@ -32690,14 +33837,16 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
+	 * Synonym for the {@link CrocSDK.Croc#stop stop} method.
+	 * @deprecated
+	 */
+	CrocSDK.Croc.prototype.disconnect = function() {
+		this.stop();
+	};
+
+	/**
 	 * Returns <code>true</code> if the Crocodile RTC JavaScript Library
 	 * object is connected to the network.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: <i>none</i>
-	 * </p>
 	 * 
 	 * @returns Boolean
 	 */
@@ -32707,21 +33856,13 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Explicitly registers the Crocodile RTC JavaScript Library object with the
 	 * network. If the <code>register</code> property is set to
-	 * <code>true</code> the object will be automatically registered during
-	 * <code>connect()</code>.
-	 * </p>
-	 * 
+	 * <code>true</code>, the object will be automatically registered when the
+	 * croc object starts.
 	 * <p>
 	 * The Crocodile RTC JavaScript Library object must be registered with the
 	 * network to receive inbound out-of-session requests.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
 	 */
 	CrocSDK.Croc.prototype.reregister = function() {
 		// Register to a service using JsSIP
@@ -32729,21 +33870,11 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Explicitly un-registers the Crocodile RTC JavaScript Library object from
-	 * the network. If the <code>register</code> property is set to
-	 * <code>true</code> the object will be automatically un-registered during
-	 * <code>disconnect()</code>.
-	 * </p>
-	 * 
+	 * the network.
 	 * <p>
 	 * The Crocodile RTC JavaScript Library object must be registered with the
 	 * network to receive inbound out-of-session requests.
-	 * </p>
-	 * 
-	 * <p>
-	 * Exceptions: <i>none</i>
-	 * </p>
 	 */
 	CrocSDK.Croc.prototype.unregister = function() {
 		// Unregister from a service using JsSIP
@@ -32848,7 +33979,7 @@ var CrocSDK = {};
 	 * @property {Boolean} [sip.video=detected] <code>true</code> if the
 	 *           browser supports PeerConnection. Even if there is no web-cam it
 	 *           might be possible to receive video.
-	 * @property {Number} [croc.sdkversion=1] Cannot be changed or overridden.
+	 * @property {String} [croc.sdkversion='1'] Cannot be changed or overridden.
 	 * @property [custom.<String>] Web-app developers can create their own
 	 *           capabilities within the <code>custom.</code> namespace.
 	 *           Custom capabilities may be simple present/not-present tags or
@@ -32856,23 +33987,35 @@ var CrocSDK = {};
 	 */
 	/**
 	 * @memberof CrocSDK.Croc
-	 * @typedef CrocSDK.Croc~OnConnectedEvent
+	 * @typedef CrocSDK.Croc~ConnectedEvent
 	 */
 	/**
 	 * @memberof CrocSDK.Croc
-	 * @typedef CrocSDK.Croc~OnDisconnectedEvent
+	 * @typedef CrocSDK.Croc~DisconnectedEvent
 	 */
 	/**
 	 * @memberof CrocSDK.Croc
-	 * @typedef CrocSDK.Croc~OnRegisteredEvent
+	 * @typedef CrocSDK.Croc~RegisteredEvent
+	 * @property {Array.<JsSIP.URI>} instanceAddresses
+	 * An array containing the unique addresses of other client instances
+	 * currently registered on the network as this user. If the user is not
+	 * logged in on any other clients, the array will be empty.
+	 * <p>
+	 * The instance addresses can be used to target a request at specific client
+	 * instance.  Currently they can be used with the following:
+	 * <ul>
+	 * <li>Capabilities requests (using the
+	 * {@link CrocSDK.CapabilityAPI#query query} method)</li>
+	 * <li>MSRP data sessions</li>
+	 * </ul>
 	 */
 	/**
 	 * @memberof CrocSDK.Croc
-	 * @typedef CrocSDK.Croc~OnUnregisteredEvent
+	 * @typedef CrocSDK.Croc~UnregisteredEvent
 	 */
 	/**
 	 * @memberof CrocSDK.Croc
-	 * @typedef CrocSDK.Croc~OnRegistrationFailedEvent
+	 * @typedef CrocSDK.Croc~RegistrationFailedEvent
 	 * @property {String} cause The message stating why the registration 
 	 * process failed.
 	 */
@@ -32903,6 +34046,7 @@ var CrocSDK = {};
 		this.status = null;
 		this.capabilities = null;
 		this.userAgent = null;
+		this.instanceAddress = null;
 	}
 
 	/**
@@ -32924,10 +34068,9 @@ var CrocSDK = {};
 		var status = "normal";
 		var responseCode = 200;
 		var contactHeader = 'Contact: ';
+		var customCapabilities = null;
 
-		contactHeader += crocObject.sipUA.contact.toString({
-			outbound : true
-		});
+		contactHeader += crocObject.sipUA.contact.toString();
 
 		// Fire onWatchRequest event, allow app to change status
 		CrocSDK.Util.fireEvent(capabilityApi, "onWatchRequest", {
@@ -32948,13 +34091,24 @@ var CrocSDK = {};
 				} else {
 					throw new TypeError(setStatus + " is not set to a valid type");
 				}
+			},
+			setCapabilities: function(capabilities) {
+				customCapabilities = capabilities;
 			}
 		});
 
 		// Reply
 		switch (status) {
 		case "normal":
-			contactHeader += capabilityApi.createFeatureTags(crocObject.capabilities);
+			var caps;
+			if (customCapabilities) {
+				caps = {};
+				CrocSDK.Util.shallowCopy(caps, crocObject.capabilities);
+				CrocSDK.Util.shallowCopy(caps, customCapabilities);
+			} else {
+				caps = crocObject.capabilities;
+			}
+			contactHeader += capabilityApi.createFeatureTags(caps);
 			break;
 		case "blocked":
 			responseCode = 403;
@@ -32981,7 +34135,8 @@ var CrocSDK = {};
 	 * @param watchData
 	 * @param {JsSIP.IncomingResponse}
 	 *            response An instance of a JsSIP.IncomingResponse class
-	 * @fires CrocSDK.CapabilityAPI#onWatchChange
+	 * @returns {Boolean} <code>true</code> if watchData has changed from the
+	 * last observed response.
 	 */
 	function processOptionsResponse(capabilityApi, watchData, response) {
 		var previousStatus = watchData.status;
@@ -33008,6 +34163,7 @@ var CrocSDK = {};
 
 		if (response.hasHeader('contact')) {
 			var parsedContact = response.parseHeader('contact', 0);
+			watchData.instanceAddress = parsedContact.uri.toString();
 			watchData.capabilities = capabilityApi.parseFeatureTags(parsedContact.parameters);
 		}
 
@@ -33030,15 +34186,7 @@ var CrocSDK = {};
 			}
 		}
 
-		if (fireEvent) {
-			var toAddress = response.parseHeader('to', 0).uri.toAor().replace(/^sip:/, '');
-
-			CrocSDK.Util.fireEvent(capabilityApi, "onWatchChange", {
-				address : toAddress,
-				status : watchData.status,
-				capabilities : watchData.capabilities
-			});
-		}
+		return fireEvent;
 	}
 
 	/**
@@ -33081,27 +34229,20 @@ var CrocSDK = {};
 	}
 
 	/**
-	 * <p>
 	 * The capability features of the Crocodile RTC JavaScript Library allow a
 	 * web-app to query the capabilities of other instances connected to the
 	 * Crocodile RTC Network. This is useful for discovering the existence of,
 	 * status of, and features supported by other users of the Crocodile RTC
 	 * Network.
-	 * </p>
-	 * 
 	 * <p>
 	 * Once the {@link CrocSDK.Croc Croc} Object is instantiated it will contain
 	 * an instance of the {@link CrocSDK.CapabilityAPI Capability} object named
 	 * <code>capability</code>.
-	 * </p>
-	 * 
 	 * <p>
 	 * For example, given a {@link CrocSDK.Croc Croc} Object named
 	 * <code>crocObject</code> the <code>Capability.refreshPeriod</code>
 	 * property would be accessed as
 	 * <code>crocObject.capability.refreshPeriod</code>.
-	 * </p>
-	 * 
 	 * <p>
 	 * An example using the Capability API:
 	 *   <pre>
@@ -33124,7 +34265,6 @@ var CrocSDK = {};
 	 *     });
 	 *   </code>
 	 *   </pre>
-	 * </p>
 	 * 
 	 * @constructor
 	 * @memberof CrocSDK
@@ -33330,21 +34470,20 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Add <code>address</code> to the watch list. Crocodile RTC JavaScript
 	 * Library will periodically query the capabilities of each of the addresses
 	 * on the watch list. A capabilities query is sent automatically when a new
 	 * address is added to the list.
-	 * </p>
-	 * 
 	 * <p>
 	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
 	 * 
 	 * @param {String}
 	 *            address The address to add to the watch List.
 	 */
 	CrocSDK.CapabilityAPI.prototype.watch = function(address) {
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
+
 		if (!this.watchDataCache[address]) {
 			this.watchList.push(address);
 			this.watchDataCache[address] = new WatchData();
@@ -33358,18 +34497,17 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Remove <code>address</code> from the watch list.
-	 * </p>
-	 * 
 	 * <p>
 	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
 	 * 
 	 * @param {String}
 	 *            address The address to remove from the watch List.
 	 */
 	CrocSDK.CapabilityAPI.prototype.unwatch = function(address) {
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
+
 		if (this.watchDataCache[address]) {
 			var index = this.watchList.indexOf(address);
 			this.watchList.splice(index, 1);
@@ -33383,29 +34521,40 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Send an immediate query for the capabilities of <code>address</code>.
 	 * <code>address</code> must be on the watch list before calling this
 	 * method.
-	 * </p>
 	 * 
-	 * <p>
-	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
-	 * 
-	 * @param {String}
-	 *            address The address to refresh in the watch List.
+	 * @param {String} address The address to refresh in the watch List.
+	 * @throws {CrocSDK.Exceptions.ValueError} If the address is not on the
+	 * watch list.
 	 */
 	CrocSDK.CapabilityAPI.prototype.refresh = function(address) {
 		var capabilityApi = this;
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
+
 		var watchData = this.watchDataCache[address];
 		if (!watchData) {
-			return null;
+			throw new CrocSDK.Exceptions.ValueError('Address not in watch list');
 		}
+
 		var applicant = {
-			request : new JsSIP.OutgoingRequest(JsSIP.C.OPTIONS, 'sip:' + address, this.crocObject.sipUA),
+			request : new JsSIP.OutgoingRequest(JsSIP.C.OPTIONS, uri, this.crocObject.sipUA),
 			receiveResponse : function(response) {
-				processOptionsResponse(capabilityApi, watchData, response);
+				if (processOptionsResponse(capabilityApi, watchData, response)) {
+					CrocSDK.Util.fireEvent(capabilityApi, "onWatchChange", {
+						address: address,
+						instanceAddress: watchData.instanceAddress,
+						status: watchData.status,
+						capabilities: watchData.capabilities
+					});
+				}
+
+				if (CrocSDK.Util.isAuthFailure(response.status_code)) {
+					console.log('Request authentication failed - stopping');
+					capabilityApi.crocObject.stop();
+				}
 			},
 			onRequestTimeout : function() {
 				console.log("request timeout");
@@ -33421,24 +34570,75 @@ var CrocSDK = {};
 	};
 
 	/**
+	 * Send an immediate query for the capabilities of <code>address</code>.
+	 * This is a one-off query; <code>address</code> does not have to be on the
+	 * watch list before calling this method.
+	 * 
+	 * @param {String|JsSIP.URI} address
+	 * The address to query.
 	 * <p>
+	 * A client instance's unique address may be used if you wish to target only
+	 * that instance.
+	 * @param {Function} callback
+	 * The callback function to run when the result is received. The callback
+	 * function is passed an
+	 * {@link CrocSDK.CapabilityAPI~WatchChangeEvent WatchChangeEvent} object as
+	 * the first parameter.
+	 */
+	CrocSDK.CapabilityAPI.prototype.query = function(address, callback) {
+		var capabilityApi = this;
+		var watchData = new WatchData();
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
+
+		var applicant = {
+			request : new JsSIP.OutgoingRequest(JsSIP.C.OPTIONS, uri, this.crocObject.sipUA),
+			receiveResponse : function(response) {
+				processOptionsResponse(capabilityApi, watchData, response);
+				callback({
+					address: address,
+					instanceAddress: watchData.instanceAddress,
+					status: watchData.status,
+					capabilities: watchData.capabilities
+				});
+
+				// Auth failures should trigger croc object to stop
+				if (CrocSDK.Util.isAuthFailure(response.status_code)) {
+					console.log('Request authentication failed - stopping');
+					capabilityApi.crocObject.stop();
+				}
+			},
+			onRequestTimeout : function() {
+				console.log("request timeout");
+				callback(null);
+			},
+			onTransportError : function() {
+				console.warn("request transport error");
+				callback(null);
+			}
+		};
+
+		var requestSender = new JsSIP.RequestSender(applicant, this.crocObject.sipUA);
+		requestSender.send();
+	};
+
+	/**
 	 * Returns a Capabilities object containing the capabilities cached for
 	 * <code>address</code>. Returns <code>null</code> if
 	 * <code>address</code> is not on the watch list or if a capabilities
 	 * query response for <code>address</code> has not yet been received.
-	 * </p>
-	 * 
 	 * <p>
 	 * Exceptions: TypeError, {@link CrocSDK.Exceptions#ValueError ValueError}
-	 * </p>
 	 * 
 	 * @param {String}
 	 *            address The address to refresh in the watch List.
 	 * @returns {CrocSDK.Croc~Capabilities} Capabilities
 	 */
 	CrocSDK.CapabilityAPI.prototype.getCapabilities = function(address) {
-		var watchData = this.watchDataCache[address];
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
 
+		var watchData = this.watchDataCache[address];
 		if (watchData) {
 			return watchData.capabilities;
 		}
@@ -33458,8 +34658,10 @@ var CrocSDK = {};
 	 * @returns {CrocSDK.CapabilityAPI~status} watchStatus
 	 */
 	CrocSDK.CapabilityAPI.prototype.getWatchStatus = function(address) {
-		var watchData = this.watchDataCache[address];
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
 
+		var watchData = this.watchDataCache[address];
 		if (watchData) {
 			return watchData.status;
 		}
@@ -33478,25 +34680,23 @@ var CrocSDK = {};
 	 * @returns The cached watch data
 	 */
 	CrocSDK.CapabilityAPI.prototype.getWatchData = function(address) {
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		address = uri.toAor().replace(/^sip:/, '');
+
 		return this.watchDataCache[address] || null;
 	};
 
 	/**
-	 * <p>
 	 * Dispatched when Crocodile RTC JavaScript Library receives a capabilities
 	 * query from another instance.
-	 * </p>
-	 * 
 	 * <p>
 	 * If this event is not handled the Crocodile RTC JavaScript Library will
 	 * automatically respond based on the capabilities set in the
 	 * {@link CrocSDK.Croc Croc} Object instance.
-	 * </p>
 	 * 
 	 * @memberof CrocSDK.CapabilityAPI
-	 * @param {CrocSDK.CapabilityAPI~OnWatchRequestEvent}
-	 *            [OnWatchRequestEvent] The event object associated to this
-	 *            event.
+	 * @param {CrocSDK.CapabilityAPI~WatchRequestEvent} event
+	 * The event object associated with this event.
 	 * @event CrocSDK.CapabilityAPI#onWatchRequest
 	 */
 	CrocSDK.CapabilityAPI.prototype.onWatchRequest = function() {
@@ -33504,20 +34704,15 @@ var CrocSDK = {};
 	};
 
 	/**
-	 * <p>
 	 * Dispatched when Crocodile RTC JavaScript Library receives a capabilities
 	 * query response.
-	 * </p>
-	 * 
 	 * <p>
 	 * If this event is not handled the Crocodile RTC JavaScript Library will
 	 * cache the capabilities.
-	 * </p>
 	 * 
 	 * @memberof CrocSDK.CapabilityAPI
-	 * @param {CrocSDK.CapabilityAPI~OnWatchChangedEvent}
-	 *            [OnWatchChangedEvent] The event object associated to this
-	 *            event.
+	 * @param {CrocSDK.CapabilityAPI~WatchChangeEvent} event
+	 * The event object associated with this event.
 	 * @event CrocSDK.CapabilityAPI#onWatchChange
 	 */
 	CrocSDK.CapabilityAPI.prototype.onWatchChange = function() {
@@ -33525,13 +34720,17 @@ var CrocSDK = {};
 	};
 
 	/* Further Documentation */
+
 	// Members
+
 	/**
 	 * @memberof CrocSDK.CapabilityAPI
 	 * @member {Number} refreshPeriod
 	 * @instance
 	 */
+
 	// Type Definitions
+
 	/**
 	 * Valid status are:
 	 * <ul>
@@ -33550,30 +34749,33 @@ var CrocSDK = {};
 	 * @memberof CrocSDK.CapabilityAPI
 	 * @typedef {String} CrocSDK.CapabilityAPI~status
 	 */
+
 	/**
 	 * @memberof CrocSDK.CapabilityAPI
-	 * @typedef CrocSDK.CapabilityAPI~OnWatchRequestEvent
+	 * @typedef CrocSDK.CapabilityAPI~WatchRequestEvent
 	 * @property {String} [address] The <code>address</code> of the user that
 	 *           sent this capabilities query.
 	 * @property {Function} [setWatchStatus] Sets the &#34;watch
 	 *            {@link CrocSDK.CapabilityAPI~status status}&#34; to return in
 	 *            response to the capabilities query that generated this event.        
 	 */
+
 	/**
 	 * @memberof CrocSDK.CapabilityAPI
-	 * @typedef CrocSDK.CapabilityAPI~OnWatchChangedEvent
-	 * @property {String} address The <code>address</code> of the user that
-	 *           sent this capabilities query.
-	 * @property {String} status The watch
-	 *           {@link CrocSDK.CapabilityAPI~status status} of the user
-	 *           indicated by the response.
-	 * @property {CrocSDK.Croc~Capabilities} capabilities When
-	 *           {@link CrocSDK.CapabilityAPI~status status} is
-	 *           <code>normal</code> this indicates the capabilities of the
-	 *           remote instance of Crocodile RTC JavaScript Library. When
-	 *           {@link CrocSDK.CapabilityAPI~status status} is not
-	 *           <code>normal</code> this will be <code>null</code>.
+	 * @typedef CrocSDK.CapabilityAPI~WatchChangeEvent
+	 * @property {String} address
+	 * The address of the user being watched, and whose data has changed.
+	 * @property {JsSIP.URI} instanceAddress
+	 * The unique address assigned to the client instance that sent the
+	 * response.
+	 * @property {CrocSDK.CapabilityAPI~status} status
+	 * The watch status of the user indicated by the response.
+	 * @property {CrocSDK.Croc~Capabilities} capabilities
+	 * The reported capabilities of the remote user's client instance.
+	 * If these are not reported (i.e. if the <code>status</code> is not
+	 * <code>normal</code>) this property will be <code>null</code>.
 	 */
+
 }(CrocSDK));
 
 (function (CrocSDK) {
@@ -33789,9 +34991,10 @@ var CrocSDK = {};
 			session.customHeaders = new CrocSDK.CustomHeaders(sendConfig.customHeaders);
 
 			if (!dataApi.checkSessionsIntervalId) {
-				dataApi.checkSessionsIntervalId = window.setInterval(function() {
-					checkSessions(dataApi);
-				}, 10000);
+				dataApi.checkSessionsIntervalId = window.setInterval(
+						function() {
+							checkSessions(dataApi);
+						}, 10000);
 			}
 
 			dataApi.sipDataSessions[address] = session;
@@ -33812,9 +35015,13 @@ var CrocSDK = {};
 	 * @returns {CrocSDK.MsrpDataSession}
 	 */
 	function msrpSend(dataApi, address, data, sendConfig) {
+		var uri = CrocSDK.Util.normaliseAddress(address);
+		var bareAddress = uri.toAor().replace(/^sip:/, '');
 		var session = null;
+
 		// Check for suitable existing sessions to reuse
-		if (!sendConfig.customHeaders && !sendConfig.fileTransfer) {
+		if (!sendConfig.customHeaders && !sendConfig.fileTransfer &&
+				address === bareAddress) {
 			session = dataApi.reusableMsrpDataSessions[address];
 		}
 
@@ -33822,15 +35029,17 @@ var CrocSDK = {};
 			session.send(data, sendConfig);
 		} else {
 			// No sessions suitable - create a new one
-			session = new CrocSDK.OutgoingMsrpSession(dataApi, address, data, sendConfig);
+			session = new CrocSDK.OutgoingMsrpSession(dataApi, uri, data, sendConfig);
 
 			if (!dataApi.checkSessionsIntervalId) {
-				dataApi.checkSessionsIntervalId = window.setInterval(function() {
-					checkSessions(dataApi);
-				}, 10000);
+				dataApi.checkSessionsIntervalId = window.setInterval(
+						function() {
+							checkSessions(dataApi);
+						}, 10000);
 			}
 
-			if (!sendConfig.customHeaders && !sendConfig.fileTransfer) {
+			if (!sendConfig.customHeaders && !sendConfig.fileTransfer &&
+					address === bareAddress) {
 				dataApi.reusableMsrpDataSessions[address] = session;
 			}
 			dataApi.msrpDataSessions.push(session);
@@ -33876,9 +35085,10 @@ var CrocSDK = {};
 			dataApi.xmppDataSessions[address] = dataSession;
 
 			if (!dataApi.checkSessionsIntervalId) {
-				dataApi.checkSessionsIntervalId = window.setInterval(function() {
-					checkSessions(dataApi);
-				}, 10000);
+				dataApi.checkSessionsIntervalId = window.setInterval(
+						function() {
+							checkSessions(dataApi);
+						}, 10000);
 			}
 		}
 
@@ -34250,18 +35460,13 @@ var CrocSDK = {};
 	 * @returns {boolean} 'true' to prevent bubbling of the event
 	 */
 	CrocSDK.DataAPI.prototype._handleXmppMessage = function (message) {
-		var uniqueAddress = message.getFrom();
+		var instanceAddress = message.getFrom();
 		var address = message.getFromJID().getBareJID();
 		var dataSession = this.xmppDataSessions[address];
 
-		if (dataSession && dataSession.getState() !== 'closed') {
-			// Existing data session
-			// "Lock in" on full JID (see RFC 6121 section 5.1)
-			dataSession._setUniqueAddress(uniqueAddress);
-		} else {
+		if (!dataSession || dataSession.getState() === 'closed') {
 			// Create a new data session
-			dataSession = new CrocSDK.XmppDataSession(this, address);
-			dataSession._setUniqueAddress(uniqueAddress);
+			dataSession = new CrocSDK.XmppDataSession(this, address, instanceAddress);
 			this.xmppDataSessions[address] = dataSession;
 
 			if (!this.checkSessionsIntervalId) {
@@ -34314,14 +35519,18 @@ var CrocSDK = {};
 	 * to let the SDK handle session management.
 	 * 
 	 * @memberof CrocSDK.DataAPI
-	 * @param {String}
-	 *            address the address to send the message to.
-	 * @param {ArrayBuffer|Blob|File|String}
-	 *            data the body of the message.
-	 * @param {CrocSDK.DataAPI~SendConfig}
-	 *            [sendConfig] Optional extra information that can be provided
-	 *            when sending data. If this object is omitted, the defaults
-	 *            will be used.
+	 * @param {String|JsSIP.URI} address
+	 * The target address for this data.
+	 * <p>
+	 * A client instance's unique address may be used if you wish to target only
+	 * that instance, but this is an advanced feature: it is only designed to
+	 * work for MSRP data sessions, and relies on the application to handle
+	 * session management.
+	 * @param {ArrayBuffer|Blob|File|String} data
+	 * The data to send.  This can be string/binary data, or an entire file.
+	 * @param {CrocSDK.DataAPI~SendConfig} [sendConfig]
+	 * Optional extra configuration that can be provided when sending data. If
+	 * this object is omitted, the defaults will be used.
 	 * @returns {CrocSDK.MsrpDataSession} DataSession
 	 * @throws {TypeError}
 	 * @throws {CrocSDK.Exceptions#ValueError}
@@ -34446,7 +35655,7 @@ var CrocSDK = {};
 	 * 
 	 * @memberof CrocSDK.DataAPI
 	 * @event CrocSDK.DataAPI#onDataSession
-	 * @param {CrocSDK.DataAPI~OnDataSessionEvent}
+	 * @param {CrocSDK.DataAPI~DataSessionEvent}
 	 *            [onDataSessionEvent] The event object assocated with this
 	 *            event.
 	 */
@@ -34473,7 +35682,7 @@ var CrocSDK = {};
 	 * 
 	 * @memberof CrocSDK.DataAPI
 	 * @event CrocSDK.DataAPI#onData
-	 * @param {CrocSDK.DataAPI~OnDataEvent}
+	 * @param {CrocSDK.DataAPI~DataEvent}
 	 *            [event] The event object assocated with this event.
 	 */
 	CrocSDK.DataAPI.prototype.onData = function() {
@@ -34492,7 +35701,7 @@ var CrocSDK = {};
 	 * 
 	 * @memberof CrocSDK.DataAPI
 	 * @event CrocSDK.DataAPI#onXHTMLReceived
-	 * @param {CrocSDK.DataAPI~OnXHTMLReceivedEvent} [event] The event object
+	 * @param {CrocSDK.DataAPI~XHTMLReceivedEvent} [event] The event object
 	 * assocated with this event.
 	 */
 
@@ -34602,7 +35811,7 @@ var CrocSDK = {};
 
 	/**
 	 * @memberof CrocSDK.DataAPI
-	 * @typedef CrocSDK.DataAPI~OnDataEvent
+	 * @typedef CrocSDK.DataAPI~DataEvent
 	 * @property {String} address The address of the user that sent the data.
 	 * @property {String} contentType The MIME type of the data.
 	 * @property {ArrayBuffer|Blob|String} data The received data. Text data
@@ -34612,7 +35821,7 @@ var CrocSDK = {};
 
 	/**
 	 * @memberof CrocSDK.DataAPI
-	 * @typedef CrocSDK.DataAPI~OnXHTMLReceivedEvent
+	 * @typedef CrocSDK.DataAPI~XHTMLReceivedEvent
 	 * @property {String} address The address of the user that sent the data.
 	 * @property {DocumentFragment} body - The received body.
 	 * @see http://www.w3.org/TR/DOM-Level-2-Core/core.html#ID-B63ED1A3
@@ -34620,7 +35829,7 @@ var CrocSDK = {};
 
 	/**
 	 * @memberof CrocSDK.DataAPI
-	 * @typedef CrocSDK.DataAPI~OnDataSessionEvent
+	 * @typedef CrocSDK.DataAPI~DataSessionEvent
 	 * @property {CrocSDK.MsrpDataSession} session The DataSession
 	 *           representing the inbound session.
 	 * @property {CrocSDK.DataAPI~FileTransferInfo} fileTransfer Details of the
@@ -34641,6 +35850,7 @@ var CrocSDK = {};
 	 * @property {String} disposition The disposition of the file.
 	 * @property {Number} size The size of the file (in bytes).
 	 */
+
 }(CrocSDK));
 
 (function(CrocSDK) {
@@ -35033,28 +36243,10 @@ var CrocSDK = {};
 	 * the
 	 * {@link CrocSDK.MediaAPI~MediaSession#customHeaders MediaSession.customHeaders}
 	 * property and to the remote party in the
-	 * {@link CrocSDK.MediaAPI~MediaSession~OnRenegotiateRequestEvent OnRenegotiateRequestEvent.customHeaders}
+	 * {@link CrocSDK.MediaAPI~MediaSession~RenegotiateRequestEvent RenegotiateRequestEvent.customHeaders}
 	 * property during session renegotiation.
 	 * @property {CrocSDK.MediaAPI~StreamConfig} streamConfig The media stream
 	 *           configuration.
-	 */
-
-	/**
-	 * @typedef CrocSDK.MediaAPI~StreamConfig
-	 * @property {CrocSDK.MediaAPI~StreamDirections} audio The audio stream
-	 * configuration. Set to <code>null</code> if there is no audio stream in
-	 * the session.
-	 * @property {CrocSDK.MediaAPI~StreamDirections} video The video stream
-	 * configuration. Set to <code>null</code> if there is no video stream in
-	 * the session.
-	 */
-
-	/**
-	 * @typedef CrocSDK.MediaAPI~StreamDirections
-	 * @property {Boolean} send Set to <code>true</code> if the stream is
-	 *           outbound-only or bi-directional.
-	 * @property {Boolean} receive Set to <code>true</code> if the stream is
-	 *           inbound-only or bi-directional.
 	 */
 
 	/**
@@ -35101,6 +36293,11 @@ var CrocSDK = {};
 		for ( var index in parsedSdp.media) {
 			var mLine = parsedSdp.media[index];
 			var config = streamConfig[mLine.media];
+
+			if (mLine.media === 'application') {
+				// Don't modify the DataChannel stream
+				continue;
+			}
 
 			if (!config) {
 				// Don't want this stream at all
@@ -35301,8 +36498,12 @@ var CrocSDK = {};
 		this.peerConnection = new JsSIP.WebRTC.RTCPeerConnection({
 			iceServers : iceServers
 		}, constraints);
+		this.videoConstraints = null;
+		this.audioConstraints = null;
 		this.localStream = null;
 		this.oldLocalStream = null;
+		this.screenStream = null;
+		this.oldScreenStream = null;
 		this.remoteMediaReceived = false;
 		this.accepted = false;
 		this.offerOutstanding = false;
@@ -35412,6 +36613,10 @@ var CrocSDK = {};
 			mediaSession.sipSession = null;
 			// Clean up everything else, then notify app
 			mediaSession.close(status);
+			// Auth failures should trigger croc object to stop
+			if (event.data.cause === JsSIP.C.causes.AUTHENTICATION_ERROR) {
+				croc.stop();
+			}
 		});
 		sipSession.on('reinvite', this._handleReinvite.bind(this));
 		sipSession.on('refresh', this._handleRefresh.bind(this));
@@ -35423,23 +36628,24 @@ var CrocSDK = {};
 	 * @private
 	 * @param streamConfig
 	 * @param onSuccess
-	 * @returns <code>true</code> if local user media has been requested
-	 * <code>false</code> if we already have (or don't need) local user media
 	 */
 	MediaSession.prototype._getUserMedia = function(streamConfig, onSuccess) {
 		var mediaSession = this;
 		var sc = streamConfig || this.streamConfig;
 		var constraints = {
-			audio : !!sc.audio && sc.audio.send,
-			video : !!sc.video && sc.video.send
+			audio: !!sc.audio && sc.audio.send,
+			video: !!sc.video && sc.video.send
 		};
-		// Undocumented screen capture feature, only works in Chrome
-		if (constraints.video && sc.source === 'screen') {
-			constraints.video = {mandatory: {chromeMediaSource: 'screen'}};
-		}
-		var mediaSuccess = function(stream) {
+		var screencapture = false;
+		var removeOldStream = function() {
 			var oldStream = mediaSession.localStream;
-
+			if (oldStream) {
+				mediaSession.oldLocalStream = oldStream;
+				mediaSession.peerConnection.removeStream(oldStream);
+				mediaSession.localStream = null;
+			}
+		};
+		var mediaSuccess = function(stream) {
 			if (mediaSession.state === mediaSessionState.CLOSED) {
 				// Oops, too late
 				stream.stop();
@@ -35447,16 +36653,82 @@ var CrocSDK = {};
 			}
 
 			console.log('Got local media stream');
-			if (oldStream) {
-				mediaSession.oldLocalStream = oldStream;
-				mediaSession.peerConnection.removeStream(oldStream);
-			}
+			removeOldStream();
 			mediaSession.localStream = stream;
 			mediaSession.peerConnection.addStream(stream);
 			if (constraints.video && mediaSession.localVideoElement) {
 				mediaSession.localVideoElement.src = window.URL.createObjectURL(stream);
 				mediaSession.localVideoElement.muted = true;
 			}
+
+			mediaSession._getScreenMedia(screencapture, onSuccess);
+		};
+		var mediaFailure = function(error) {
+			console.warn('getUserMedia failed:', error);
+			mediaSession.close();
+		};
+
+		// Handle media constraints
+		if (this.audioConstraints &&
+				CrocSDK.Util.isType(constraints.audio, 'boolean')) {
+			// Keep previous constraints
+			constraints.audio = this.audioConstraints;
+		} else if (CrocSDK.Util.isType(constraints.audio, 'object')) {
+			// Save the requested constraints
+			this.audioConstraints = constraints.audio;
+		}
+		if (this.videoConstraints &&
+				CrocSDK.Util.isType(constraints.video, 'boolean')) {
+			// Keep previous constraints
+			constraints.video = this.videoConstraints;
+		} else if (CrocSDK.Util.isType(constraints.video, 'object')) {
+			// Save the requested constraints
+			this.videoConstraints = constraints.video;
+		}
+
+		var v = constraints.video;
+		if (v && v.mandatory && v.mandatory.chromeMediaSource === 'screen') {
+			// Screen capture video is being requested - that's handled in the
+			// next step, as we can't request audio at the same time.
+			constraints.video = false;
+			screencapture = true;
+		}
+
+		if (!constraints.audio && !constraints.video) {
+			removeOldStream();
+
+			// Might want screen media instead
+			this._getScreenMedia(screencapture, onSuccess);
+			return;
+		}
+
+		JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
+	};
+
+	MediaSession.prototype._getScreenMedia = function(enabled, onSuccess) {
+		var mediaSession = this;
+		var constraints = {
+			audio: false,
+			video: {mandatory: {chromeMediaSource: 'screen'}}
+		};
+		var removeOldStream = function() {
+			var oldStream = mediaSession.screenStream;
+			if (oldStream) {
+				mediaSession.oldScreenStream = oldStream;
+				mediaSession.peerConnection.removeStream(oldStream);
+				mediaSession.screenStream = null;
+			}
+		};
+		var mediaSuccess = function(stream) {
+			if (mediaSession.state === mediaSessionState.CLOSED) {
+				// Oops, too late
+				stream.stop();
+				return;
+			}
+
+			console.log('Got local screen stream');
+			mediaSession.screenStream = stream;
+			mediaSession.peerConnection.addStream(stream);
 			if (onSuccess) {
 				onSuccess();
 			}
@@ -35466,19 +36738,25 @@ var CrocSDK = {};
 			mediaSession.close();
 		};
 
-		if (!constraints.audio && !constraints.video) {
-			// We don't need any media, but make sure calling function
-			// finishes before calling onSuccess.
+		if (!enabled) {
+			// Don't want screen sharing
+			removeOldStream();
+		} else if (this.screenStream && !this.screenStream.ended) {
+			// We don't need to request media again
+			enabled = false;
+		}
+
+		if (enabled) {
+			JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
+		} else {
+			// Ensure calling function finishes before calling onSuccess to
+			// avoid unexpected behaviour.
 			if (onSuccess) {
 				setTimeout(function() {
 					onSuccess();
 				}, 0);
 			}
-			return false;
 		}
-
-		JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
-		return true;
 	};
 
 	/**
@@ -35608,21 +36886,35 @@ var CrocSDK = {};
 	 * @private
 	 */
 	MediaSession.prototype._setRemoteStreamOutput = function() {
-		var stream;
+		var streams, stream, audioTracks, videoTracks;
 		var pc = this.peerConnection;
 
 		if (pc.getRemoteStreams) {
 			// Latest spec uses a method
-			stream = pc.getRemoteStreams()[0];
+			streams = pc.getRemoteStreams();
 		} else {
 			// Older spec used a property (still used by Firefox 22)
-			stream = pc.remoteStreams[0];
+			streams = pc.remoteStreams;
 		}
 
-		if (this.remoteVideoElement) {
-			this.remoteVideoElement.src = window.URL.createObjectURL(stream);
-		} else if (this.remoteAudioElement) {
-			this.remoteAudioElement.src = window.URL.createObjectURL(stream);
+		for (var idx = 0, len = streams.length; idx < len; idx++) {
+			stream = streams[idx];
+			audioTracks = stream.getAudioTracks();
+			videoTracks = stream.getVideoTracks();
+
+			if (videoTracks.length > 0) {
+				if (this.remoteVideoElement) {
+					this.remoteVideoElement.src = window.URL.createObjectURL(stream);
+				} else {
+					console.warn('Video received, but no remoteVideoElement provided');
+				}
+			} else if (audioTracks.length > 0) {
+				if (this.remoteAudioElement) {
+					this.remoteAudioElement.src = window.URL.createObjectURL(stream);
+				} else {
+					console.warn('Audio stream received, but no remoteAudioElement provided');
+				}
+			}
 		}
 	};
 
@@ -35656,7 +36948,7 @@ var CrocSDK = {};
 			sipOptions.extraHeaders.push('Call-Info: <xmpp:' +
 					crocObject.address + '> ;purpose=impp');
 
-			self.sipSession.connect('sip:' + self.address, sipOptions);
+			self.sipSession.connect(self.address, sipOptions);
 
 			CrocSDK.Util.fireEvent(self, 'onConnecting', {});
 		});
@@ -35746,6 +37038,9 @@ var CrocSDK = {};
 			console.log('Setting remote description');
 			// Update session streamConfig based on the answer
 			this.streamConfig = new CrocSDK.StreamConfig(new CrocSDK.Sdp.Session(sdp));
+			if (this.streamConfig.video && this.screenStream) {
+				this.streamConfig.video.source = 'screen';
+			}
 			var description = new JsSIP.WebRTC.RTCSessionDescription({
 				type : 'answer',
 				sdp : sdp
@@ -35941,6 +37236,10 @@ var CrocSDK = {};
 				self.oldLocalStream.stop();
 				self.oldLocalStream = null;
 			}
+			if (self.oldScreenStream) {
+				self.oldScreenStream.stop();
+				self.oldScreenStream = null;
+			}
 			CrocSDK.Util.fireEvent(self, 'onRenegotiateComplete', {});
 		});
 	};
@@ -36043,7 +37342,13 @@ var CrocSDK = {};
 		// Mute all local streams
 		var videoTracks = this.localStream.getVideoTracks();
 		var audioTracks = this.localStream.getAudioTracks();
-		var allTracks = videoTracks.concat(audioTracks);
+		var screenTracks;
+		if (this.screenStream) {
+			screenTracks = this.screenStream.getVideoTracks();
+		} else {
+			screenTracks = [];
+		}
+		var allTracks = videoTracks.concat(audioTracks, screenTracks);
 		for (var i = 0, len = allTracks.length; i < len; i++) {
 			allTracks[i].enabled = false;
 		}
@@ -36083,7 +37388,13 @@ var CrocSDK = {};
 		// Unmute the local media
 		var videoTracks = this.localStream.getVideoTracks();
 		var audioTracks = this.localStream.getAudioTracks();
-		var allTracks = videoTracks.concat(audioTracks);
+		var screenTracks;
+		if (this.screenStream) {
+			screenTracks = this.screenStream.getVideoTracks();
+		} else {
+			screenTracks = [];
+		}
+		var allTracks = videoTracks.concat(audioTracks, screenTracks);
 		for (var i = 0, len = allTracks.length; i < len; i++) {
 			allTracks[i].enabled = true;
 		}
@@ -36327,6 +37638,10 @@ var CrocSDK = {};
 
 		if (this.peerConnection) {
 			this.peerConnection.close();
+		}
+
+		if (this.screenStream) {
+			this.screenStream.stop();
 		}
 
 		if (this.localStream) {
@@ -37087,7 +38402,7 @@ var CrocSDK = {};
 	 * 
 	 * <p>
 	 * Instances of this object are contained within the
-	 * {@link CrocSDK.MsrpDataSession~TransferProgress~OnDataStartEvent OnDataStartEvent}
+	 * {@link CrocSDK.MsrpDataSession~TransferProgress~DataStartEvent DataStartEvent}
 	 * object provided as an argument to the
 	 * {@link CrocSDK.MsrpDataSession#event:onDataStart DataSession.onDataStart}
 	 * event handler.
@@ -37213,8 +38528,8 @@ var CrocSDK = {};
 	 * 
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
 	 * @event CrocSDK.MsrpDataSession~TransferProgress#onSuccess
-	 * @param {CrocSDK.MsrpDataSession~TransferProgress~OnSuccessEvent}
-	 *            [OnSuccessEvent] The event object assocated with this event.
+	 * @param {CrocSDK.MsrpDataSession~TransferProgress~SuccessEvent} event
+	 * The event object associated with this event.
 	 */
 	TransferProgress.prototype.onSuccess = function() {
 		// Do nothing
@@ -37232,8 +38547,8 @@ var CrocSDK = {};
 	 * 
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
 	 * @event CrocSDK.MsrpDataSession~TransferProgress#onFailure
-	 * @param {CrocSDK.MsrpDataSession~TransferProgress~OnFailureEvent}
-	 *            [OnFailureEvent] The event object assocated with this event.
+	 * @param {CrocSDK.MsrpDataSession~TransferProgress~FailureEvent} event
+	 * The event object associated with this event.
 	 */
 	TransferProgress.prototype.onFailure = function() {
 		// Do nothing
@@ -37250,8 +38565,8 @@ var CrocSDK = {};
 	 * 
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
 	 * @event CrocSDK.MsrpDataSession~TransferProgress#onProgress
-	 * @param {CrocSDK.MsrpDataSession~TransferProgress~OnProgressEvent}
-	 *            [OnProgressEvent] The event object assocated with this event.
+	 * @param {CrocSDK.MsrpDataSession~TransferProgress~ProgressEvent} event
+	 * The event object associated with this event.
 	 */
 	TransferProgress.prototype.onProgress = function() {
 		// Do nothing
@@ -37274,7 +38589,7 @@ var CrocSDK = {};
 	 * <p>
 	 * Instances of this object are provided as the return value of the
 	 * {@link CrocSDK.DataAPI#send Data.send()} method and are also contained
-	 * within the {@link CrocSDK.DataAPI~OnDataSessionEvent OnDataSessionEvent}
+	 * within the {@link CrocSDK.DataAPI~DataSessionEvent DataSessionEvent}
 	 * object provided as an argument to the
 	 * {@link CrocSDK.DataAPI#event:onDataSession Data.onDataSession} event handler.
 	 * </p>
@@ -37300,7 +38615,7 @@ var CrocSDK = {};
 	 *     var crocObject = $.croc({
 	 *       apiKey: "API_KEY_GOES_HERE",
 	 *       onConnected: function () {
-	 *         this.data.send('sip:bob@example.com', 'Web application ready');
+	 *         this.data.send('bob@example.com', 'Web application ready');
 	 *       },
 	 *       
 	 *       data: {
@@ -37340,16 +38655,16 @@ var CrocSDK = {};
 	 * 
 	 * @private
 	 * @function CrocSDK.MsrpDataSession#init
-	 * @param {CrocSDK.DataAPI}
-	 *            dataApi an Instance of a {@link CrocSDK.DataAPI DataAPI}
-	 *            class.
-	 * @param {String}
-	 *            address The address of the user to establish a session with.
+	 * @param {CrocSDK.DataAPI} dataApi
+	 * The parent DataAPI instance.
+	 * @param {JsSIP.URI} uri
+	 * The address of the user to establish a session with.
 	 */
-	MsrpDataSession.prototype.init = function(dataApi, address) {
+	MsrpDataSession.prototype.init = function(dataApi, uri) {
 		var self = this;
 		// Internal state
 		this.dataApi = dataApi;
+		this.uri = uri;
 		this.sipSession = null;
 		this.msrpSession = null;
 		this.state = CrocSDK.C.states.dataSession.PENDING;
@@ -37380,7 +38695,7 @@ var CrocSDK = {};
 		 * @instance
 		 * @type {String}
 		 */
-		this.address = address;
+		this.address = uri.toAor().replace(/^sip:/, '');
 		/**
 		 * The display name of the remote party.
 		 * 
@@ -37735,7 +39050,7 @@ var CrocSDK = {};
 	 * {@link CrocSDK.DataAPI#event:onData Data.onData()} handler.
 	 * 
 	 * @event CrocSDK.MsrpDataSession#onData
-	 * @param {CrocSDK.DataAPI~OnDataEvent} event - The event object assocated
+	 * @param {CrocSDK.DataAPI~DataEvent} event - The event object assocated
 	 * with this event.
 	 */
 	MsrpDataSession.prototype.onData = function(event) {
@@ -37752,7 +39067,7 @@ var CrocSDK = {};
 	 * If this event is not handled the received data will be discarded.
 	 * 
 	 * @event CrocSDK.MsrpDataSession#onXHTMLReceived
-	 * @param {CrocSDK.DataAPI~OnXHTMLReceivedEvent} event - The event object
+	 * @param {CrocSDK.DataAPI~XHTMLReceivedEvent} event - The event object
 	 * associated with this event.
 	 */
 	MsrpDataSession.prototype.onXHTMLReceived = function(event) {
@@ -37764,7 +39079,7 @@ var CrocSDK = {};
 	 * Dispatched whenever the composing state of the remote party changes.
 	 * 
 	 * @event CrocSDK.MsrpDataSession#onComposingStateChange
-	 * @param {CrocSDK.MsrpDataSession~OnComposingStateChangeEvent} event - The
+	 * @param {CrocSDK.MsrpDataSession~ComposingStateChangeEvent} event - The
 	 * event object associated with this event.
 	 */
 
@@ -37788,7 +39103,7 @@ var CrocSDK = {};
 	 * </p>
 	 * 
 	 * @event CrocSDK.MsrpDataSession#onDataStart
-	 * @param {CrocSDK.MsrpDataSession~OnDataStartEvent} event - The event object
+	 * @param {CrocSDK.MsrpDataSession~DataStartEvent} event - The event object
 	 * assocated with this event.
 	 */
 	MsrpDataSession.prototype.onDataStart = function() {
@@ -37797,14 +39112,14 @@ var CrocSDK = {};
 
 	/**
 	 * @event CrocSDK.MsrpDataSession#onClose
-	 * @param {CrocSDK.MediaAPI~MediaSession~OnCloseEvent} event - The event object
+	 * @param {CrocSDK.MediaAPI~MediaSession~CloseEvent} event - The event object
 	 * assocated with this event. 
 	 * */
 	MsrpDataSession.prototype.onClose = function() {
 		// Do nothing
 	};
 
-	CrocSDK.OutgoingMsrpSession = function(dataApi, address, data, sendConfig) {
+	CrocSDK.OutgoingMsrpSession = function(dataApi, uri, data, sendConfig) {
 		var msrpCon = getNextMsrpConnection(dataApi);
 		var eventObj = {};
 		var mimetype = sendConfig.contentType || data.type;
@@ -37812,14 +39127,14 @@ var CrocSDK = {};
 		var crocObject = dataApi.crocObject;
 		var capabilityApi = crocObject.capability;
 
-		this.init(dataApi, address);
+		this.init(dataApi, uri);
 		if (sendConfig.customHeaders instanceof CrocSDK.CustomHeaders) {
 			this.customHeaders = sendConfig.customHeaders;
 		} else {
 			this.customHeaders = new CrocSDK.CustomHeaders(sendConfig.customHeaders);
 		}
 		// Start with cached capabilities if we have them
-		this.capabilities = capabilityApi.getCapabilities(address);
+		this.capabilities = capabilityApi.getCapabilities(uri);
 
 		if (!mimetype) {
 			if (CrocSDK.Util.isType(data, 'string')) {
@@ -37858,6 +39173,10 @@ var CrocSDK = {};
 					});
 					// Clean up and notify application
 					dataSession.close(status);
+					// Auth failures should trigger croc object to stop
+					if (event.data.cause === JsSIP.C.causes.AUTHENTICATION_ERROR) {
+						crocObject.stop();
+					}
 				}
 			};
 
@@ -37869,7 +39188,7 @@ var CrocSDK = {};
 			};
 
 			dataSession.sipSession = new JsSIP.RTCSession(crocObject.sipUA);
-			dataSession.sipSession.connect('sip:' + address, sipOptions);
+			dataSession.sipSession.connect(uri, sipOptions);
 		};
 
 		addSharedMsrpEvents(dataSession, eventObj);
@@ -37900,7 +39219,7 @@ var CrocSDK = {};
 		var dataSession = this;
 		var capabilityApi = dataApi.crocObject.capability;
 
-		this.init(dataApi, sipSession.remote_identity.uri.toAor().replace(/^sip:/, ''));
+		this.init(dataApi, sipSession.remote_identity.uri);
 		this.sipSession = sipSession;
 		this.displayName = sipSession.remote_identity.display_name;
 		this.customHeaders = new CrocSDK.CustomHeaders(sipRequest);
@@ -37980,7 +39299,7 @@ var CrocSDK = {};
 	// Type Definitions
 	/**
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
-	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~OnDataStartEvent
+	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~DataStartEvent
 	 * @property {CrocSDK.MsrpDataSession~TransferProgress} transferprogress 
 	 * The {@link CrocSDK.MsrpDataSession~TransferProgress TransferProgress} 
 	 * object instance that may be used to monitor and control the data 
@@ -37988,7 +39307,7 @@ var CrocSDK = {};
 	 */
 	/**
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
-	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~OnFailureEvent
+	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~FailureEvent
 	 * @property {ArrayBuffer|Blob|String} partialData The data received up to 
 	 * the abort/failure. Text data will be presented as String. Binary data 
 	 * will be presented as ArrayBuffer or Blob, depending on the expected size
@@ -37996,14 +39315,14 @@ var CrocSDK = {};
 	 */
 	/**
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
-	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~OnProgressEvent
+	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~ProgressEvent
 	 * @property {Number} bytesComplete The number of bytes transfered so far.
 	 * @property {Number} percentComplete The percentage of the data transfered
 	 * so far. Set to null if the total size of the data is not known. 
 	 */
 	/**
 	 * @memberof CrocSDK.MsrpDataSession~TransferProgress
-	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~OnSuccessEvent
+	 * @typedef CrocSDK.MsrpDataSession~TransferProgress~SuccessEvent
 	 * @property {ArrayBuffer|Blob|String} data The received <code>data</code>.
 	 * Text data will be presented as String. Binary data will be presented as 
 	 * ArrayBuffer or Blob, depending on the size of the data.
@@ -38885,9 +40204,16 @@ var CrocSDK = {};
 		if (config.onSuccess) {
 			options.eventHandlers.succeeded = config.onSuccess.bind(dataApi);
 		}
-		if (config.onFailure) {
-			options.eventHandlers.failed = config.onFailure.bind(dataApi);
-		}
+		options.eventHandlers.failed = function(event) {
+			if (config.onFailure) {
+				config.onFailure.call(dataApi);
+			}
+
+			// Auth failures should trigger croc object to stop
+			if (event.data.cause === JsSIP.C.causes.AUTHENTICATION_ERROR) {
+				dataApi.crocObject.stop();
+			}
+		};
 
 		dataApi.crocObject.sipUA.sendMessage(this.address, data, options);
 		this.lastActivity = Date.now();
@@ -38998,6 +40324,43 @@ var CrocSDK = {};
 
 (function (CrocSDK) {
 	var allowedMediaTypes = [ 'audio', 'video' ];
+
+	/**
+	 * @typedef CrocSDK.MediaAPI~StreamConfig
+	 * @property {CrocSDK.MediaAPI~StreamDirections} audio
+	 * The audio stream configuration. Set to <code>null</code> if there is no
+	 * audio stream in the session.
+	 * @property {CrocSDK.MediaAPI~StreamDirections} video
+	 * The video stream configuration. Set to <code>null</code> if there is no
+	 * video stream in the session.
+	 * @example <caption>Audio-only session</caption>
+	 * {
+	 *   audio: {send: true, receive: true},
+	 *   video: null
+	 * }
+	 * @example <caption>Audio session with screen sharing (Chrome only)</caption>
+	 * {
+	 *   audio: {send: true, receive: true},
+	 *   video: {
+	 *     send: {mandatory: {chromeMediaSource: 'screen'}},
+	 *     receive: false
+	 *   }
+	 * }
+	 */
+
+	/**
+	 * @typedef CrocSDK.MediaAPI~StreamDirections
+	 * @property {Boolean|MediaTrackConstraints} send
+	 * Set to <code>true</code> if the stream is outbound-only or
+	 * bi-directional.
+	 * <p>
+	 * When configuring media streams, advanced applications may provide
+	 * a {@link http://www.w3.org/TR/mediacapture-streams/#idl-def-MediaStreamConstraints MediaTrackConstraints}
+	 * object (as defined by the W3C) to fine-tune the desired properties of the
+	 * media track.
+	 * @property {Boolean} receive
+	 * Set to <code>true</code> if the stream is inbound-only or bi-directional.
+	 */
 
 	CrocSDK.StreamConfig = function (config) {
 		if (config instanceof CrocSDK.Sdp.Session) {
@@ -39186,7 +40549,12 @@ var CrocSDK = {};
 }(CrocSDK));
 
 (function (CrocSDK) {
-	CrocSDK.Util = {};
+	/**
+	 * @private
+	 * @namespace
+	 * @alias CrocSDK.Util
+	 */
+	var Util = {};
 	
 	/**
 	 * Map of basic types to the equivalent wrapper object constructor.
@@ -39210,7 +40578,7 @@ var CrocSDK = {};
 	 * of that type.
 	 * @returns {boolean}
 	 */
-	CrocSDK.Util.isType = function (target, type) {
+	Util.isType = function (target, type) {
 		if (type.lastIndexOf('[]') === -1) {
 			// Raw type
 			if (typeof target === type) {
@@ -39250,7 +40618,7 @@ var CrocSDK = {};
 			onProgress: 'function'
 	};
 	
-	CrocSDK.Util.checkSendConfig = function (config) {
+	Util.checkSendConfig = function (config) {
 		// Loop through each of the provided config properties
 		for (var prop in config) {
 			var allowedType = sendConfigTypes[prop];
@@ -39269,7 +40637,7 @@ var CrocSDK = {};
 		}
 	};
 
-	CrocSDK.Util.websocketCauseToSdkStatus = function (cause) {
+	Util.websocketCauseToSdkStatus = function (cause) {
 		switch (cause) {
 		case 1000:
 			return 'normal';
@@ -39278,7 +40646,7 @@ var CrocSDK = {};
 		}
 	};
 
-	CrocSDK.Util.jsSipCauseToSdkStatus = function (cause) {
+	Util.jsSipCauseToSdkStatus = function (cause) {
 		switch (cause) {
 		case JsSIP.C.causes.BUSY:
 			return 'normal';
@@ -39305,7 +40673,7 @@ var CrocSDK = {};
 		480: 'offline' // Temporarily Unavailable
 	};
 	
-	CrocSDK.Util.sipStatusToSdkStatus = function (sipStatus) {
+	Util.sipStatusToSdkStatus = function (sipStatus) {
 		return sipStatusToSdkStatus[sipStatus];
 	};
 
@@ -39324,11 +40692,11 @@ var CrocSDK = {};
 			}
 	};
 
-	CrocSDK.Util.sdkStatusToSipStatus = function (sipMethod, sdkStatus) {
+	Util.sdkStatusToSipStatus = function (sipMethod, sdkStatus) {
 		return sdkStatusToSipStatus[sipMethod][sdkStatus];
 	};
 
-	CrocSDK.Util.fireEvent = function (parent, event, data, runDefault) {
+	Util.fireEvent = function (parent, event, data, runDefault) {
 		if (runDefault || parent.hasOwnProperty(event)) {
 			try {
 				parent[event](data);
@@ -39339,7 +40707,7 @@ var CrocSDK = {};
 		}
 	};
 	
-	CrocSDK.Util.randomAlphanumericString = function (len) {
+	Util.randomAlphanumericString = function (len) {
 		var str = Math.random().toString(36).substr(2);
 
 		while (str.length < len) {
@@ -39359,7 +40727,7 @@ var CrocSDK = {};
 	 * @param {DocumentFragment|String} body - The XHTML body fragment.
 	 * @returns {String} A valid XHTML document incorporating the provided body.
 	 */
-	CrocSDK.Util.createValidXHTMLDoc = function (body) {
+	Util.createValidXHTMLDoc = function (body) {
 		if (body instanceof window.DocumentFragment) {
 			// Use XMLSerializer to convert into a string
 			var s = new XMLSerializer();
@@ -39381,7 +40749,7 @@ var CrocSDK = {};
 	 * @param {String} xhtml - The XHTML document.
 	 * @returns {DocumentFragment} The extracted contents of the document body.
 	 */
-	CrocSDK.Util.extractXHTMLBody = function (xhtml) {
+	Util.extractXHTMLBody = function (xhtml) {
 		var parser = new DOMParser();
 		var doc = parser.parseFromString(xhtml, 'application/xhtml+xml');
 		var df = doc.createDocumentFragment();
@@ -39400,11 +40768,11 @@ var CrocSDK = {};
 		'idle': 'idle'
 	};
 	
-	CrocSDK.Util.rfc3994StateToSdkState = function (rfc3994State) {
+	Util.rfc3994StateToSdkState = function (rfc3994State) {
 		return rfc3994StateToSdkState[rfc3994State];
 	};
 
-	CrocSDK.Util.createIsComposingXml = function (sdkState, refresh) {
+	Util.createIsComposingXml = function (sdkState, refresh) {
 		var xml = '<isComposing xmlns="urn:ietf:params:xml:ns:im-iscomposing">';
 		var state;
 		if (sdkState === 'composing') {
@@ -39418,11 +40786,47 @@ var CrocSDK = {};
 		}
 		return xml + '</isComposing>';
 	};
+
+	/**
+	 * Shallow copies all of the properties from the source object into the
+	 * target object.  If a matching property is already present in the
+	 * target object, it is overwritten.
+	 * @param {Object} target
+	 * @param {Object} source
+	 */
+	Util.shallowCopy = function(target, source) {
+		for (var prop in source) {
+			if (source.hasOwnProperty(prop)) {
+				target[prop] = source[prop];
+			}
+		}
+	};
+
+	/**
+	 * Normalises the provided address to a JsSIP URI.
+	 * @param {String} address
+	 * @returns {JsSIP.URI}
+	 * @throws {CrocSDK.Exceptions.ValueError}
+	 */
+	Util.normaliseAddress = function(address) {
+		try {
+			return JsSIP.Utils.normalizeURI(address, 'crocodilertc.net');
+		} catch (e) {
+			throw new CrocSDK.Exceptions.ValueError('Invalid address: ' + address);
+		}
+	};
+
+	Util.isAuthFailure = function(status_code) {
+		var codes = JsSIP.C.SIP_ERROR_CAUSES.AUTHENTICATION_ERROR;
+		return codes.indexOf(status_code) >= 0;
+	};
+
+	CrocSDK.Util = Util;
 }(CrocSDK));
 
 (function (CrocSDK) {
 
-	CrocSDK.XmppDataSession = function (dataApi, address) {
+	CrocSDK.XmppDataSession = function (dataApi, address, instanceAddress) {
 		var self = this;
 		// Internal state
 		this.dataApi = dataApi;
@@ -39448,7 +40852,7 @@ var CrocSDK = {};
 
 		// Public properties
 		this.address = address;
-		this.uniqueAddress = null;
+		this.instanceAddress = instanceAddress || null;
 		this.displayName = null;
 		this.customHeaders = null;
 		this.capabilities = null;
@@ -39458,10 +40862,6 @@ var CrocSDK = {};
 	/*
 	 * Internal methods
 	 */
-
-	CrocSDK.XmppDataSession.prototype._setUniqueAddress = function (uniqueAddress) {
-		this.uniqueAddress = uniqueAddress;
-	};
 
 	/**
 	 * Processes an incoming message for this session.
@@ -39497,16 +40897,24 @@ var CrocSDK = {};
 				bodyChild = nextSibling;
 			}
 
+			// "Lock in" on full JID (see RFC 6121 section 5.1)
+			this.instanceAddress = message.getFrom();
+
 			CrocSDK.Util.fireEvent(this, 'onXHTMLReceived', {
 				address: this.address,
-				uniqueAddress: this.uniqueAddress,
+				instanceAddress: this.instanceAddress,
+				uniqueAddress: this.instanceAddress,	// Deprecated
 				body: df
 			}, true);
 		} else if (body) {
+			// "Lock in" on full JID (see RFC 6121 section 5.1)
+			this.instanceAddress = message.getFrom();
+
 			// Just use the plain text body
 			CrocSDK.Util.fireEvent(this, 'onData', {
 				address: this.address,
-				uniqueAddress: this.uniqueAddress,
+				instanceAddress: this.instanceAddress,
+				uniqueAddress: this.instanceAddress,	// Deprecated
 				contentType: 'text/plain',
 				data: body
 			}, true);
@@ -39567,7 +40975,7 @@ var CrocSDK = {};
 	 */
 	CrocSDK.XmppDataSession.prototype._sendChatState = function (xmppChatState) {
 		var xmppMsg = new JSJaCMessage();
-		xmppMsg.setTo(this.uniqueAddress || this.address);
+		xmppMsg.setTo(this.instanceAddress || this.address);
 		xmppMsg.appendNode(xmppMsg.buildNode(xmppChatState, null, null, NS_CHAT_STATES));
 		this.dataApi.crocObject.xmppCon.send(xmppMsg);
 		this.localChatState = xmppChatState;
@@ -39631,7 +41039,7 @@ var CrocSDK = {};
 		}
 
 		var xmppMsg = new JSJaCMessage();
-		xmppMsg.setTo(this.uniqueAddress || this.address);
+		xmppMsg.setTo(this.instanceAddress || this.address);
 		xmppMsg.setBody(data);
 
 		if (this.supportsChatState) {
@@ -39673,7 +41081,7 @@ var CrocSDK = {};
 		}
 
 		var xmppMsg = new JSJaCMessage();
-		xmppMsg.setTo(this.uniqueAddress || this.address);
+		xmppMsg.setTo(this.instanceAddress || this.address);
 
 		var bodyNode;
 		if (CrocSDK.Util.isType(body, 'string')) {
@@ -40423,6 +41831,8 @@ var CrocSDK = {};
 			return;
 		}
 
+		this.currentPresence = createPresence(croc);
+
 		// Set up JSJaC event handlers
 		con.registerHandler('onconnect', function () {
 			// Retrieve the roster to flag us as an interested party (receive
@@ -40647,7 +42057,7 @@ var CrocSDK = {};
 			// Close any data sessions for this address (effectively also
 			// "unlocks" the session, see RFC 6121 section 5.1)
 			var dataSession = this.crocObject.data.xmppDataSessions[bareFrom];
-			if (dataSession && dataSession.uniqueAddress === request.getFrom()) {
+			if (dataSession && dataSession.instanceAddress === request.getFrom()) {
 				dataSession.close();
 			}
 		} else {
@@ -40684,23 +42094,26 @@ var CrocSDK = {};
 			CrocSDK.Util.fireEvent(contact, 'onNotify', {});
 		} else if (bareFrom === this.crocObject.address) {
 			// It's us - fire onSelfNotify
-			this.currentPresence = request;
 			CrocSDK.Util.fireEvent(this, 'onSelfNotify', {
-				uniqueAddress: from.toString(),
+				instanceAddress: from.toString(),
+				uniqueAddress: from.toString(),		// Deprecated
 				availability: availability,
 				status: status,
 				extraNodes: extraNodes
 			});
 
-			if (availability === 'unavailable' && this.disconnectTimerId) {
-				clearTimeout(this.disconnectTimerId);
-				this.crocObject.xmppCon.disconnect();
+			if (from.getResource() === this.crocObject.xmppResource) {
+				if (availability === 'unavailable' && this.disconnectTimerId) {
+					clearTimeout(this.disconnectTimerId);
+					this.crocObject.xmppCon.disconnect();
+				}
 			}
 		} else {
 			// Some other user, must be directed presence
 			CrocSDK.Util.fireEvent(this, 'onDirectNotify', {
 				address: bareFrom,
-				uniqueAddress: from.toString(),
+				instanceAddress: from.toString(),
+				uniqueAddress: from.toString(),		// Deprecated
 				availability: availability,
 				status: status,
 				extraNodes: extraNodes
@@ -40862,8 +42275,8 @@ var CrocSDK = {};
 			throw new CrocSDK.Exceptions.StateError('Presence not started');
 		}
 
-		var presence = createPresence(this.crocObject, info);
-		this.crocObject.xmppCon.send(presence);
+		this.currentPresence = createPresence(this.crocObject, info);
+		this.crocObject.xmppCon.send(this.currentPresence);
 	};
 
 	/**
@@ -40964,7 +42377,7 @@ var CrocSDK = {};
 	 * 
 	 * @event CrocSDK.XmppPresenceAPI#onSelfNotify
 	 * @type {Object}
-	 * @property {string} uniqueAddress The full, unique address of the
+	 * @property {string} instanceAddress The full, unique address of the
 	 * client instance that sent the presence update.
 	 * @property {CrocSDK.XmppPresenceAPI~availability} availability
 	 * The current availability of the client instance.
@@ -40986,7 +42399,7 @@ var CrocSDK = {};
 	 * 
 	 * @event CrocSDK.XmppPresenceAPI#onDirectNotify
 	 * @type {Object}
-	 * @property {string} uniqueAddress The full, unique address of the
+	 * @property {string} instanceAddress The full, unique address of the
 	 * client instance that sent the presence update.
 	 * @property {string} address The address of the client instance that sent
 	 * the presence update.

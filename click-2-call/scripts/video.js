@@ -1,5 +1,117 @@
 // Global variables
-var videoSession, ringtone;
+var videoSession, transferredSession = null, ringtone;
+
+//Setup Media session configuration
+function setVideoSession (mediaSession) {
+	
+	// The DOM video element used for playing the local party's video
+	mediaSession.localVideoElement = $('.receive_localVideo')[0];
+	
+	// The DOM video element used for playing the remote party's video
+	mediaSession.remoteVideoElement = $('.tpl_remotevideo')[0];
+	
+	/* 
+	 * The event handler to fire when a provisional response has been 
+	 * received to a new media session request.
+	 */
+	mediaSession.onProvisional = function () {
+		
+		// Start the ring tone.
+		ringtone.start();
+		
+		// Set the state element text to 'Ringing'
+		$('.ui_status').html('Ringing');
+	};
+	
+	/*
+	 * The event handler to fire when a session request has been accepted.
+	 */
+	mediaSession.onConnect = function () {
+		
+		// Switch new session to current videoSession
+		if (transferredSession) {
+			// Copy current session to oldSession
+			var oldSession = videoSession;
+			// Make the new session usable
+			videoSession = transferredSession;
+			// Reset transferredSession ready for a new transfer
+			transferredSession = null;
+			// Close the old session that is no longer used
+			oldSession.close();
+		}
+		
+		// Stop the ring tone.
+		ringtone.stop();
+		
+		// Set the status element text to 'Connected'
+		$('.ui_status').html('Connected');
+	};
+	
+	/*
+	 * The event handler to fire when a call transfer request is received.
+	 */
+	mediaSession.onTransferRequest = function (event) {
+		
+		// Accept any incoming call transfer request
+		transferredSession = event.accept();
+		
+		// Set the status element text to 'Transferring...'
+		$('.ui_status').html('Transferring...');
+		
+		// Configure new session
+		setVideoSession(transferredSession);
+	};
+	
+	/*
+	 * The event handler to fire when a session has been closed by the 
+	 * remote party or the network.
+	 */
+	mediaSession.onClose = function () {
+		
+		// Check its the current session, don't setup if it isn't
+		if(videoSession !== mediaSession) {
+			return;
+		} 
+		
+		// Reset transferredSession ready for another transfer if/when its requested
+		if(mediaSession === transferredSession){
+
+			// Set the status element text to 'Transfer failed'
+			$('.ui_status').html('Transfer failed');
+			transferredSession = null;
+			return;
+		}
+		
+		// Make sure ringtone has stopped
+		if (ringtone) {
+			ringtone.stop();
+		}
+		
+		// Stop duration of call
+		clearInterval(setCallDuration);
+		
+		// Set the status element text to 'Disconnected'
+		$('.ui_status').html('Disconnected');
+		
+		// Hide the warning light to indicate there are no calls
+		$('.warning-light').hide();
+		
+		// Reset mute button
+		$('.btn_mute_s').removeClass('selected');
+		
+		// Reset video pause button
+		$('.btn_pausevideo_s').removeClass('selected');
+		$('.tpl_controls').removeClass('ui_localvideodisabled');
+		
+		// Reset pop-out
+		$('.ui_popout').removeClass('ui_popout_open');
+		$('.tpl_titlebar').removeClass('ui_shown');
+		$('.tpl_actions').removeClass('ui_shown');
+		
+		// Close down connection to network
+		crocObject.disconnect();
+	};
+}
 
 // End the call by closing media session
 function endVideo() {
@@ -87,7 +199,7 @@ function setVideoToFullscreen(enabled) {
 	}
 }
 
-// video session set-up
+// Video session set-up
 function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 	
 	// CrocSDK API Configuration
@@ -118,12 +230,7 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 					video: {
 						send: true, receive: true
 					}
-			}; 
-
-			// media.connect requests a media session and returns the session object
-			videoSession = crocObject.media.connect(address, {
-				streamConfig: callConfig
-			});
+			};
 			
 			// Show the warning light to indicate a call is live
 			$('.warning-light').show();
@@ -137,12 +244,6 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 			// Set the duration element to start timing the duration of the call
 			var callStartDate = new Date().getTime();
 			setDuration(callStartDate);
-
-			// The DOM video element used for playing the local party's video
-			videoSession.localVideoElement = $('.receive_localVideo')[0];
-			
-			// The DOM video element used for playing the remote party's video
-			videoSession.remoteVideoElement = $('.tpl_remotevideo')[0];
 			
 			// Set up ring tone frequency
 			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
@@ -153,66 +254,13 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 			// Create an instance of the ring tone object
 			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
 			
-			/* 
-			 * The event handler to fire when a provisional response has been received 
-			 * to a new media session request.
-			 */
-			videoSession.onProvisional = function () {
-				
-				// Start the ring tone
-				ringtone.start();
-				
-				// Set the status element text to 'Ringing'
-				$('.ui_status').html('Ringing');
-			};
+			// media.connect requests a media session and returns the session object
+			videoSession = crocObject.media.connect(address, {
+				streamConfig: callConfig
+			});
 			
-			/*
-			 * The event handler to fire when a session request has been accepted.
-			 */
-			videoSession.onConnect = function () {
-				
-				// Stop the ring tone
-				ringtone.stop();
-				
-				// Set the status element text to 'Connected'
-				$('.ui_status').html('Connected');
-			};
-			
-			/*
-			 * The event handler to fire when a session has been closed by the remote 
-			 * party or the network.
-			 */
-			videoSession.onClose = function () {
-				
-				// Make sure ringtone has stopped
-				if (ringtone) {
-					ringtone.stop();
-				}
-				
-				// Stop duration of call
-				clearInterval(setCallDuration);
-				
-				// Set the status element text to 'Disconnected'
-				$('.ui_status').html('Disconnected');
-				
-				// Hide the warning light to indicate there are no calls
-				$('.warning-light').hide();
-				
-				// Reset mute button
-				$('.btn_mute_s').removeClass('selected');
-				
-				// Reset video pause button
-				$('.btn_pausevideo_s').removeClass('selected');
-				$('.tpl_controls').removeClass('ui_localvideodisabled');
-				
-				// Reset pop-out
-				$('.ui_popout').removeClass('ui_popout_open');
-				$('.tpl_titlebar').removeClass('ui_shown');
-				$('.tpl_actions').removeClass('ui_shown');
-				
-				// Close down connection to network
-				crocObject.disconnect();
-			};
+			// Configure new session
+			setVideoSession(videoSession);
 		},
 		
 		/*
