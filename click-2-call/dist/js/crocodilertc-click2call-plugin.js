@@ -9788,7 +9788,7 @@ if ( typeof module === "object" && module && typeof module.exports === "object" 
 
 })( window );
 
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-08-28
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-08-29
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -43489,15 +43489,22 @@ var CrocSDK = {};
 				video: false
 			};
 
-			mst.getSources(function(sources) {
-				for (var idx = 0, len = sources.length; idx < len; idx++) {
-					detectedSourceTypes[sources[idx].kind] = true;
-				}
+			try {
+				mst.getSources(function(sources) {
+					for (var idx = 0, len = sources.length; idx < len; idx++) {
+						detectedSourceTypes[sources[idx].kind] = true;
+					}
 
-				cap["sip.audio"] = cap["sip.audio"] && detectedSourceTypes.audio;
-				cap["sip.video"] = cap["sip.video"] && detectedSourceTypes.video;
-			});
-		} else if (JsSIP.WebRTC.getUserMedia) {
+					cap["sip.audio"] = cap["sip.audio"] && detectedSourceTypes.audio;
+					cap["sip.video"] = cap["sip.video"] && detectedSourceTypes.video;
+				});
+				return;
+			} catch (e) {
+				// Fall back to getUserMedia
+			}
+		}
+
+		if (JsSIP.WebRTC.getUserMedia) {
 			// Check capabilities by requesting access to media
 			var stopStream = function(stream) {
 				stream.stop();
