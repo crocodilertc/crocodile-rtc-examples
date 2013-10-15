@@ -1,4 +1,4 @@
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-08-29
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-10-15
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -32887,7 +32887,7 @@ var CrocSDK = {};
 	};
 
 	var crocNetworkDefaultConfig = {
-		sipProxySet: 'edge00.crocodilertc.net',
+		sipProxySet: ['edge00.crocodilertc.net', 'edge01.crocodilertc.net'],
 		xmppProxySet: ['cm.crocodilertc.net'],
 		turnManagerUrl: 'https://hub.crocodilertc.net:8443/crocodile-sdk-hub/rest/1.0/ephemeral',
 		msrpManagerUrl: 'https://hub.crocodilertc.net:8443/crocodile-sdk-hub/rest/1.0/ephemeral'
@@ -36676,21 +36676,25 @@ var CrocSDK = {};
 		};
 
 		// Handle media constraints
-		if (this.audioConstraints &&
-				CrocSDK.Util.isType(constraints.audio, 'boolean')) {
-			// Keep previous constraints
-			constraints.audio = this.audioConstraints;
-		} else if (CrocSDK.Util.isType(constraints.audio, 'object')) {
-			// Save the requested constraints
-			this.audioConstraints = constraints.audio;
+		if (constraints.audio) {
+			if (this.audioConstraints &&
+					CrocSDK.Util.isType(constraints.audio, 'boolean')) {
+				// Keep previous constraints
+				constraints.audio = this.audioConstraints;
+			} else if (CrocSDK.Util.isType(constraints.audio, 'object')) {
+				// Save the requested constraints
+				this.audioConstraints = constraints.audio;
+			}
 		}
-		if (this.videoConstraints &&
-				CrocSDK.Util.isType(constraints.video, 'boolean')) {
-			// Keep previous constraints
-			constraints.video = this.videoConstraints;
-		} else if (CrocSDK.Util.isType(constraints.video, 'object')) {
-			// Save the requested constraints
-			this.videoConstraints = constraints.video;
+		if (constraints.video){
+			if (this.videoConstraints &&
+					CrocSDK.Util.isType(constraints.video, 'boolean')) {
+				// Keep previous constraints
+				constraints.video = this.videoConstraints;
+			} else if (CrocSDK.Util.isType(constraints.video, 'object')) {
+				// Save the requested constraints
+				this.videoConstraints = constraints.video;
+			}
 		}
 
 		var v = constraints.video;
@@ -36709,6 +36713,7 @@ var CrocSDK = {};
 			return;
 		}
 
+		console.log('Requesting user media:', constraints);
 		JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
 	};
 
@@ -36754,6 +36759,7 @@ var CrocSDK = {};
 		}
 
 		if (enabled) {
+			console.log('Requesting user media:', constraints);
 			JsSIP.WebRTC.getUserMedia(constraints, mediaSuccess, mediaFailure);
 		} else {
 			// Ensure calling function finishes before calling onSuccess to
