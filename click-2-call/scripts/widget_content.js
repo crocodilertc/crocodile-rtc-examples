@@ -10,7 +10,7 @@
 			'</div>' +
 		'</div>' +
 		'<div class="croc_side-tab-content">' +
-			'<div class="croc_ui_widget croc_widget_audiocall croc_hidden">' +
+			'<div class="croc_ui_widget croc_widget_audiocall">' +
 				'<div class="croc_ui_container croc_scheme_widget">' +
 					'<div class="croc_tpl_title">' +
 						'<div class="croc_title_control">' +
@@ -146,6 +146,9 @@
 					'</div>' +
 				'</div>' +
 			'</div>' +
+			'<div class="croc_powered_by_audio">'+
+				'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
+			'</div>'
 		'</div>' +
 	'</div>';
 	
@@ -161,7 +164,7 @@
 				'</div>' +
 			'</div>' +
 		'<div class="croc_side-tab-content-video">' +
-			'<div class="croc_ui_widget croc_widget_videocall croc_hidden">' +
+			'<div class="croc_ui_widget croc_widget_videocall">' +
 				'<div class="croc_ui_container croc_scheme_widget">' +
 					'<div class="croc_tpl_titlebar">' +
 						'<div class="croc_tpl_title">' +
@@ -308,5 +311,8 @@
 					'</div>' +
 				'</div>' +
 			'</div>' +
+			'<div class="croc_powered_by_video">'+
+				'<p>Powered by <a href="https://www.crocodilertc.net">crocodilertc.net</a></p>'+
+			'</div>'
 		'</div>' +
 	'</div>';

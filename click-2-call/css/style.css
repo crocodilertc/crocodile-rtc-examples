@@ -1,4 +1,7 @@
-/* Default right tab styling */
+.croc_tab-container h1, h2, h3, h4, h5, h6 {
+	margin: 0px;
+	padding: 0px;
+}
 .croc_tab-container {
 	padding:0;
 	margin:0;
@@ -14,19 +17,11 @@
 	font-size: 16px;
 	width:100%;
 }
-
 .croc_tab-container:focus {
 	outline:none;
 }
 
-.croc_tab-container a:visited {
-	color:#000;
-}
-
-.croc_tab-container a:link {
-	color:#000;
-}
-
+/* Default right tab styling */
 .croc_tab-wrapper {
 	width: 40px;
 	position: fixed;
@@ -106,6 +101,26 @@
 	top: -40px;
 	left: 45px;
 	display: none;
+}
+.croc_powered_by_audio {
+	position: relative;
+	top: 180px;
+	left: 160px;
+	width: 193px;
+	color: #409F89;
+}
+.croc_powered_by_audio a {
+	color: #409f89;
+}
+.croc_powered_by_video {
+	position: relative;
+	top: 338px;
+	left: 292px;
+	width: 193px;
+	color: #409F89;
+}
+.croc_powered_by_video a {
+	color: #409f89;
 }
 
 /* rotate element 90 degrees counter-clockwise */
