@@ -5,10 +5,10 @@ var videoSession, transferredSession = null, ringtone;
 function setVideoSession (mediaSession) {
 	
 	// The DOM video element used for playing the local party's video
-	mediaSession.localVideoElement = $('.receive_localVideo')[0];
+	mediaSession.localVideoElement = $('.croc_receive_localVideo')[0];
 	
 	// The DOM video element used for playing the remote party's video
-	mediaSession.remoteVideoElement = $('.tpl_remotevideo')[0];
+	mediaSession.remoteVideoElement = $('.croc_tpl_remotevideo')[0];
 	
 	/* 
 	 * The event handler to fire when a provisional response has been 
@@ -20,7 +20,7 @@ function setVideoSession (mediaSession) {
 		ringtone.start();
 		
 		// Set the state element text to 'Ringing'
-		$('.ui_status').html('Ringing');
+		$('.croc_ui_status').html('Ringing');
 	};
 	
 	/*
@@ -44,7 +44,7 @@ function setVideoSession (mediaSession) {
 		ringtone.stop();
 		
 		// Set the status element text to 'Connected'
-		$('.ui_status').html('Connected');
+		$('.croc_ui_status').html('Connected');
 	};
 	
 	/*
@@ -56,7 +56,7 @@ function setVideoSession (mediaSession) {
 		transferredSession = event.accept();
 		
 		// Set the status element text to 'Transferring...'
-		$('.ui_status').html('Transferring...');
+		$('.croc_ui_status').html('Transferring...');
 		
 		// Configure new session
 		setVideoSession(transferredSession);
@@ -77,7 +77,7 @@ function setVideoSession (mediaSession) {
 		if(mediaSession === transferredSession){
 
 			// Set the status element text to 'Transfer failed'
-			$('.ui_status').html('Transfer failed');
+			$('.croc_ui_status').html('Transfer failed');
 			transferredSession = null;
 			return;
 		}
@@ -91,22 +91,22 @@ function setVideoSession (mediaSession) {
 		clearInterval(setCallDuration);
 		
 		// Set the status element text to 'Disconnected'
-		$('.ui_status').html('Disconnected');
+		$('.croc_ui_status').html('Disconnected');
 		
 		// Hide the warning light to indicate there are no calls
-		$('.warning-light').hide();
+		$('.croc_warning-light').hide();
 		
 		// Reset mute button
-		$('.btn_mute_s').removeClass('selected');
+		$('.croc_btn_mute_s').removeClass('croc_selected');
 		
 		// Reset video pause button
-		$('.btn_pausevideo_s').removeClass('selected');
-		$('.tpl_controls').removeClass('ui_localvideodisabled');
+		$('.croc_btn_pausevideo_s').removeClass('croc_selected');
+		$('.croc_tpl_controls').removeClass('croc_ui_localvideodisabled');
 		
 		// Reset pop-out
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
 		// Close down connection to network
 		crocObject.disconnect();
@@ -125,7 +125,7 @@ function muteAudio() {
 	videoSession.mute();
 	
 	// Turn icon green to show its been pressed
-	$('.btn_mute_s').addClass('selected');
+	$('.croc_btn_mute_s').addClass('croc_selected');
 }
 
 // Un-mute the audio
@@ -135,7 +135,7 @@ function unmuteAudio() {
 	videoSession.unmute();
 	
 	// Restore icon back to white
-	$('.btn_mute_s').removeClass('selected');
+	$('.croc_btn_mute_s').removeClass('croc_selected');
 }
 
 // Pause the remote video
@@ -145,10 +145,10 @@ function pauseVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=false;
 	
 	// Turn icon green to show its been pressed
-	$('.btn_pausevideo_s').addClass('selected');
+	$('.croc_btn_pausevideo_s').addClass('croc_selected');
 	
 	// Add disabled icon to local video
-	$('.tpl_controls').addClass('ui_localvideodisabled');
+	$('.croc_tpl_controls').addClass('croc_ui_localvideodisabled');
 }
 
 // Un-Pause the remote video
@@ -158,16 +158,16 @@ function resumeVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=true;
 	
 	// Restore icon back to white
-	$('.btn_pausevideo_s').removeClass('selected');
+	$('.croc_btn_pausevideo_s').removeClass('croc_selected');
 	
 	// Remove disabled icon on local video
-	$('.tpl_controls').removeClass('ui_localvideodisabled');
+	$('.croc_tpl_controls').removeClass('croc_ui_localvideodisabled');
 }
 
 // Determine whether to go full screen or not
 function setVideoToFullscreen(enabled) {
 	var initial = true;
-	var uiElement = $('.widget_videocall')[0]; // jQuery element to make full screen
+	var uiElement = $('.croc_widget_videocall')[0]; // jQuery element to make full screen
 
 	// Listen for fullscreen change, ignore initial change
 	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
@@ -178,10 +178,10 @@ function setVideoToFullscreen(enabled) {
 		initial = false;
 	};
 
-	if(enabled && !$('.widget_videocall').hasClass('ui_fullscreen')){
+	if(enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')){
 		// Set fullscreen
 		isFullscreen = true;
-		$('.widget_videocall').addClass('ui_fullscreen');
+		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
 		if(uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
 		} else if(uiElement.mozRequestFullscreen) {
@@ -190,7 +190,7 @@ function setVideoToFullscreen(enabled) {
 	} else {
 		// Exit fullscreen
 		isFullscreen = false;
-		$('.widget_videocall').removeClass('ui_fullscreen');
+		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
 		if(document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
 		} else if(document.mozExitFullscreen) {
@@ -233,13 +233,13 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 			};
 			
 			// Show the warning light to indicate a call is live
-			$('.warning-light').show();
+			$('.croc_warning-light').show();
 			
 			// Set remote party's address
-			/*$('.ui_uri').html(address);*/
+			/*$('.croc_ui_uri').html(address);*/
 			
 			// Set the status element text to 'Connecting'
-			$('.ui_status').html('Connecting');
+			$('.croc_ui_status').html('Connecting');
 			
 			// Set the duration element to start timing the duration of the call
 			var callStartDate = new Date().getTime();
@@ -282,7 +282,7 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 			
 			// Trigger click to collapse the tab.
 			isClicked = true;
-			$('.side-tab').trigger('click');
+			$('.croc_side-tab').trigger('click');
 		}
 	};
 

@@ -1,8 +1,33 @@
 /* Default right tab styling */
-.tab-container {
-	font-family: proxima-nova-condensed,sans-serif;
+.croc_tab-container {
+	padding:0;
+	margin:0;
+	cursor:default;
+	font-family: proxima-nova-condensed,Arial,sans-serif;
+	user-select:none;
+	-moz-user-select:none;
+	-o-user-select:none;
+	-webkit-user-select:none;
+	-khtml-user-select:none;
+	-webkit-touch-callout:none;
+	overflow:visible;
+	font-size: 16px;
+	width:100%;
 }
-.tab-wrapper {
+
+.croc_tab-container:focus {
+	outline:none;
+}
+
+.croc_tab-container a:visited {
+	color:#000;
+}
+
+.croc_tab-container a:link {
+	color:#000;
+}
+
+.croc_tab-wrapper {
 	width: 40px;
 	position: fixed;
 	top: 100px; /* 100px */
@@ -14,7 +39,7 @@
 	transition: right 2s;
 	outline: none;
 }
-.tab-wrapper-video {
+.croc_tab-wrapper-video {
 	width: 40px;
 	position: fixed;
 	top: 100px;
@@ -26,7 +51,7 @@
 	transition: right 2s;
 	outline: none;
 }
-.tab-logo {
+.croc_tab-logo {
 	width: 47px;
 	height: 25px;
 	position: relative;
@@ -34,7 +59,7 @@
 	cursor: pointer;
 	pointer-events: none;
 }
-.side-tab {
+.croc_side-tab {
 	border-radius: 10px 10px 0 0;
 	padding: 5px;
 	width: 102px;
@@ -47,7 +72,7 @@
 	font-size: 15px;
 	cursor: pointer;
 }
-.side-tab  p {
+.croc_side-tab  p {
 	margin: 0;
 	padding: 0;
 	border: 0;
@@ -58,7 +83,7 @@
 	top: -18px;
 	left: 30px;
 }
-.side-tab-content  p {
+.croc_side-tab-content  p {
 	margin: 0;
 	padding: 0;
 	border: 0;
@@ -66,7 +91,7 @@
 	font: inherit;
 	vertical-align: baseline;
 }
-.side-tab-content {
+.croc_side-tab-content {
 	width: 370px;
 	height: 176px;
 	position: relative;
@@ -74,7 +99,7 @@
 	left: 45px;
 	display: none;
 }
-.side-tab-content-video {
+.croc_side-tab-content-video {
 	width: 501px;
 	height: 333px;
 	position: relative;
@@ -84,7 +109,7 @@
 }
 
 /* rotate element 90 degrees counter-clockwise */
-.rotate-vertical {
+.croc_rotate-vertical {
 
 	/* Safari */
 	-webkit-transform: rotate(-90deg);
@@ -104,91 +129,91 @@
 }
 
 /* Convert right tab to left tab for audio */
-.tab-wrapper.audio-left-tab {
+.croc_tab-wrapper.croc_audio-left-tab {
 	left: 0px;
 	-webkit-transition: left 2s;
 	-moz-transition: left 2s;
 	transition: left 2s;
 }
-.side-tab-content.audio-left-content {
+.croc_side-tab-content.croc_audio-left-content {
 	left: -374px;
 }
 
 /* Convert right tab to left tab for video*/
-.tab-wrapper-video.video-left-tab {
+.croc_tab-wrapper-video.croc_video-left-tab {
 	left: 0;
 	-webkit-transition: left 2s;
 	-moz-transition: left 2s;
 	transition: left 2s;
 }
-.side-tab-content-video.video-left-content {
+.croc_side-tab-content-video.croc_video-left-content {
 	left: -506px;
 }
 
 /* Convert right tab to bottom tab for audio */
-.audio-bottom-tab {
+.croc_audio-bottom-tab {
 	bottom: 0px;
 	left: 615px;
 	-webkit-transition: bottom 2s;
 	-moz-transition: bottom 2s;
 	transition: bottom 2s;
 }
-.side-tab.rotate-horizontal {
+.croc_side-tab.croc_rotate-horizontal {
 	top: 0px;
 	left: 15px;
 }
-.side-tab-content.audio-bottom-content {
+.croc_side-tab-content.croc_audio-bottom-content {
 	top: 5px;
 	left: 0;
 }
 
 /* Convert right tab to bottom tab for video */
-.video-bottom-tab {
+.croc_video-bottom-tab {
 	left:  615px;
 	bottom: 0px;
 	-webkit-transition: bottom 2s;
 	-moz-transition: bottom 2s;
 	transition: bottom 2s;
 }
-.side-tab.video-side-tab-bottom {
+.croc_side-tab.croc_video-side-tab-bottom {
 	left: 15px;
 	top: 0px;
 }
-.side-tab-content-video.video-bottom-content {
+.croc_side-tab-content-video.croc_video-bottom-content {
 	top: 5px;
 	left: 0px;
 }
 
 /* Convert right tab to top tab for video */
-.video-top-tab {
+.croc_video-top-tab {
 	top: 0;
 	left: 615px;
 	-webkit-transition: top 2s;
 	-moz-transition: top 2s;
 	transition: top 2s;
 }
-.side-tab.video-top-side-tab {
+.croc_side-tab.croc_video-top-side-tab {
 	left: 15px;
 	top: 0;
 }
-.side-tab-content-video.video-top-content {
+.croc_side-tab-content-video.croc_video-top-content {
 	left: 0;
 	top: -378px;
 }
 
 /* Convert right tab to top tab for audio */
-.audio-top-tab {
+.croc_audio-top-tab {
 	top: 0px;
 	left: 615px;
 	-webkit-transition: top 2s;
 	-moz-transition: top 2s;
 	transition: top 2s;
 }
-.side-tab.audio-side-tab-top {
+.croc_side-tab.croc_audio-side-tab-top {
 	top: 0;
 	left: 15px;
 }
-.side-tab-content.audio-top-content {
+.croc_side-tab-content.croc_audio-top-content {
 	top: -220px;
 	left: 0px;
 }
@@ -219,7 +244,7 @@
 		background-color:rgba(255,0,0,0.2);
 	}
 }
-.warning-light {
+.croc_warning-light {
 	height:6px;
 	width:6px;
 	display: none;
@@ -227,7 +252,7 @@
 	top: -29px;
 	left: 95px;
 }
-.warning-light .warning-light-circle {
+.croc_warning-light .croc_warning-light-circle {
 	height:5px;
 	width:5px;
 	border:1px red solid;
@@ -238,7 +263,7 @@
 }
 
 /* Creates an infinite pulsating effect */
-.warning-light:hover .warning-light-circle, .warning-light .warning-light-circle {
+.croc_warning-light:hover .croc_warning-light-circle, .croc_warning-light .croc_warning-light-circle {
 	-webkit-animation-name: resize;
 	-webkit-animation-duration: 1s;
 	-webkit-animation-iteration-count: infinite;

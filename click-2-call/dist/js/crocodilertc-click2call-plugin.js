@@ -52484,7 +52484,7 @@ var audioSession, transferredSession = null, ringtone;
 function setAudioSession (mediaSession) {
 	
 	// The DOM audio element used for playing the remote party's audio
-	mediaSession.remoteAudioElement = $('.receive-audio')[0];
+	mediaSession.remoteAudioElement = $('.croc_receive-audio')[0];
 	
 	/* 
 	 * The event handler to fire when a provisional response has been 
@@ -52496,7 +52496,7 @@ function setAudioSession (mediaSession) {
 		ringtone.start();
 		
 		// Set the state element text to 'Ringing'
-		$('.tpl_status').html('Ringing');
+		$('.croc_tpl_status').html('Ringing');
 	};
 	
 	/*
@@ -52520,7 +52520,7 @@ function setAudioSession (mediaSession) {
 		ringtone.stop();
 		
 		// Set the status element text to 'Connected'
-		$('.tpl_status').html('Connected');
+		$('.croc_tpl_status').html('Connected');
 	};
 	
 	/*
@@ -52532,7 +52532,7 @@ function setAudioSession (mediaSession) {
 		transferredSession = event.accept();
 		
 		// Set the status element text to 'Transferring...'
-		$('.tpl_status').html('Transferring...');
+		$('.croc_tpl_status').html('Transferring...');
 		
 		// Configure new session
 		setAudioSession(transferredSession);
@@ -52553,7 +52553,7 @@ function setAudioSession (mediaSession) {
 		if(mediaSession === transferredSession){
 
 			// Set the status element text to 'Transfer failed'
-			$('.tpl_status').html('Transfer failed');
+			$('.croc_tpl_status').html('Transfer failed');
 			transferredSession = null;
 			return;
 		}
@@ -52567,18 +52567,18 @@ function setAudioSession (mediaSession) {
 		clearInterval(setCallDuration);
 		
 		// Set the status element text to 'Disconnected'
-		$('.tpl_status').html('Disconnected');
+		$('.croc_tpl_status').html('Disconnected');
 		
 		// Hide the warning light to indicate there are no calls
-		$('.warning-light').hide();
+		$('.croc_warning-light').hide();
 		
 		// Reset mute button
-		$('.btn_mute_s').removeClass('disabled');
+		$('.croc_btn_mute_s').removeClass('croc_disabled');
 		
 		// Reset pop-out
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
 		// Close down connection to network.
 		crocObject.disconnect();
@@ -52599,7 +52599,7 @@ function muteAudioCall() {
 	audioSession.mute();
 	
 	// Add transparency to show mute button has been pressed
-	$('.btn_mute_s').addClass('disabled');
+	$('.croc_btn_mute_s').addClass('croc_disabled');
 }
 
 // Un-mute the audio call
@@ -52609,7 +52609,7 @@ function unmuteAudioCall() {
 	audioSession.unmute();
 	
 	// Restore icon back to white by removing transparency
-	$('.btn_mute_s').removeClass('disabled');
+	$('.croc_btn_mute_s').removeClass('croc_disabled');
 }
 
 // Audio session set-up
@@ -52633,13 +52633,13 @@ function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
 			crocObjectConnected = true;
 			
 			// Show the warning light to indicate a call is live
-			$('.warning-light').show();
+			$('.croc_warning-light').show();
 			
 			// Set remote party's address
-			/*$('.ui_uri').html(address);*/
+			/*$('.croc_ui_uri').html(address);*/
 			
 			// Set the status element text to 'Connecting'
-			$('.tpl_status').html('Connecting');
+			$('.croc_tpl_status').html('Connecting');
 			
 			// Set the duration element to start timing the duration of the call
 			var callStartDate = new Date().getTime();
@@ -52692,7 +52692,7 @@ function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
 
 			// Trigger click to collapse the tab
 			isClicked = true;
-			$('.side-tab').trigger('click');
+			$('.croc_side-tab').trigger('click');
 		}
 	};
 
@@ -52733,38 +52733,38 @@ var croc_click2call = function(userConfig) {
 		/*
 		 * Setup tab event handlers
 		 */		
-		$('.side-tab').click(function() {
+		$('.croc_side-tab').click(function() {
 			
 			if (!isClicked) {
 				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '185px'
 					});
 					break;
 				case 'bottom':
-					$('.audio-bottom-tab').animate({
+					$('.croc_audio-bottom-tab').animate({
 						bottom: '10px'
 					});
 					break;
 				case 'left':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '379px'
 					});
 					break;
 				default:
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '379px'
 					});
 					break;
 				}
 			
 				// Show tab content
-				$('.side-tab-content').show(600);
+				$('.croc_side-tab-content').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
@@ -52777,31 +52777,31 @@ var croc_click2call = function(userConfig) {
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '0px'
 					});					
 					break;
 				case 'bottom':
-					$('.audio-bottom-tab').animate({
+					$('.croc_audio-bottom-tab').animate({
 						bottom: '0px'
 					});
 					break;
 				case 'left':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '0px'
 					});
 					break;
 				default:
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '0px'
 					});
 					break;
 				}
 				
 				// Hide tab content
-				$('.side-tab-content').hide(1000);
+				$('.croc_side-tab-content').hide(1000);
 				
 				isClicked = false;
 			}
@@ -52814,21 +52814,21 @@ var croc_click2call = function(userConfig) {
 		var toggleOnMute = false;
 		
 		// End audio session when clicked
-		$('.btn_close').click(function(){
+		$('.croc_btn_close').click(function(){
 
 			// End the audio call
 			endAudio();
 		});
 		
 		// End audio session when clicked
-		$('.btn_endcall_s').click(function() {
+		$('.croc_btn_endcall_s').click(function() {
 			
 			// End the audio call
 			endAudio();
 		});
 		
 		// Set mute call button
-		$('.mute_audio').click(function () {
+		$('.croc_mute_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudioCall();
@@ -52839,7 +52839,7 @@ var croc_click2call = function(userConfig) {
 		});
 
 		// Setup keypad popout
-		$('.ui_popout').click(function(evt){
+		$('.croc_ui_popout').click(function(evt){
 			$('body').click(function(evt2){
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
@@ -52853,26 +52853,26 @@ var croc_click2call = function(userConfig) {
 
 				$('body').off('click');
 
-				$('.ui_popout').removeClass('ui_popout_open');
-				$('.tpl_titlebar').removeClass('ui_shown');
-				$('.tpl_actions').removeClass('ui_shown');
+				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
 
 			evt.stopPropagation();
-			$('.ui_popout').addClass('ui_popout_open');
-			$('.tpl_titlebar').addClass('ui_shown');
-			$('.tpl_actions').addClass('ui_shown');
+			$('.croc_ui_popout').addClass('croc_ui_popout_open');
+			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
+			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
 
 		// Make sure keypad and tool bars aren't displayed
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 
 		// Setup keypad buttons
-		var keypad = $('.ui_keypad');
-		keypad.find('.tpl_key').click(function(){
-			var value = $(this).find('.tpl_main').text();
+		var keypad = $('.croc_ui_keypad');
+		keypad.find('.croc_tpl_key').click(function(){
+			var value = $(this).find('.croc_tpl_main').text();
 			audioSession.sendDTMF(value);
 		});
 	};
@@ -52882,38 +52882,38 @@ var croc_click2call = function(userConfig) {
 	 */
 	var setupVideoWidgetHandlers = function () {
 		
-		$('.side-tab').click(function() {
+		$('.croc_side-tab').click(function() {
 			
 			if (!isClicked) {
 				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '343px'
 					});
 					break;
 				case 'bottom':
-					$('.video-bottom-tab').animate({
+					$('.croc_video-bottom-tab').animate({
 						bottom: '10px'
 					});
 					break;
 				case 'left':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '511px'
 					});
 					break;
 				default:
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '511px'
 					});
 					break;
 				}
 			
 				// Show tab content
-				$('.side-tab-content-video').show(600);
+				$('.croc_side-tab-content-video').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
@@ -52926,31 +52926,31 @@ var croc_click2call = function(userConfig) {
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '0px'
-					});					
+					});
 					break;
 				case 'bottom':
-					$('.video-bottom-tab').animate({
+					$('.croc_video-bottom-tab').animate({
 						bottom: '0px'
 					});
 					break;
 				case 'left':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '0px'
 					});
 					break;
 				default:
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '0px'
 					});
 					break;
 				}
 				
 				// Show tab content
-				$('.side-tab-content-video').hide(1000);
+				$('.croc_side-tab-content-video').hide(1000);
 				
 				isClicked = false;
 			}
@@ -52958,13 +52958,13 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// Setup close button
-		$('.btn_close').click(function(){
+		$('.croc_btn_close').click(function(){
 			// End the video call
 			endVideo();
 		});
 		
 		// Setup end call button
-		$('.btn_endcall_s').click(function() {
+		$('.croc_btn_endcall_s').click(function() {
 			// End the video call
 			endVideo();
 		});
@@ -52972,7 +52972,7 @@ var croc_click2call = function(userConfig) {
 		var togglePauseVideo = false;
 		
 		// Set pause video button
-		$('.btn_pausevideo_s').click(function () {
+		$('.croc_btn_pausevideo_s').click(function () {
 			if (!togglePauseVideo) {
 				togglePauseVideo = true;
 				pauseVideo();
@@ -52985,7 +52985,7 @@ var croc_click2call = function(userConfig) {
 		var toggleOnMute = false;
 		
 		// Set mute audio button
-		$('.mute_video_audio').click(function () {
+		$('.croc_mute_video_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudio();
@@ -52998,18 +52998,18 @@ var croc_click2call = function(userConfig) {
 		var toggleLocalVideo = true;
 		
 		// Setup click event for local video button to display/hide local video
-		$('.btn_localvideo').click(function () {
+		$('.croc_btn_localvideo').click(function () {
 			if (toggleLocalVideo) {
 				toggleLocalVideo = false;
-				$('.tpl_controls').removeClass("ui_localvideoshown");
+				$('.croc_tpl_controls').removeClass("croc_ui_localvideoshown");
 			} else {
 				toggleLocalVideo = true;
-				$('.tpl_controls').addClass("ui_localvideoshown");
+				$('.croc_tpl_controls').addClass("croc_ui_localvideoshown");
 			}
 		});
 		
 		// Setup full screen button
-		$('.btn_fullscreen').click(function() {
+		$('.croc_btn_fullscreen').click(function() {
 			if (!isFullscreen) {
 				isFullscreen = true;
 				setVideoToFullscreen(true);
@@ -53020,7 +53020,7 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// Setup keypad popout
-		$('.ui_popout').click(function(evt){
+		$('.croc_ui_popout').click(function(evt){
 			$('body').click(function(evt2){
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
@@ -53034,26 +53034,26 @@ var croc_click2call = function(userConfig) {
 
 				$('body').off('click');
 
-				$('.ui_popout').removeClass('ui_popout_open');
-				$('.tpl_titlebar').removeClass('ui_shown');
-				$('.tpl_actions').removeClass('ui_shown');
+				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
 
 			evt.stopPropagation();
-			$('.ui_popout').addClass('ui_popout_open');
-			$('.tpl_titlebar').addClass('ui_shown');
-			$('.tpl_actions').addClass('ui_shown');
+			$('.croc_ui_popout').addClass('croc_ui_popout_open');
+			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
+			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
 
 		// Make sure keypad and tool bars aren't displayed
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 
 		// Setup keypad buttons
-		var keypad = $('.ui_keypad');
-		keypad.find('.tpl_key').click(function(){
-			var value = $(this).find('.tpl_main').text();
+		var keypad = $('.croc_ui_keypad');
+		keypad.find('.croc_tpl_key').click(function(){
+			var value = $(this).find('.croc_tpl_main').text();
 			videoSession.sendDTMF(value);
 		});
 	};
@@ -53136,13 +53136,13 @@ var croc_click2call = function(userConfig) {
 	if (mediaWidget === 'video' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
 		
 		// Change css position to user defined/default position
-		$('.tab-wrapper-video').css('position', defaultConfig.click2callPosition);	
+		$('.croc_tab-wrapper-video').css('position', defaultConfig.click2callPosition);	
 	}
 	
 	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed')  {
 		
 		// Change css position to user defined/default position
-		$('.tab-wrapper').css('position', defaultConfig.click2callPosition);
+		$('.croc_tab-wrapper').css('position', defaultConfig.click2callPosition);
 	}
 	
 	/*
@@ -53151,48 +53151,48 @@ var croc_click2call = function(userConfig) {
 	switch (orientationOfClick2Call) {
 	case 'top':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
-			$('.tab-container').removeClass('tab-wrapper-video');
-			$('.tab-container').addClass('video-top-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('video-top-side-tab');
-			$('.side-tab-content-video').addClass('video-top-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper-video');
+			$('.croc_tab-container').addClass('croc_video-top-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_video-top-side-tab');
+			$('.croc_side-tab-content-video').addClass('croc_video-top-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'top') {
-			$('.tab-container').removeClass('tab-wrapper');
-			$('.tab-container').addClass('audio-top-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('audio-side-tab-top');
-			$('.side-tab-content').addClass('audio-top-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper');
+			$('.croc_tab-container').addClass('croc_audio-top-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_audio-side-tab-top');
+			$('.croc_side-tab-content').addClass('croc_audio-top-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		break;
 	case 'bottom':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'bottom') {
-			$('.tab-container').removeClass('tab-wrapper-video');
-			$('.tab-container').addClass('video-bottom-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('video-side-tab-bottom');
-			$('.side-tab-content-video').addClass('video-bottom-content');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper-video');
+			$('.croc_tab-container').addClass('croc_video-bottom-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_video-side-tab-bottom');
+			$('.croc_side-tab-content-video').addClass('croc_video-bottom-content');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'bottom') {
-			$('.tab-container').removeClass('tab-wrapper');
-			$('.tab-container').addClass('audio-bottom-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('rotate-horizontal');
-			$('.side-tab-content').addClass('audio-bottom-content');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper');
+			$('.croc_tab-container').addClass('croc_audio-bottom-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_rotate-horizontal');
+			$('.croc_side-tab-content').addClass('croc_audio-bottom-content');
 		}
 		break;
 	case 'left':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'left') {
-			$('.tab-container').addClass('video-left-tab');
-			$('.side-tab-content-video').addClass('video-left-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').addClass('croc_video-left-tab');
+			$('.croc_side-tab-content-video').addClass('croc_video-left-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'left') {
-			$('.tab-container').addClass('audio-left-tab');
-			$('.side-tab-content').addClass('audio-left-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').addClass('croc_audio-left-tab');
+			$('.croc_side-tab-content').addClass('croc_audio-left-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		break;
 	default:
@@ -53251,7 +53251,7 @@ function setDuration(callStartDate) {
 			var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
 			
 			// Set the duration element text to the current duration after formatting 
-			$('.ui_duration').html(formattedCallDuration);
+			$('.croc_ui_duration').html(formattedCallDuration);
 			
 		}, 1000);
 }
@@ -55299,10 +55299,10 @@ var videoSession, transferredSession = null, ringtone;
 function setVideoSession (mediaSession) {
 	
 	// The DOM video element used for playing the local party's video
-	mediaSession.localVideoElement = $('.receive_localVideo')[0];
+	mediaSession.localVideoElement = $('.croc_receive_localVideo')[0];
 	
 	// The DOM video element used for playing the remote party's video
-	mediaSession.remoteVideoElement = $('.tpl_remotevideo')[0];
+	mediaSession.remoteVideoElement = $('.croc_tpl_remotevideo')[0];
 	
 	/* 
 	 * The event handler to fire when a provisional response has been 
@@ -55314,7 +55314,7 @@ function setVideoSession (mediaSession) {
 		ringtone.start();
 		
 		// Set the state element text to 'Ringing'
-		$('.ui_status').html('Ringing');
+		$('.croc_ui_status').html('Ringing');
 	};
 	
 	/*
@@ -55338,7 +55338,7 @@ function setVideoSession (mediaSession) {
 		ringtone.stop();
 		
 		// Set the status element text to 'Connected'
-		$('.ui_status').html('Connected');
+		$('.croc_ui_status').html('Connected');
 	};
 	
 	/*
@@ -55350,7 +55350,7 @@ function setVideoSession (mediaSession) {
 		transferredSession = event.accept();
 		
 		// Set the status element text to 'Transferring...'
-		$('.ui_status').html('Transferring...');
+		$('.croc_ui_status').html('Transferring...');
 		
 		// Configure new session
 		setVideoSession(transferredSession);
@@ -55371,7 +55371,7 @@ function setVideoSession (mediaSession) {
 		if(mediaSession === transferredSession){
 
 			// Set the status element text to 'Transfer failed'
-			$('.ui_status').html('Transfer failed');
+			$('.croc_ui_status').html('Transfer failed');
 			transferredSession = null;
 			return;
 		}
@@ -55385,22 +55385,22 @@ function setVideoSession (mediaSession) {
 		clearInterval(setCallDuration);
 		
 		// Set the status element text to 'Disconnected'
-		$('.ui_status').html('Disconnected');
+		$('.croc_ui_status').html('Disconnected');
 		
 		// Hide the warning light to indicate there are no calls
-		$('.warning-light').hide();
+		$('.croc_warning-light').hide();
 		
 		// Reset mute button
-		$('.btn_mute_s').removeClass('selected');
+		$('.croc_btn_mute_s').removeClass('croc_selected');
 		
 		// Reset video pause button
-		$('.btn_pausevideo_s').removeClass('selected');
-		$('.tpl_controls').removeClass('ui_localvideodisabled');
+		$('.croc_btn_pausevideo_s').removeClass('croc_selected');
+		$('.croc_tpl_controls').removeClass('croc_ui_localvideodisabled');
 		
 		// Reset pop-out
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
 		// Close down connection to network
 		crocObject.disconnect();
@@ -55419,7 +55419,7 @@ function muteAudio() {
 	videoSession.mute();
 	
 	// Turn icon green to show its been pressed
-	$('.btn_mute_s').addClass('selected');
+	$('.croc_btn_mute_s').addClass('croc_selected');
 }
 
 // Un-mute the audio
@@ -55429,7 +55429,7 @@ function unmuteAudio() {
 	videoSession.unmute();
 	
 	// Restore icon back to white
-	$('.btn_mute_s').removeClass('selected');
+	$('.croc_btn_mute_s').removeClass('croc_selected');
 }
 
 // Pause the remote video
@@ -55439,10 +55439,10 @@ function pauseVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=false;
 	
 	// Turn icon green to show its been pressed
-	$('.btn_pausevideo_s').addClass('selected');
+	$('.croc_btn_pausevideo_s').addClass('croc_selected');
 	
 	// Add disabled icon to local video
-	$('.tpl_controls').addClass('ui_localvideodisabled');
+	$('.croc_tpl_controls').addClass('croc_ui_localvideodisabled');
 }
 
 // Un-Pause the remote video
@@ -55452,16 +55452,16 @@ function resumeVideo() {
 	videoSession.localStream.getVideoTracks()[0].enabled=true;
 	
 	// Restore icon back to white
-	$('.btn_pausevideo_s').removeClass('selected');
+	$('.croc_btn_pausevideo_s').removeClass('croc_selected');
 	
 	// Remove disabled icon on local video
-	$('.tpl_controls').removeClass('ui_localvideodisabled');
+	$('.croc_tpl_controls').removeClass('croc_ui_localvideodisabled');
 }
 
 // Determine whether to go full screen or not
 function setVideoToFullscreen(enabled) {
 	var initial = true;
-	var uiElement = $('.widget_videocall')[0]; // jQuery element to make full screen
+	var uiElement = $('.croc_widget_videocall')[0]; // jQuery element to make full screen
 
 	// Listen for fullscreen change, ignore initial change
 	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
@@ -55472,10 +55472,10 @@ function setVideoToFullscreen(enabled) {
 		initial = false;
 	};
 
-	if(enabled && !$('.widget_videocall').hasClass('ui_fullscreen')){
+	if(enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')){
 		// Set fullscreen
 		isFullscreen = true;
-		$('.widget_videocall').addClass('ui_fullscreen');
+		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
 		if(uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
 		} else if(uiElement.mozRequestFullscreen) {
@@ -55484,7 +55484,7 @@ function setVideoToFullscreen(enabled) {
 	} else {
 		// Exit fullscreen
 		isFullscreen = false;
-		$('.widget_videocall').removeClass('ui_fullscreen');
+		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
 		if(document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
 		} else if(document.mozExitFullscreen) {
@@ -55527,13 +55527,13 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 			};
 			
 			// Show the warning light to indicate a call is live
-			$('.warning-light').show();
+			$('.croc_warning-light').show();
 			
 			// Set remote party's address
-			/*$('.ui_uri').html(address);*/
+			/*$('.croc_ui_uri').html(address);*/
 			
 			// Set the status element text to 'Connecting'
-			$('.ui_status').html('Connecting');
+			$('.croc_ui_status').html('Connecting');
 			
 			// Set the duration element to start timing the duration of the call
 			var callStartDate = new Date().getTime();
@@ -55576,153 +55576,153 @@ function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
 			
 			// Trigger click to collapse the tab.
 			isClicked = true;
-			$('.side-tab').trigger('click');
+			$('.croc_side-tab').trigger('click');
 		}
 	};
 
 	// Instantiation of croc object with basic configuration
 	crocObject = $.croc(crocConfig);
 }
-var audioWidgetHtml = '<div class="tab-wrapper tab-container">' +
-		'<div class="side-tab rotate-vertical">' +
-			'<img class="tab-logo" src="dist/images/croc-logo.png"></img>' +
+var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
+		'<div class="croc_side-tab croc_rotate-vertical">' +
+			'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
 			'<p>Call Now</p>' +
-			'<div class="warning-light">' +
-				'<div class="warning-light-circle"></div>' +
+			'<div class="croc_warning-light">' +
+				'<div class="croc_warning-light-circle"></div>' +
 			'</div>' +
 		'</div>' +
-		'<div class="side-tab-content">' +
-			'<div class="ui_widget widget_audiocall hidden">' +
-				'<div class="ui_container scheme_widget">' +
-					'<div class="tpl_title">' +
-						'<div class="title_control">' +
-							'<h1 class="ui_title"></h1>' +
+		'<div class="croc_side-tab-content">' +
+			'<div class="croc_ui_widget croc_widget_audiocall croc_hidden">' +
+				'<div class="croc_ui_container croc_scheme_widget">' +
+					'<div class="croc_tpl_title">' +
+						'<div class="croc_title_control">' +
+							'<h1 class="croc_ui_title"></h1>' +
 						'</div>' +
-						'<div class="ui_title_toolbar">' +
-							'<div class="ui_input_button ui_input btn_close scheme_button_6">' +
-								'<div class="ui_image"></div>' +
-								'<div class="ui_text"></div>' +
+						'<div class="croc_ui_title_toolbar">' +
+							'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
+								'<div class="croc_ui_image"></div>' +
+								'<div class="croc_ui_text"></div>' +
 							'</div>' +
 						'</div>' +
 					'</div>' +
-					'<div class="ui_content">' +
-						'<div class="tpl_content">' +
-							'<div class="tpl_info">' +
-								'<div class="tpl_remoteid">' +
-									'<span class="ui_label scheme_label_1 ui_uri"></span>' +
+					'<div class="croc_ui_content">' +
+						'<div class="croc_tpl_content">' +
+							'<div class="croc_tpl_info">' +
+								'<div class="croc_tpl_remoteid">' +
+									'<span class="croc_ui_label croc_scheme_label_1 croc_ui_uri"></span>' +
 								'</div>' +
-								'<div class="tpl_details scheme_label_2">' +
-									'<span class="ui_label tpl_status"></span>' +
-									'<span class="ui_label ui_duration"></span>' +
+								'<div class="croc_tpl_details croc_scheme_label_2">' +
+									'<span class="croc_ui_label croc_tpl_status"></span>' +
+									'<span class="croc_ui_label croc_ui_duration"></span>' +
 								'</div>' +
 							'</div>' +
-							'<div class="tpl_actions">' +
-								'<div class="tpl_group">' +
-									'<div class="ui_popout scheme_popout_1 ui_popout_open">' +
-										'<div class="ui_input_button ui_input scheme_action_button btn_keypad" tabindex="0">' +
-											'<div class="ui_image"></div>' +
-											'<div class="ui_text"></div>' +
+							'<div class="croc_tpl_actions">' +
+								'<div class="croc_tpl_group">' +
+									'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
+										'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
 										'</div>' +
-										'<div class="ui_panel tpl_content">' +
-											'<div class="ui_keypad">' +
+										'<div class="croc_ui_panel croc_tpl_content">' +
+											'<div class="croc_ui_keypad">' +
 												'<table>' +
 													'<tr>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">1</div>' +
-																'<div class="tpl_alternate"></div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">1</div>' +
+																'<div class="croc_tpl_alternate"></div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">2</div>' +
-																'<div class="tpl_alternate">ABC</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">2</div>' +
+																'<div class="croc_tpl_alternate">ABC</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">3</div>' +
-																'<div class="tpl_alternate">DEF</div>' +
-															'</div>' +
-														'</td>' +
-													'</tr>' +
-													'<tr>' +
-														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">4</div>' +
-																'<div class="tpl_alternate">GHI</div>' +
-															'</div>' +
-														'</td>' +
-														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">5</div>' +
-																'<div class="tpl_alternate">JKL</div>' +
-															'</div>' +
-														'</td>' +
-														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">6</div>' +
-																'<div class="tpl_alternate">MNO</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">3</div>' +
+																'<div class="croc_tpl_alternate">DEF</div>' +
 															'</div>' +
 														'</td>' +
 													'</tr>' +
 													'<tr>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">7</div>' +
-																'<div class="tpl_alternate">PQRS</div>' +
+															'<div class="croc_ui_input_button tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">4</div>' +
+																'<div class="croc_tpl_alternate">GHI</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">8</div>' +
-																'<div class="tpl_alternate">TUV</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">5</div>' +
+																'<div class="croc_tpl_alternate">JKL</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">9</div>' +
-																'<div class="tpl_alternate">WXYZ</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">6</div>' +
+																'<div class="croc_tpl_alternate">MNO</div>' +
 															'</div>' +
 														'</td>' +
 													'</tr>' +
 													'<tr>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">*</div>' +
-																'<div class="tpl_alternate"></div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">7</div>' +
+																'<div class="croc_tpl_alternate">PQRS</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">0</div>' +
-																'<div class="tpl_alternate">+</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">8</div>' +
+																'<div class="croc_tpl_alternate">TUV</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">#</div>' +
-																'<div class="tpl_alternate"></div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">9</div>' +
+																'<div class="croc_tpl_alternate">WXYZ</div>' +
+															'</div>' +
+														'</td>' +
+													'</tr>' +
+													'<tr>' +
+														'<td>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">*</div>' +
+																'<div class="croc_tpl_alternate"></div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">0</div>' +
+																'<div class="croc_tpl_alternate">+</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">#</div>' +
+																'<div class="croc_tpl_alternate"></div>' +
 															'</div>' +
 														'</td>' +
 													'</tr>' +
 												'</table>' +
 											'</div>' +
 										'</div>' +
-										'<div class="tpl_deco"></div>' +
+										'<div class="croc_tpl_deco"></div>' +
 									'</div>' +
-									'<div class="ui_input_button ui_input scheme_action_button btn_mute_s mute_audio">' +
-										'<div class="ui_image"></div>' +
-										'<div class="ui_text"></div>' +
+									'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_audio">' +
+										'<div class="croc_ui_image"></div>' +
+										'<div class="croc_ui_text"></div>' +
 									'</div>' +
-									'<div class="ui_input_button ui_input scheme_action_button btn_endcall_s">' +
-										'<div class="ui_image"></div>' +
-										'<div class="ui_text"></div>' +
+									'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
+										'<div class="croc_ui_image"></div>' +
+										'<div class="croc_ui_text"></div>' +
 									'</div>' +
 								'</div>' +
 							'</div>' +
-							'<div class="ui_hidden">' +
-								'<audio class="tpl_tpl receive-audio" autoplay="autoplay"></audio>' +
+							'<div class="croc_ui_hidden">' +
+								'<audio class="croc_tpl_tpl croc_receive-audio" autoplay="autoplay"></audio>' +
 							'</div>' +
 						'</div>' +
 					'</div>' +
@@ -55734,156 +55734,156 @@ var audioWidgetHtml = '<div class="tab-wrapper tab-container">' +
 	/*
 	 * Create the html to append to the appenClick2callTo element.
 	 */
-	var videoWidgetHtml = '<div class="tab-wrapper-video tab-container">' +
-			'<div class="side-tab rotate-vertical">' +
-				'<img class="tab-logo" src="dist/images/croc-logo.png"></img>' +
+	var videoWidgetHtml = '<div class="croc_tab-wrapper-video croc_tab-container">' +
+			'<div class="croc_side-tab croc_rotate-vertical">' +
+				'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
 				'<p>Call Now</p>' +
-				'<div class="warning-light">' +
-					'<div class="warning-light-circle"></div>' +
+				'<div class="croc_warning-light">' +
+					'<div class="croc_warning-light-circle"></div>' +
 				'</div>' +
 			'</div>' +
-		'<div class="side-tab-content-video">' +
-			'<div class="ui_widget widget_videocall hidden">' +
-				'<div class="ui_container scheme_widget">' +
-					'<div class="tpl_titlebar">' +
-						'<div class="tpl_title">' +
-							'<div class="title_control">' +
-								'<span class="ui_label ui_uri scheme_label_1"></span> - <span class="ui_label ui_duration scheme_label_1"></span> - <span class="ui_label ui_status scheme_label_1"></span>' +
+		'<div class="croc_side-tab-content-video">' +
+			'<div class="croc_ui_widget croc_widget_videocall croc_hidden">' +
+				'<div class="croc_ui_container croc_scheme_widget">' +
+					'<div class="croc_tpl_titlebar">' +
+						'<div class="croc_tpl_title">' +
+							'<div class="croc_title_control">' +
+								'<span class="croc_ui_label croc_ui_uri croc_scheme_label_1"></span> - <span class="croc_ui_label croc_ui_duration croc_scheme_label_1"></span> - <span class="croc_ui_label croc_ui_status croc_scheme_label_1"></span>' +
 							'</div>' +
-							'<div class="ui_title_toolbar">' +
-								'<div class="ui_input_button ui_input btn_fullscreen scheme_button_6">' +
-									'<div class="ui_image"></div>' +
-									'<div class="ui_text"></div>' +
+							'<div class="croc_ui_title_toolbar">' +
+								'<div class="croc_ui_input_button croc_ui_input croc_btn_fullscreen croc_scheme_button_6">' +
+									'<div class="croc_ui_image"></div>' +
+									'<div class="croc_ui_text"></div>' +
 								'</div>' +
-								'<div class="ui_input_button ui_input btn_close scheme_button_6">' +
-									'<div class="ui_image"></div>' +
-									'<div class="ui_text"></div>' +
+								'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
+									'<div class="croc_ui_image"></div>' +
+									'<div class="croc_ui_text"></div>' +
 								'</div>' +
 							'</div>' +
 						'</div>' +
 					'</div>' +
-					'<div class="ui_content">' +
-						'<div class="tpl_content">' +
-							'<video class="tpl_video tpl_remotevideo" autoplay="autoplay"></video>' +
-							'<div class="tpl_controls ui_localvideoshown">' +
-								'<div class="tpl_actions">' +
-									'<div class="tpl_bar">' +
-										'<div class="ui_input_button ui_input btn_localvideo">' +
-											'<div class="ui_image"></div>' +
-											'<div class="ui_text"></div>' +
+					'<div class="croc_ui_content">' +
+						'<div class="croc_tpl_content">' +
+							'<video class="croc_tpl_video croc_tpl_remotevideo" autoplay="autoplay"></video>' +
+							'<div class="croc_tpl_controls croc_ui_localvideoshown">' +
+								'<div class="croc_tpl_actions">' +
+									'<div class="croc_tpl_bar">' +
+										'<div class="croc_ui_input_button croc_ui_input croc_btn_localvideo">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
 										'</div>' +
-										'<div class="tpl_callactions">' +
-											'<div class="ui_popout scheme_popout_1 ui_popout_open">' +
-												'<div class="ui_input_button ui_input scheme_action_button btn_keypad" tabindex="0">' +
-													'<div class="ui_image"></div>' +
-													'<div class="ui_text"></div>' +
+										'<div class="croc_tpl_callactions">' +
+											'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
+												'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
+													'<div class="croc_ui_image"></div>' +
+													'<div class="croc_ui_text"></div>' +
 												'</div>' +
-												'<div class="ui_panel tpl_content">' +
-													'<div class="ui_keypad">' +
+												'<div class="croc_ui_panel croc_tpl_content">' +
+													'<div class="croc_ui_keypad">' +
 														'<table>' +
 															'<tr>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">1</div>' +
-																		'<div class="tpl_alternate"></div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">1</div>' +
+																		'<div class="croc_tpl_alternate"></div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">2</div>' +
-																		'<div class="tpl_alternate">ABC</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">2</div>' +
+																		'<div class="croc_tpl_alternate">ABC</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">3</div>' +
-																		'<div class="tpl_alternate">DEF</div>' +
-																	'</div>' +
-																'</td>' +
-															'</tr>' +
-															'<tr>' +
-																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">4</div>' +
-																		'<div class="tpl_alternate">GHI</div>' +
-																	'</div>' +
-																'</td>' +
-																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">5</div>' +
-																		'<div class="tpl_alternate">JKL</div>' +
-																	'</div>' +
-																'</td>' +
-																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">6</div>' +
-																		'<div class="tpl_alternate">MNO</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">3</div>' +
+																		'<div class="croc_tpl_alternate">DEF</div>' +
 																	'</div>' +
 																'</td>' +
 															'</tr>' +
 															'<tr>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">7</div>' +
-																		'<div class="tpl_alternate">PQRS</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">4</div>' +
+																		'<div class="croc_tpl_alternate">GHI</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">8</div>' +
-																		'<div class="tpl_alternate">TUV</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">5</div>' +
+																		'<div class="croc_tpl_alternate">JKL</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">9</div>' +
-																		'<div class="tpl_alternate">WXYZ</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">6</div>' +
+																		'<div class="croc_tpl_alternate">MNO</div>' +
 																	'</div>' +
 																'</td>' +
 															'</tr>' +
 															'<tr>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">*</div>' +
-																		'<div class="tpl_alternate"></div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">7</div>' +
+																		'<div class="croc_tpl_alternate">PQRS</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">0</div>' +
-																		'<div class="tpl_alternate">+</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">8</div>' +
+																		'<div class="croc_tpl_alternate">TUV</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">#</div>' +
-																		'<div class="tpl_alternate"></div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">9</div>' +
+																		'<div class="croc_tpl_alternate">WXYZ</div>' +
+																	'</div>' +
+																'</td>' +
+															'</tr>' +
+															'<tr>' +
+																'<td>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">*</div>' +
+																		'<div class="croc_tpl_alternate"></div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">0</div>' +
+																		'<div class="croc_tpl_alternate">+</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">#</div>' +
+																		'<div class="croc_tpl_alternate"></div>' +
 																	'</div>' +
 																'</td>' +
 															'</tr>' +
 														'</table>' +
 													'</div>' +
 												'</div>' +
-												'<div class="tpl_deco"></div>' +
+												'<div class="croc_tpl_deco"></div>' +
 											'</div>' +
-											'<div class="ui_input_button ui_input scheme_action_button btn_mute_s mute_video_audio">' +
-												'<div class="ui_image"></div>' +
-												'<div class="ui_text"></div>' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_video_audio">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
 											'</div>' +
-											'<div class="ui_input_button ui_input scheme_action_button btn_pausevideo_s">' +
-												'<div class="ui_image"></div>' +
-												'<div class="ui_text"></div>' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_pausevideo_s">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
 											'</div>' +
-											'<div class="ui_input_button ui_input scheme_action_button btn_endcall_s">' +
-												'<div class="ui_image"></div>' +
-												'<div class="ui_text"></div>' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
 											'</div>' +
 										'</div>' +
 									'</div>' +
 								'</div>' +
-								'<div class="tpl_localvideo">' +
-									'<div class="tpl_disabledvideo"></div>' +
-									'<video class="tpl_video receive_localVideo" autoplay="autoplay"></video>' +
+								'<div class="croc_tpl_localvideo">' +
+									'<div class="croc_tpl_disabledvideo"></div>' +
+									'<video class="croc_tpl_video croc_receive_localVideo" autoplay="autoplay"></video>' +
 								'</div>' +
 							'</div>' +
 						'</div>' +

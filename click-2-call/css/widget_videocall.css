@@ -1,13 +1,13 @@
-.widget_videocall {
+.croc_widget_videocall {
 	height: 333px;
 	width: 501px;
 }
 
-.widget_videocall .ui_content {
+.croc_widget_videocall .croc_ui_content {
 	height:100%;
 }
 
-.widget_videocall .title_control {
+.croc_widget_videocall .croc_title_control {
 	position:relative;
 	top:50%;
 	margin-top:-0.5em;
@@ -15,26 +15,26 @@
 	font-size:13px;
 }
 
-.widget_videocall .tpl_titlebar .tpl_title {
+.croc_widget_videocall .croc_tpl_titlebar .croc_tpl_title {
 	position:absolute;
 	top:0;
 }
 
-.widget_videocall .tpl_title .ui_uri {
+.croc_widget_videocall .croc_tpl_title .croc_ui_uri {
 	font-weight:bold;
 }
 
-.widget_videocall .ui_container {
+.croc_widget_videocall .croc_ui_container {
 	overflow:hidden;
 }
 
-.widget_videocall .ui_content > .tpl_content {
+.croc_widget_videocall .croc_ui_content > .croc_tpl_content {
 	width:100%;
 	height:100%;
 	background:#000;
 }
 
-.widget_videocall .tpl_remotevideo {
+.croc_widget_videocall .croc_tpl_remotevideo {
 	background: #000;
 	border-radius:10px;
 	-moz-border-radius:10px;
@@ -43,8 +43,8 @@
 	width: 100%;
 }
 
-.widget_videocall .tpl_titlebar.ui_shown,
-.widget_videocall .tpl_titlebar:hover {
+.croc_widget_videocall .croc_tpl_titlebar.croc_ui_shown,
+.croc_widget_videocall .croc_tpl_titlebar:hover {
 	top: 0px;
 	-moz-transition-delay: 0s !important;
 	-webkit-transition-delay: 0s !important;
@@ -52,7 +52,7 @@
 	transition-delay:0s !important;
 }
 
-.widget_videocall .tpl_titlebar {
+.croc_widget_videocall .croc_tpl_titlebar {
 	position: absolute;
 	top:-43px;
 	z-index:100;
@@ -64,11 +64,7 @@
 	transition:top 1s ease-in-out 2s;
 }
 
-.widget_videocall .tpl_title .tpl_uri {
-	font-weight: bold;
-}
-
-.widget_videocall .tpl_localvideo {
+.croc_widget_videocall .croc_tpl_localvideo {
 	display: none;
 	position: absolute;
 	left: 13px;
@@ -80,16 +76,16 @@
 	width: 69px;
 }
 
-.widget_videocall .tpl_localvideo .tpl_video {
+.croc_widget_videocall .croc_tpl_localvideo .croc_tpl_video {
 	width:100%;
 	height:100%;
 }
 
-.widget_videocall .ui_localvideoshown .tpl_localvideo {
+.croc_widget_videocall .croc_ui_localvideoshown .croc_tpl_localvideo {
 	display:block;
 }
 
-.widget_videocall .tpl_localvideo .tpl_disabledvideo {
+.croc_widget_videocall .croc_tpl_localvideo .croc_tpl_disabledvideo {
 	background: url(../images/icons.png) no-repeat -190px -1px #000;
 	display: none;
 	opacity: 0.5;
@@ -100,11 +96,11 @@
 	height:100%;
 }
 
-.widget_videocall .ui_localvideodisabled .tpl_localvideo .tpl_disabledvideo {
+.croc_widget_videocall .croc_ui_localvideodisabled .croc_tpl_localvideo .croc_tpl_disabledvideo {
 	display:block;
 }
 
-.widget_videocall .btn_localvideo {
+.croc_widget_videocall .croc_btn_localvideo {
 	border-radius: 0px 2px 2px 0px;
 	padding: 3px 3px 3px 0px;
 	position: absolute;
@@ -114,17 +110,17 @@
 	height: 22px;
 }
 
-.widget_videocall .ui_localvideoshown .btn_localvideo {
+.croc_widget_videocall .croc_ui_localvideoshown .croc_btn_localvideo {
 	background: #409f89;
 	left:88px;
 }
 
-.widget_videocall .ui_localvideoshown .btn_localvideo .ui_image {
+.croc_widget_videocall .croc_ui_localvideoshown .croc_btn_localvideo .croc_ui_image {
 	border-bottom: 1px solid #9ec8be;
 	border-top: 1px solid #2b6c5d;.
 }
 
-.widget_videocall .btn_localvideo .ui_image {
+.croc_widget_videocall .croc_btn_localvideo .croc_ui_image {
 	border-radius: 2px;
 	top:50%;
 	left: 50%;
@@ -133,7 +129,7 @@
 	width: 20px;
 }
 
-.widget_videocall .tpl_actions .tpl_bar {
+.croc_widget_videocall .croc_tpl_actions .croc_tpl_bar {
 	background:rgba(0, 0, 0, 0.3);
 	position:absolute;
 	bottom:0;
@@ -142,7 +138,7 @@
 	height:34px;
 }
 
-.widget_videocall .tpl_controls .tpl_actions {
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions {
 	position: absolute;
 	display: block;
 	height: 124px;
@@ -155,27 +151,27 @@
 	-o-transition: bottom 1s 1s;
 }
 
-.widget_videocall .tpl_controls .tpl_actions.ui_shown,
-.widget_videocall .tpl_controls .tpl_actions:hover {
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions.croc_ui_shown,
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions:hover {
 	bottom: 0px;
 	-moz-transition-delay: 0s !important;
 	-webkit-transition-delay: 0s !important;
 	-o-transition-delay: 0s !important;
 }
 
-.widget_videocall .tpl_controls .tpl_callactions {
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_callactions {
 	position: absolute;
 	bottom: 0;
 	right:0;
 	height: 100%;
 }
 
-.widget_videocall .tpl_callactions > .ui_popout {
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_popout {
 	display:inline-block;
 }
 
-.widget_videocall .tpl_callactions > .ui_input_button,
-.widget_videocall .tpl_callactions > .ui_popout > .ui_input_button {
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_input_button,
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_popout > .croc_ui_input_button {
 	height: 28px;
 	width: 40px;
 	display:inline-block;
@@ -184,10 +180,10 @@
 	margin-right:0.2em;
 }
 
-.widget_videocall .ui_keypad {
+.croc_widget_videocall .croc_ui_keypad {
 	width:8em;
 	height:10em;
 }
-.widget_videocall .ui_keypad table {
+.croc_widget_videocall .croc_ui_keypad table {
 	font-size:12px;
 }

@@ -1,146 +1,146 @@
 	/*
 	 * Create the html to append to the appenClick2callTo element.
 	 */ 
-	var audioWidgetHtml = '<div class="tab-wrapper tab-container">' +
-		'<div class="side-tab rotate-vertical">' +
-			'<img class="tab-logo" src="dist/images/croc-logo.png"></img>' +
+	var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
+		'<div class="croc_side-tab croc_rotate-vertical">' +
+			'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
 			'<p>Call Now</p>' +
-			'<div class="warning-light">' +
-				'<div class="warning-light-circle"></div>' +
+			'<div class="croc_warning-light">' +
+				'<div class="croc_warning-light-circle"></div>' +
 			'</div>' +
 		'</div>' +
-		'<div class="side-tab-content">' +
-			'<div class="ui_widget widget_audiocall hidden">' +
-				'<div class="ui_container scheme_widget">' +
-					'<div class="tpl_title">' +
-						'<div class="title_control">' +
-							'<h1 class="ui_title"></h1>' +
+		'<div class="croc_side-tab-content">' +
+			'<div class="croc_ui_widget croc_widget_audiocall croc_hidden">' +
+				'<div class="croc_ui_container croc_scheme_widget">' +
+					'<div class="croc_tpl_title">' +
+						'<div class="croc_title_control">' +
+							'<h1 class="croc_ui_title"></h1>' +
 						'</div>' +
-						'<div class="ui_title_toolbar">' +
-							'<div class="ui_input_button ui_input btn_close scheme_button_6">' +
-								'<div class="ui_image"></div>' +
-								'<div class="ui_text"></div>' +
+						'<div class="croc_ui_title_toolbar">' +
+							'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
+								'<div class="croc_ui_image"></div>' +
+								'<div class="croc_ui_text"></div>' +
 							'</div>' +
 						'</div>' +
 					'</div>' +
-					'<div class="ui_content">' +
-						'<div class="tpl_content">' +
-							'<div class="tpl_info">' +
-								'<div class="tpl_remoteid">' +
-									'<span class="ui_label scheme_label_1 ui_uri"></span>' +
+					'<div class="croc_ui_content">' +
+						'<div class="croc_tpl_content">' +
+							'<div class="croc_tpl_info">' +
+								'<div class="croc_tpl_remoteid">' +
+									'<span class="croc_ui_label croc_scheme_label_1 croc_ui_uri"></span>' +
 								'</div>' +
-								'<div class="tpl_details scheme_label_2">' +
-									'<span class="ui_label tpl_status"></span>' +
-									'<span class="ui_label ui_duration"></span>' +
+								'<div class="croc_tpl_details croc_scheme_label_2">' +
+									'<span class="croc_ui_label croc_tpl_status"></span>' +
+									'<span class="croc_ui_label croc_ui_duration"></span>' +
 								'</div>' +
 							'</div>' +
-							'<div class="tpl_actions">' +
-								'<div class="tpl_group">' +
-									'<div class="ui_popout scheme_popout_1 ui_popout_open">' +
-										'<div class="ui_input_button ui_input scheme_action_button btn_keypad" tabindex="0">' +
-											'<div class="ui_image"></div>' +
-											'<div class="ui_text"></div>' +
+							'<div class="croc_tpl_actions">' +
+								'<div class="croc_tpl_group">' +
+									'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
+										'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
 										'</div>' +
-										'<div class="ui_panel tpl_content">' +
-											'<div class="ui_keypad">' +
+										'<div class="croc_ui_panel croc_tpl_content">' +
+											'<div class="croc_ui_keypad">' +
 												'<table>' +
 													'<tr>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">1</div>' +
-																'<div class="tpl_alternate"></div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">1</div>' +
+																'<div class="croc_tpl_alternate"></div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">2</div>' +
-																'<div class="tpl_alternate">ABC</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">2</div>' +
+																'<div class="croc_tpl_alternate">ABC</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">3</div>' +
-																'<div class="tpl_alternate">DEF</div>' +
-															'</div>' +
-														'</td>' +
-													'</tr>' +
-													'<tr>' +
-														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">4</div>' +
-																'<div class="tpl_alternate">GHI</div>' +
-															'</div>' +
-														'</td>' +
-														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">5</div>' +
-																'<div class="tpl_alternate">JKL</div>' +
-															'</div>' +
-														'</td>' +
-														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">6</div>' +
-																'<div class="tpl_alternate">MNO</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">3</div>' +
+																'<div class="croc_tpl_alternate">DEF</div>' +
 															'</div>' +
 														'</td>' +
 													'</tr>' +
 													'<tr>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">7</div>' +
-																'<div class="tpl_alternate">PQRS</div>' +
+															'<div class="croc_ui_input_button tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">4</div>' +
+																'<div class="croc_tpl_alternate">GHI</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">8</div>' +
-																'<div class="tpl_alternate">TUV</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">5</div>' +
+																'<div class="croc_tpl_alternate">JKL</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">9</div>' +
-																'<div class="tpl_alternate">WXYZ</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">6</div>' +
+																'<div class="croc_tpl_alternate">MNO</div>' +
 															'</div>' +
 														'</td>' +
 													'</tr>' +
 													'<tr>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">*</div>' +
-																'<div class="tpl_alternate"></div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">7</div>' +
+																'<div class="croc_tpl_alternate">PQRS</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">0</div>' +
-																'<div class="tpl_alternate">+</div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">8</div>' +
+																'<div class="croc_tpl_alternate">TUV</div>' +
 															'</div>' +
 														'</td>' +
 														'<td>' +
-															'<div class="ui_input_button tpl_key" tabindex="0">' +
-																'<div class="tpl_main">#</div>' +
-																'<div class="tpl_alternate"></div>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">9</div>' +
+																'<div class="croc_tpl_alternate">WXYZ</div>' +
+															'</div>' +
+														'</td>' +
+													'</tr>' +
+													'<tr>' +
+														'<td>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">*</div>' +
+																'<div class="croc_tpl_alternate"></div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">0</div>' +
+																'<div class="croc_tpl_alternate">+</div>' +
+															'</div>' +
+														'</td>' +
+														'<td>' +
+															'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																'<div class="croc_tpl_main">#</div>' +
+																'<div class="croc_tpl_alternate"></div>' +
 															'</div>' +
 														'</td>' +
 													'</tr>' +
 												'</table>' +
 											'</div>' +
 										'</div>' +
-										'<div class="tpl_deco"></div>' +
+										'<div class="croc_tpl_deco"></div>' +
 									'</div>' +
-									'<div class="ui_input_button ui_input scheme_action_button btn_mute_s mute_audio">' +
-										'<div class="ui_image"></div>' +
-										'<div class="ui_text"></div>' +
+									'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_audio">' +
+										'<div class="croc_ui_image"></div>' +
+										'<div class="croc_ui_text"></div>' +
 									'</div>' +
-									'<div class="ui_input_button ui_input scheme_action_button btn_endcall_s">' +
-										'<div class="ui_image"></div>' +
-										'<div class="ui_text"></div>' +
+									'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
+										'<div class="croc_ui_image"></div>' +
+										'<div class="croc_ui_text"></div>' +
 									'</div>' +
 								'</div>' +
 							'</div>' +
-							'<div class="ui_hidden">' +
-								'<audio class="tpl_tpl receive-audio" autoplay="autoplay"></audio>' +
+							'<div class="croc_ui_hidden">' +
+								'<audio class="croc_tpl_tpl croc_receive-audio" autoplay="autoplay"></audio>' +
 							'</div>' +
 						'</div>' +
 					'</div>' +
@@ -152,156 +152,156 @@
 	/*
 	 * Create the html to append to the appenClick2callTo element.
 	 */
-	var videoWidgetHtml = '<div class="tab-wrapper-video tab-container">' +
-			'<div class="side-tab rotate-vertical">' +
-				'<img class="tab-logo" src="dist/images/croc-logo.png"></img>' +
+	var videoWidgetHtml = '<div class="croc_tab-wrapper-video croc_tab-container">' +
+			'<div class="croc_side-tab croc_rotate-vertical">' +
+				'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
 				'<p>Call Now</p>' +
-				'<div class="warning-light">' +
-					'<div class="warning-light-circle"></div>' +
+				'<div class="croc_warning-light">' +
+					'<div class="croc_warning-light-circle"></div>' +
 				'</div>' +
 			'</div>' +
-		'<div class="side-tab-content-video">' +
-			'<div class="ui_widget widget_videocall hidden">' +
-				'<div class="ui_container scheme_widget">' +
-					'<div class="tpl_titlebar">' +
-						'<div class="tpl_title">' +
-							'<div class="title_control">' +
-								'<span class="ui_label ui_uri scheme_label_1"></span> - <span class="ui_label ui_duration scheme_label_1"></span> - <span class="ui_label ui_status scheme_label_1"></span>' +
+		'<div class="croc_side-tab-content-video">' +
+			'<div class="croc_ui_widget croc_widget_videocall croc_hidden">' +
+				'<div class="croc_ui_container croc_scheme_widget">' +
+					'<div class="croc_tpl_titlebar">' +
+						'<div class="croc_tpl_title">' +
+							'<div class="croc_title_control">' +
+								'<span class="croc_ui_label croc_ui_uri croc_scheme_label_1"></span> - <span class="croc_ui_label croc_ui_duration croc_scheme_label_1"></span> - <span class="croc_ui_label croc_ui_status croc_scheme_label_1"></span>' +
 							'</div>' +
-							'<div class="ui_title_toolbar">' +
-								'<div class="ui_input_button ui_input btn_fullscreen scheme_button_6">' +
-									'<div class="ui_image"></div>' +
-									'<div class="ui_text"></div>' +
+							'<div class="croc_ui_title_toolbar">' +
+								'<div class="croc_ui_input_button croc_ui_input croc_btn_fullscreen croc_scheme_button_6">' +
+									'<div class="croc_ui_image"></div>' +
+									'<div class="croc_ui_text"></div>' +
 								'</div>' +
-								'<div class="ui_input_button ui_input btn_close scheme_button_6">' +
-									'<div class="ui_image"></div>' +
-									'<div class="ui_text"></div>' +
+								'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
+									'<div class="croc_ui_image"></div>' +
+									'<div class="croc_ui_text"></div>' +
 								'</div>' +
 							'</div>' +
 						'</div>' +
 					'</div>' +
-					'<div class="ui_content">' +
-						'<div class="tpl_content">' +
-							'<video class="tpl_video tpl_remotevideo" autoplay="autoplay"></video>' +
-							'<div class="tpl_controls ui_localvideoshown">' +
-								'<div class="tpl_actions">' +
-									'<div class="tpl_bar">' +
-										'<div class="ui_input_button ui_input btn_localvideo">' +
-											'<div class="ui_image"></div>' +
-											'<div class="ui_text"></div>' +
+					'<div class="croc_ui_content">' +
+						'<div class="croc_tpl_content">' +
+							'<video class="croc_tpl_video croc_tpl_remotevideo" autoplay="autoplay"></video>' +
+							'<div class="croc_tpl_controls croc_ui_localvideoshown">' +
+								'<div class="croc_tpl_actions">' +
+									'<div class="croc_tpl_bar">' +
+										'<div class="croc_ui_input_button croc_ui_input croc_btn_localvideo">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
 										'</div>' +
-										'<div class="tpl_callactions">' +
-											'<div class="ui_popout scheme_popout_1 ui_popout_open">' +
-												'<div class="ui_input_button ui_input scheme_action_button btn_keypad" tabindex="0">' +
-													'<div class="ui_image"></div>' +
-													'<div class="ui_text"></div>' +
+										'<div class="croc_tpl_callactions">' +
+											'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
+												'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
+													'<div class="croc_ui_image"></div>' +
+													'<div class="croc_ui_text"></div>' +
 												'</div>' +
-												'<div class="ui_panel tpl_content">' +
-													'<div class="ui_keypad">' +
+												'<div class="croc_ui_panel croc_tpl_content">' +
+													'<div class="croc_ui_keypad">' +
 														'<table>' +
 															'<tr>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">1</div>' +
-																		'<div class="tpl_alternate"></div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">1</div>' +
+																		'<div class="croc_tpl_alternate"></div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">2</div>' +
-																		'<div class="tpl_alternate">ABC</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">2</div>' +
+																		'<div class="croc_tpl_alternate">ABC</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">3</div>' +
-																		'<div class="tpl_alternate">DEF</div>' +
-																	'</div>' +
-																'</td>' +
-															'</tr>' +
-															'<tr>' +
-																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">4</div>' +
-																		'<div class="tpl_alternate">GHI</div>' +
-																	'</div>' +
-																'</td>' +
-																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">5</div>' +
-																		'<div class="tpl_alternate">JKL</div>' +
-																	'</div>' +
-																'</td>' +
-																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">6</div>' +
-																		'<div class="tpl_alternate">MNO</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">3</div>' +
+																		'<div class="croc_tpl_alternate">DEF</div>' +
 																	'</div>' +
 																'</td>' +
 															'</tr>' +
 															'<tr>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">7</div>' +
-																		'<div class="tpl_alternate">PQRS</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">4</div>' +
+																		'<div class="croc_tpl_alternate">GHI</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">8</div>' +
-																		'<div class="tpl_alternate">TUV</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">5</div>' +
+																		'<div class="croc_tpl_alternate">JKL</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">9</div>' +
-																		'<div class="tpl_alternate">WXYZ</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">6</div>' +
+																		'<div class="croc_tpl_alternate">MNO</div>' +
 																	'</div>' +
 																'</td>' +
 															'</tr>' +
 															'<tr>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">*</div>' +
-																		'<div class="tpl_alternate"></div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">7</div>' +
+																		'<div class="croc_tpl_alternate">PQRS</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">0</div>' +
-																		'<div class="tpl_alternate">+</div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">8</div>' +
+																		'<div class="croc_tpl_alternate">TUV</div>' +
 																	'</div>' +
 																'</td>' +
 																'<td>' +
-																	'<div class="ui_input_button tpl_key" tabindex="0">' +
-																		'<div class="tpl_main">#</div>' +
-																		'<div class="tpl_alternate"></div>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">9</div>' +
+																		'<div class="croc_tpl_alternate">WXYZ</div>' +
+																	'</div>' +
+																'</td>' +
+															'</tr>' +
+															'<tr>' +
+																'<td>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">*</div>' +
+																		'<div class="croc_tpl_alternate"></div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">0</div>' +
+																		'<div class="croc_tpl_alternate">+</div>' +
+																	'</div>' +
+																'</td>' +
+																'<td>' +
+																	'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																		'<div class="croc_tpl_main">#</div>' +
+																		'<div class="croc_tpl_alternate"></div>' +
 																	'</div>' +
 																'</td>' +
 															'</tr>' +
 														'</table>' +
 													'</div>' +
 												'</div>' +
-												'<div class="tpl_deco"></div>' +
+												'<div class="croc_tpl_deco"></div>' +
 											'</div>' +
-											'<div class="ui_input_button ui_input scheme_action_button btn_mute_s mute_video_audio">' +
-												'<div class="ui_image"></div>' +
-												'<div class="ui_text"></div>' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_video_audio">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
 											'</div>' +
-											'<div class="ui_input_button ui_input scheme_action_button btn_pausevideo_s">' +
-												'<div class="ui_image"></div>' +
-												'<div class="ui_text"></div>' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_pausevideo_s">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
 											'</div>' +
-											'<div class="ui_input_button ui_input scheme_action_button btn_endcall_s">' +
-												'<div class="ui_image"></div>' +
-												'<div class="ui_text"></div>' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
 											'</div>' +
 										'</div>' +
 									'</div>' +
 								'</div>' +
-								'<div class="tpl_localvideo">' +
-									'<div class="tpl_disabledvideo"></div>' +
-									'<video class="tpl_video receive_localVideo" autoplay="autoplay"></video>' +
+								'<div class="croc_tpl_localvideo">' +
+									'<div class="croc_tpl_disabledvideo"></div>' +
+									'<video class="croc_tpl_video croc_receive_localVideo" autoplay="autoplay"></video>' +
 								'</div>' +
 							'</div>' +
 						'</div>' +

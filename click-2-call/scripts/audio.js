@@ -5,7 +5,7 @@ var audioSession, transferredSession = null, ringtone;
 function setAudioSession (mediaSession) {
 	
 	// The DOM audio element used for playing the remote party's audio
-	mediaSession.remoteAudioElement = $('.receive-audio')[0];
+	mediaSession.remoteAudioElement = $('.croc_receive-audio')[0];
 	
 	/* 
 	 * The event handler to fire when a provisional response has been 
@@ -17,7 +17,7 @@ function setAudioSession (mediaSession) {
 		ringtone.start();
 		
 		// Set the state element text to 'Ringing'
-		$('.tpl_status').html('Ringing');
+		$('.croc_tpl_status').html('Ringing');
 	};
 	
 	/*
@@ -41,7 +41,7 @@ function setAudioSession (mediaSession) {
 		ringtone.stop();
 		
 		// Set the status element text to 'Connected'
-		$('.tpl_status').html('Connected');
+		$('.croc_tpl_status').html('Connected');
 	};
 	
 	/*
@@ -53,7 +53,7 @@ function setAudioSession (mediaSession) {
 		transferredSession = event.accept();
 		
 		// Set the status element text to 'Transferring...'
-		$('.tpl_status').html('Transferring...');
+		$('.croc_tpl_status').html('Transferring...');
 		
 		// Configure new session
 		setAudioSession(transferredSession);
@@ -74,7 +74,7 @@ function setAudioSession (mediaSession) {
 		if(mediaSession === transferredSession){
 
 			// Set the status element text to 'Transfer failed'
-			$('.tpl_status').html('Transfer failed');
+			$('.croc_tpl_status').html('Transfer failed');
 			transferredSession = null;
 			return;
 		}
@@ -88,18 +88,18 @@ function setAudioSession (mediaSession) {
 		clearInterval(setCallDuration);
 		
 		// Set the status element text to 'Disconnected'
-		$('.tpl_status').html('Disconnected');
+		$('.croc_tpl_status').html('Disconnected');
 		
 		// Hide the warning light to indicate there are no calls
-		$('.warning-light').hide();
+		$('.croc_warning-light').hide();
 		
 		// Reset mute button
-		$('.btn_mute_s').removeClass('disabled');
+		$('.croc_btn_mute_s').removeClass('croc_disabled');
 		
 		// Reset pop-out
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
 		// Close down connection to network.
 		crocObject.disconnect();
@@ -120,7 +120,7 @@ function muteAudioCall() {
 	audioSession.mute();
 	
 	// Add transparency to show mute button has been pressed
-	$('.btn_mute_s').addClass('disabled');
+	$('.croc_btn_mute_s').addClass('croc_disabled');
 }
 
 // Un-mute the audio call
@@ -130,7 +130,7 @@ function unmuteAudioCall() {
 	audioSession.unmute();
 	
 	// Restore icon back to white by removing transparency
-	$('.btn_mute_s').removeClass('disabled');
+	$('.croc_btn_mute_s').removeClass('croc_disabled');
 }
 
 // Audio session set-up
@@ -154,13 +154,13 @@ function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
 			crocObjectConnected = true;
 			
 			// Show the warning light to indicate a call is live
-			$('.warning-light').show();
+			$('.croc_warning-light').show();
 			
 			// Set remote party's address
-			/*$('.ui_uri').html(address);*/
+			/*$('.croc_ui_uri').html(address);*/
 			
 			// Set the status element text to 'Connecting'
-			$('.tpl_status').html('Connecting');
+			$('.croc_tpl_status').html('Connecting');
 			
 			// Set the duration element to start timing the duration of the call
 			var callStartDate = new Date().getTime();
@@ -213,7 +213,7 @@ function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
 
 			// Trigger click to collapse the tab
 			isClicked = true;
-			$('.side-tab').trigger('click');
+			$('.croc_side-tab').trigger('click');
 		}
 	};
 

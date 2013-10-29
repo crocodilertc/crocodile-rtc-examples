@@ -1,16 +1,16 @@
-.ui_popout {
+.croc_ui_popout {
 	position:relative;
 }
 
-.ui_popout .tpl_content,
-.ui_popout .tpl_deco {
+.croc_ui_popout .croc_tpl_content,
+.croc_ui_popout .croc_tpl_deco {
 	display: none;
 }
-.ui_popout_open .tpl_deco {
+.croc_ui_popout_open .croc_tpl_deco {
 	display: block;
 }
 
-.ui_popout_open .tpl_content {
+.croc_ui_popout_open .croc_tpl_content {
 	background:#f7f7f7;
 	border-radius: 0px 5px 5px 5px;
 	box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
@@ -24,7 +24,7 @@
 
 }
 
-.ui_popout .tpl_content div {
+.croc_ui_popout .croc_tpl_content div {
 	position:relative;
 	bottom:0;
 	top:0;
@@ -32,15 +32,11 @@
 	right:0;
 }
 
-.ui_popout .ui_text {
+.croc_ui_popout .croc_ui_text {
 	padding-right: 10px;
 }
 
-.tpl_moreactions .ui_listitem span {
-	cursor: pointer;
-}
-
-.scheme_popout_1 > .tpl_content {
+.croc_scheme_popout_1 > .croc_tpl_content {
 	position:absolute;
 	bottom:100%;
 	top:auto;
@@ -51,7 +47,7 @@
 	border-radius:5px;
 }
 
-.ui_popout.scheme_popout_1 .tpl_deco {
+.croc_ui_popout.croc_scheme_popout_1 .croc_tpl_deco {
 	position:absolute;
 	left:50%;
 	bottom:100%;

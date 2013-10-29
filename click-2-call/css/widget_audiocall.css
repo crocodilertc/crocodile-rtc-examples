@@ -1,10 +1,10 @@
-.widget_audiocall {
+.croc_widget_audiocall {
 	height:11em;
 	position:absolute;
 	width: 23em;
 }
 
-.widget_audiocall .ui_container .ui_content {
+.croc_widget_audiocall .croc_ui_container .croc_ui_content {
 	position: absolute;
 	right: 0px;
 	left: 0px;
@@ -12,7 +12,7 @@
 	top: 2.5em;
 }
 
-.widget_audiocall .ui_container .ui_content > .tpl_content {
+.croc_widget_audiocall .croc_ui_container .croc_ui_content > .croc_tpl_content {
 	position: absolute;
 	right: 0;
 	left: 0;
@@ -20,7 +20,7 @@
 	top: 0;
 }
 
-.widget_audiocall .ui_container .ui_content .tpl_actions {
+.croc_widget_audiocall .croc_ui_container .croc_ui_content .croc_tpl_actions {
 	border-radius: 0px 0px 10px 10px;
 	left: 0;
 	right: 0;
@@ -31,51 +31,50 @@
 	text-align: center;
 }
 
-.widget_audiocall .tpl_info {
+.croc_widget_audiocall .croc_tpl_info {
 	margin-top:1.5em;
 }
 
-.widget_audiocall .tpl_info .tpl_remoteid .ui_label {
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_remoteid .croc_ui_label {
 	display: block;
 	font-size: 18px;
 	font-weight: bold;
 	text-align: center;
 }
 
-.widget_audiocall .tpl_info .tpl_details {
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details {
 	margin-top: 0.5em;
 	text-align: center;
 }
 
-.widget_audiocall .tpl_info .tpl_details .tpl_status,
-.widget_audiocall .tpl_info .tpl_details .ui_duration {
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_tpl_status,
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_ui_duration {
 	display: inline-block;
 	padding: 0 0.25em;
 	font-size: 13px;
 }
 
-.widget_audiocall .tpl_actions > .tpl_group > .ui_popout {
+.croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_popout {
 	display:inline-block;
 }
 
-.widget_audiocall .tpl_actions > .tpl_group > .ui_input_button,
-.widget_audiocall .tpl_actions > .tpl_group > .ui_popout > .ui_input_button {
+.croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_input_button,
+.croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_popout > .croc_ui_input_button {
 	height: 1.75em;
 	width: 2.5em;
 	display:inline-block;
 }
 
-.widget_audiocall .ui_keypad {
+.croc_widget_audiocall .croc_ui_keypad {
 	width:8em;
 	height:10em;
 }
-.widget_audiocall .ui_keypad table {
+.croc_widget_audiocall .croc_ui_keypad table {
 	font-size:12px;
 }
 
-.widget_audiocall .tpl_actions .tpl_group {
+.croc_widget_audiocall .croc_tpl_actions .croc_tpl_group {
 	position:relative;
 	top:50%;
 	margin-top:-1em;
 }
-

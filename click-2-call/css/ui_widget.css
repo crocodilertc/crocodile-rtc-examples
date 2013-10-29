@@ -14,15 +14,11 @@ ul, li, ol {
 
 /* Widget Styles */
 
-.ui_widget {
+.croc_ui_widget {
 	position:absolute;
 }
 
-.ui_widget.ui_fullscreen .ui_container {
-	box-shadow:none !important;
-}
-
-.ui_widget .ui_container {
+.croc_ui_widget .croc_ui_container {
 	position: absolute;
 	left: 0;
 	right: 0;
@@ -30,7 +26,7 @@ ul, li, ol {
 	bottom: 0;
 }
 
-.ui_widget .tpl_title {
+.croc_ui_widget .croc_tpl_title {
 	background: #ffffff; /* Old browsers */
 	background: -moz-linear-gradient(top,  #ffffff 0%, #e7eceb 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e7eceb)); /* Chrome,Safari4+ */
@@ -51,58 +47,35 @@ ul, li, ol {
 	width: 100%;
 }
 
-.tpl_title .title_control h1.ui_title {
+.croc_tpl_title .croc_title_control h1.croc_ui_title {
 	color: #1a3e36;
 	font-size: 13px;
 	font-weight: bold;
 	padding: 13px 13px 0px 13px;
 }
 
-.ui_widget .ui_content {
+.croc_ui_widget .croc_ui_content {
 	position:relative;
 	padding:0px;
 }
 
-.ui_widget .ui_actions {
-	position:absolute;
-	right:10px;
-	top:10px;
-	height:20px;
-	padding:0;
-	margin:0;
-	box-shadow:none;
-	border:none;
-	background-color:transparent;_
-}
-
-/*
-.ui_widget .ui_actions .ui_input_button {
-	
-	width:20px;
-	height:20px;
-	padding:0;
-	margin:0;
-	float:left;
-}
-*/
-
-.ui_widget .ui_actions .ui_input_button .ui_input:active {
+.croc_ui_widget .croc_ui_input_button .croc_ui_input:active {
 	box-shadow:inset 0 3px 5px #000;
 	border-radius:5px;
 }
 
-.scheme_widget {
+.croc_scheme_widget {
 	border-radius:10px;
 	box-shadow:0px 0px 10px 1px #343434;
 }
 
-.ui_title_toolbar {
+.croc_ui_title_toolbar {
 	position: absolute;
 	top: 7px;
 	right: 13px;
 }
 
-.ui_title_toolbar .ui_input_button {
+.croc_ui_title_toolbar .croc_ui_input_button {
 	display: block;
 	float: left;
 	height: 26px;
@@ -110,10 +83,10 @@ ul, li, ol {
 	width: 26px;
 }
 
-.ui_title_toolbar .ui_input_button .ui_text {
+.croc_ui_title_toolbar .croc_ui_input_button .croc_ui_text {
 	display:none;
 }
 
-.ui_title_toolbar .selected {
+.croc_ui_title_toolbar .croc_selected {
 	border-color:#409f89;
 }

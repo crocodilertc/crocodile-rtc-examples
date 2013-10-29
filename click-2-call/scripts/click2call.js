@@ -32,38 +32,38 @@ var croc_click2call = function(userConfig) {
 		/*
 		 * Setup tab event handlers
 		 */		
-		$('.side-tab').click(function() {
+		$('.croc_side-tab').click(function() {
 			
 			if (!isClicked) {
 				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '185px'
 					});
 					break;
 				case 'bottom':
-					$('.audio-bottom-tab').animate({
+					$('.croc_audio-bottom-tab').animate({
 						bottom: '10px'
 					});
 					break;
 				case 'left':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '379px'
 					});
 					break;
 				default:
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '379px'
 					});
 					break;
 				}
 			
 				// Show tab content
-				$('.side-tab-content').show(600);
+				$('.croc_side-tab-content').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
@@ -76,31 +76,31 @@ var croc_click2call = function(userConfig) {
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '0px'
 					});					
 					break;
 				case 'bottom':
-					$('.audio-bottom-tab').animate({
+					$('.croc_audio-bottom-tab').animate({
 						bottom: '0px'
 					});
 					break;
 				case 'left':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '0px'
 					});
 					break;
 				default:
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '0px'
 					});
 					break;
 				}
 				
 				// Hide tab content
-				$('.side-tab-content').hide(1000);
+				$('.croc_side-tab-content').hide(1000);
 				
 				isClicked = false;
 			}
@@ -113,21 +113,21 @@ var croc_click2call = function(userConfig) {
 		var toggleOnMute = false;
 		
 		// End audio session when clicked
-		$('.btn_close').click(function(){
+		$('.croc_btn_close').click(function(){
 
 			// End the audio call
 			endAudio();
 		});
 		
 		// End audio session when clicked
-		$('.btn_endcall_s').click(function() {
+		$('.croc_btn_endcall_s').click(function() {
 			
 			// End the audio call
 			endAudio();
 		});
 		
 		// Set mute call button
-		$('.mute_audio').click(function () {
+		$('.croc_mute_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudioCall();
@@ -138,7 +138,7 @@ var croc_click2call = function(userConfig) {
 		});
 
 		// Setup keypad popout
-		$('.ui_popout').click(function(evt){
+		$('.croc_ui_popout').click(function(evt){
 			$('body').click(function(evt2){
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
@@ -152,26 +152,26 @@ var croc_click2call = function(userConfig) {
 
 				$('body').off('click');
 
-				$('.ui_popout').removeClass('ui_popout_open');
-				$('.tpl_titlebar').removeClass('ui_shown');
-				$('.tpl_actions').removeClass('ui_shown');
+				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
 
 			evt.stopPropagation();
-			$('.ui_popout').addClass('ui_popout_open');
-			$('.tpl_titlebar').addClass('ui_shown');
-			$('.tpl_actions').addClass('ui_shown');
+			$('.croc_ui_popout').addClass('croc_ui_popout_open');
+			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
+			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
 
 		// Make sure keypad and tool bars aren't displayed
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 
 		// Setup keypad buttons
-		var keypad = $('.ui_keypad');
-		keypad.find('.tpl_key').click(function(){
-			var value = $(this).find('.tpl_main').text();
+		var keypad = $('.croc_ui_keypad');
+		keypad.find('.croc_tpl_key').click(function(){
+			var value = $(this).find('.croc_tpl_main').text();
 			audioSession.sendDTMF(value);
 		});
 	};
@@ -181,38 +181,38 @@ var croc_click2call = function(userConfig) {
 	 */
 	var setupVideoWidgetHandlers = function () {
 		
-		$('.side-tab').click(function() {
+		$('.croc_side-tab').click(function() {
 			
 			if (!isClicked) {
 				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '343px'
 					});
 					break;
 				case 'bottom':
-					$('.video-bottom-tab').animate({
+					$('.croc_video-bottom-tab').animate({
 						bottom: '10px'
 					});
 					break;
 				case 'left':
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '511px'
 					});
 					break;
 				default:
 					// Expand tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '511px'
 					});
 					break;
 				}
 			
 				// Show tab content
-				$('.side-tab-content-video').show(600);
+				$('.croc_side-tab-content-video').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
@@ -225,31 +225,31 @@ var croc_click2call = function(userConfig) {
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						top: '0px'
-					});					
+					});
 					break;
 				case 'bottom':
-					$('.video-bottom-tab').animate({
+					$('.croc_video-bottom-tab').animate({
 						bottom: '0px'
 					});
 					break;
 				case 'left':
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						left: '0px'
 					});
 					break;
 				default:
 					// Collapse tab.
-					$('.tab-container').animate({
+					$('.croc_tab-container').animate({
 						right: '0px'
 					});
 					break;
 				}
 				
 				// Show tab content
-				$('.side-tab-content-video').hide(1000);
+				$('.croc_side-tab-content-video').hide(1000);
 				
 				isClicked = false;
 			}
@@ -257,13 +257,13 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// Setup close button
-		$('.btn_close').click(function(){
+		$('.croc_btn_close').click(function(){
 			// End the video call
 			endVideo();
 		});
 		
 		// Setup end call button
-		$('.btn_endcall_s').click(function() {
+		$('.croc_btn_endcall_s').click(function() {
 			// End the video call
 			endVideo();
 		});
@@ -271,7 +271,7 @@ var croc_click2call = function(userConfig) {
 		var togglePauseVideo = false;
 		
 		// Set pause video button
-		$('.btn_pausevideo_s').click(function () {
+		$('.croc_btn_pausevideo_s').click(function () {
 			if (!togglePauseVideo) {
 				togglePauseVideo = true;
 				pauseVideo();
@@ -284,7 +284,7 @@ var croc_click2call = function(userConfig) {
 		var toggleOnMute = false;
 		
 		// Set mute audio button
-		$('.mute_video_audio').click(function () {
+		$('.croc_mute_video_audio').click(function () {
 			if (!toggleOnMute) {
 				toggleOnMute = true;
 				muteAudio();
@@ -297,18 +297,18 @@ var croc_click2call = function(userConfig) {
 		var toggleLocalVideo = true;
 		
 		// Setup click event for local video button to display/hide local video
-		$('.btn_localvideo').click(function () {
+		$('.croc_btn_localvideo').click(function () {
 			if (toggleLocalVideo) {
 				toggleLocalVideo = false;
-				$('.tpl_controls').removeClass("ui_localvideoshown");
+				$('.croc_tpl_controls').removeClass("croc_ui_localvideoshown");
 			} else {
 				toggleLocalVideo = true;
-				$('.tpl_controls').addClass("ui_localvideoshown");
+				$('.croc_tpl_controls').addClass("croc_ui_localvideoshown");
 			}
 		});
 		
 		// Setup full screen button
-		$('.btn_fullscreen').click(function() {
+		$('.croc_btn_fullscreen').click(function() {
 			if (!isFullscreen) {
 				isFullscreen = true;
 				setVideoToFullscreen(true);
@@ -319,7 +319,7 @@ var croc_click2call = function(userConfig) {
 		});
 		
 		// Setup keypad popout
-		$('.ui_popout').click(function(evt){
+		$('.croc_ui_popout').click(function(evt){
 			$('body').click(function(evt2){
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
@@ -333,26 +333,26 @@ var croc_click2call = function(userConfig) {
 
 				$('body').off('click');
 
-				$('.ui_popout').removeClass('ui_popout_open');
-				$('.tpl_titlebar').removeClass('ui_shown');
-				$('.tpl_actions').removeClass('ui_shown');
+				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
 
 			evt.stopPropagation();
-			$('.ui_popout').addClass('ui_popout_open');
-			$('.tpl_titlebar').addClass('ui_shown');
-			$('.tpl_actions').addClass('ui_shown');
+			$('.croc_ui_popout').addClass('croc_ui_popout_open');
+			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
+			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
 
 		// Make sure keypad and tool bars aren't displayed
-		$('.ui_popout').removeClass('ui_popout_open');
-		$('.tpl_titlebar').removeClass('ui_shown');
-		$('.tpl_actions').removeClass('ui_shown');
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 
 		// Setup keypad buttons
-		var keypad = $('.ui_keypad');
-		keypad.find('.tpl_key').click(function(){
-			var value = $(this).find('.tpl_main').text();
+		var keypad = $('.croc_ui_keypad');
+		keypad.find('.croc_tpl_key').click(function(){
+			var value = $(this).find('.croc_tpl_main').text();
 			videoSession.sendDTMF(value);
 		});
 	};
@@ -435,13 +435,13 @@ var croc_click2call = function(userConfig) {
 	if (mediaWidget === 'video' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
 		
 		// Change css position to user defined/default position
-		$('.tab-wrapper-video').css('position', defaultConfig.click2callPosition);	
+		$('.croc_tab-wrapper-video').css('position', defaultConfig.click2callPosition);	
 	}
 	
 	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed')  {
 		
 		// Change css position to user defined/default position
-		$('.tab-wrapper').css('position', defaultConfig.click2callPosition);
+		$('.croc_tab-wrapper').css('position', defaultConfig.click2callPosition);
 	}
 	
 	/*
@@ -450,48 +450,48 @@ var croc_click2call = function(userConfig) {
 	switch (orientationOfClick2Call) {
 	case 'top':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
-			$('.tab-container').removeClass('tab-wrapper-video');
-			$('.tab-container').addClass('video-top-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('video-top-side-tab');
-			$('.side-tab-content-video').addClass('video-top-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper-video');
+			$('.croc_tab-container').addClass('croc_video-top-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_video-top-side-tab');
+			$('.croc_side-tab-content-video').addClass('croc_video-top-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'top') {
-			$('.tab-container').removeClass('tab-wrapper');
-			$('.tab-container').addClass('audio-top-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('audio-side-tab-top');
-			$('.side-tab-content').addClass('audio-top-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper');
+			$('.croc_tab-container').addClass('croc_audio-top-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_audio-side-tab-top');
+			$('.croc_side-tab-content').addClass('croc_audio-top-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		break;
 	case 'bottom':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'bottom') {
-			$('.tab-container').removeClass('tab-wrapper-video');
-			$('.tab-container').addClass('video-bottom-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('video-side-tab-bottom');
-			$('.side-tab-content-video').addClass('video-bottom-content');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper-video');
+			$('.croc_tab-container').addClass('croc_video-bottom-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_video-side-tab-bottom');
+			$('.croc_side-tab-content-video').addClass('croc_video-bottom-content');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'bottom') {
-			$('.tab-container').removeClass('tab-wrapper');
-			$('.tab-container').addClass('audio-bottom-tab');
-			$('.side-tab').removeClass('rotate-vertical');
-			$('.side-tab').addClass('rotate-horizontal');
-			$('.side-tab-content').addClass('audio-bottom-content');
+			$('.croc_tab-container').removeClass('croc_tab-wrapper');
+			$('.croc_tab-container').addClass('croc_audio-bottom-tab');
+			$('.croc_side-tab').removeClass('croc_rotate-vertical');
+			$('.croc_side-tab').addClass('croc_rotate-horizontal');
+			$('.croc_side-tab-content').addClass('croc_audio-bottom-content');
 		}
 		break;
 	case 'left':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'left') {
-			$('.tab-container').addClass('video-left-tab');
-			$('.side-tab-content-video').addClass('video-left-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').addClass('croc_video-left-tab');
+			$('.croc_side-tab-content-video').addClass('croc_video-left-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		if (mediaWidget === 'audio' && orientationOfClick2Call === 'left') {
-			$('.tab-container').addClass('audio-left-tab');
-			$('.side-tab-content').addClass('audio-left-content');
-			$('.side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_tab-container').addClass('croc_audio-left-tab');
+			$('.croc_side-tab-content').addClass('croc_audio-left-content');
+			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		}
 		break;
 	default:
@@ -550,7 +550,7 @@ function setDuration(callStartDate) {
 			var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
 			
 			// Set the duration element text to the current duration after formatting 
-			$('.ui_duration').html(formattedCallDuration);
+			$('.croc_ui_duration').html(formattedCallDuration);
 			
 		}, 1000);
 }
