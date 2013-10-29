@@ -135,8 +135,8 @@
 			var This = this;
 
 			// Get local and remote elements
-			sessionObj.remoteAudioElement = this.remoteElement;
-			sessionObj.remoteVideoElement = this.remoteElement;
+			sessionObj.remoteAudioElement = this.remoteAudioElement;
+			sessionObj.remoteVideoElement = this.remoteVideoElement;
 			sessionObj.localVideoElement = this.localElement;
 
 			// When call is connected
@@ -249,7 +249,7 @@
 
 			CallWidget.prototype.init.call(this);
 
-			this.remoteElement = this.content.find('audio')[0];
+			this.remoteAudioElement = this.content.find('audio')[0];
 
 			this.content.find('.btn_close').click(function(){
 				This.close();
@@ -296,7 +296,8 @@
 			CallWidget.prototype.init.call(this);
 
 			this.localElement = this.content.find('.tpl_localvideo video')[0];
-			this.remoteElement = this.content.find('video.tpl_remotevideo')[0];
+			this.remoteVideoElement = this.content.find('video.tpl_remotevideo')[0];
+			this.remoteAudioElement = this.content.find('audio.tpl_remoteaudio')[0];
 
 			this.content.find('.btn_close').click(function(){
 				This.close();
@@ -848,6 +849,9 @@
 						'</div>' +
 					'</div>' +
 				'</div>' +
+			'</div>' +
+			'<div class="hidden">' +
+				'<audio class="tpl_remoteaudio" autoplay="autoplay"></audio>' +
 			'</div>' +
 		'</div>');
 
