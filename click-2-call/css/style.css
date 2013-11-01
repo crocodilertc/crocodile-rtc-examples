@@ -88,7 +88,7 @@
 }
 .croc_side-tab-content {
 	width: 370px;
-	height: 176px;
+	height: 195px;
 	position: relative;
 	top: -40px;
 	left: 45px;
@@ -96,7 +96,7 @@
 }
 .croc_side-tab-content-video {
 	width: 501px;
-	height: 333px;
+	height: 353px;
 	position: relative;
 	top: -40px;
 	left: 45px;
@@ -105,22 +105,28 @@
 .croc_powered_by_audio {
 	position: relative;
 	top: 180px;
-	left: 160px;
-	width: 193px;
+	left: 109.5px;
+	width: 151px;
 	color: #409F89;
+	font-size: 12px;
+	font-style: italic;
 }
 .croc_powered_by_audio a {
 	color: #409f89;
+	text-decoration: underline;
 }
 .croc_powered_by_video {
 	position: relative;
 	top: 338px;
-	left: 292px;
-	width: 193px;
+	left: 175px;
+	width: 151px;
 	color: #409F89;
+	font-size: 12px;
+	font-style: italic;
 }
 .croc_powered_by_video a {
 	color: #409f89;
+	text-decoration: underline;
 }
 
 /* rotate element 90 degrees counter-clockwise */
@@ -195,7 +201,7 @@
 	top: 0px;
 }
 .croc_side-tab-content-video.croc_video-bottom-content {
-	top: 5px;
+	top: -4px;
 	left: 0px;
 }
 
@@ -213,7 +219,7 @@
 }
 .croc_side-tab-content-video.croc_video-top-content {
 	left: 0;
-	top: -378px;
+	top: -390px;
 }
 
 /* Convert right tab to top tab for audio */
@@ -231,6 +237,9 @@
 .croc_side-tab-content.croc_audio-top-content {
 	top: -220px;
 	left: 0px;
+}
+.croc_powered_by_audio.croc_top {
+    left: 132px;
 }
 
 /* Style for making a red circle pulsate */

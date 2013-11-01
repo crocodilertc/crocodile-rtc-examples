@@ -1,4 +1,4 @@
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-10-15
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-11-01
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -34262,7 +34262,7 @@ var CrocSDK = {};
 	 *       
 	 *       capability: {
 	 *         refreshPeriod: 15,
-	 *         onWatch: function(event) {
+	 *         onWatchRequest: function(event) {
 	 *           // Some code
 	 *         },
 	 *         onWatchChange: function(event) {
@@ -35225,15 +35225,18 @@ var CrocSDK = {};
 	 *       // Some code
 	 *     },
 	 *     
+	 *     // General configuration
+	 *     acceptTimeout: 300,   // Incoming sessions will be rejected if not accepted within this time (seconds)
+	 *     
 	 *     // Data API configuration
 	 *     data: {
 	 *       // Optional parameters
-	 *       acceptTimeout: 300,   // Incoming sessions will be rejected if not accepted within this time (seconds)
 	 *       idleTimeout: 300,     // Idle sessions will be closed if not reused within this time (seconds)
 	 *       
 	 *       // Optional event handlers
-	 *       onSession: function(event) {
+	 *       onDataSession: function(event) {
 	 *         // Handle incoming session
+	 *         event.session.accept();
 	 *       },
 	 *       onData: function(event) {
 	 *         // Handle incoming data (simple case, where SDK handles sessions)
@@ -35994,13 +35997,13 @@ var CrocSDK = {};
 	 *       // Some code
 	 *     },
 	 *   
+	 *     // General configuration
+	 *     acceptTimeout: 30,   // Incoming sessions will be rejected if not accepted within this time (seconds)
+	 *     
 	 *     // Media API configuration
 	 *     media: {
-	 *       // Optional parameters (with default values)
-	 *       acceptTimeout: 30,
-	 *   
 	 *       // Optional event handlers
-	 *       onSession: function(event) {
+	 *       onMediaSession: function(event) {
 	 *         // Handle new incoming session
 	 *       }
 	 *     }
@@ -38435,7 +38438,7 @@ var CrocSDK = {};
 	 *       },
 	 *       
 	 *       data: {
-	 *         onSession: function(event) {
+	 *         onDataSession: function(event) {
 	 *           // Add event handler for file transfers on the new incoming session
 	 *           event.session.onDataStart = function (event) {
 	 *             // Create new progress bar for each file transfer
@@ -38628,11 +38631,11 @@ var CrocSDK = {};
 	 *     var crocObject = $.croc({
 	 *       apiKey: "API_KEY_GOES_HERE",
 	 *       onConnected: function () {
-	 *         this.data.send('bob@example.com', 'Web application ready');
+	 *         this.data.send('bob@crocodilertc.net', 'Web application ready');
 	 *       },
 	 *       
 	 *       data: {
-	 *         onSession: function(event) {
+	 *         onDataSession: function(event) {
 	 *           // Accept every incoming session
 	 *           event.session.accept();
 	 *         },

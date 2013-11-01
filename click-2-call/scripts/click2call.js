@@ -4,7 +4,7 @@ var setCallDuration = null;
 var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 
 // The function to set up a click to call tab
-var croc_click2call = function(userConfig) {	
+var croc_click2call = function(userConfig) {
 	
 	// Override default configuration with user configuration if present
 	var defaultConfig = $.extend({
@@ -14,7 +14,7 @@ var croc_click2call = function(userConfig) {
 		click2callDisplayName: null,
 		click2callMediaWidget: 'audio',
 		click2callOrientation: 'right',
-		click2callPosition: 'absolute',
+		click2callPosition: 'fixed',
 		countryRingtoneCode: 'gb'
 	}, userConfig||{});
 	
@@ -78,7 +78,7 @@ var croc_click2call = function(userConfig) {
 					// Collapse tab.
 					$('.croc_tab-container').animate({
 						top: '0px'
-					});					
+					});
 					break;
 				case 'bottom':
 					$('.croc_audio-bottom-tab').animate({
@@ -192,11 +192,6 @@ var croc_click2call = function(userConfig) {
 						top: '343px'
 					});
 					break;
-				case 'bottom':
-					$('.croc_video-bottom-tab').animate({
-						bottom: '10px'
-					});
-					break;
 				case 'left':
 					// Expand tab.
 					$('.croc_tab-container').animate({
@@ -227,11 +222,6 @@ var croc_click2call = function(userConfig) {
 					// Collapse tab.
 					$('.croc_tab-container').animate({
 						top: '0px'
-					});
-					break;
-				case 'bottom':
-					$('.croc_video-bottom-tab').animate({
-						bottom: '0px'
 					});
 					break;
 				case 'left':
@@ -464,6 +454,7 @@ var croc_click2call = function(userConfig) {
 			$('.croc_side-tab').addClass('croc_audio-side-tab-top');
 			$('.croc_side-tab-content').addClass('croc_audio-top-content');
 			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_powered_by_audio').addClass('croc_top');
 		}
 		break;
 	case 'bottom':

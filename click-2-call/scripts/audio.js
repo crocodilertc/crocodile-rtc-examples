@@ -119,6 +119,8 @@ function muteAudioCall() {
 	// Mute the sessions audio track
 	audioSession.mute();
 	
+	$('.croc_mute_audio').removeClass('croc_btn_mute_s');
+	$('.croc_mute_audio').addClass('croc_btn_muted');
 	// Add transparency to show mute button has been pressed
 	$('.croc_btn_mute_s').addClass('croc_disabled');
 }
@@ -129,6 +131,8 @@ function unmuteAudioCall() {
 	// Un-mute the sessions audio track
 	audioSession.unmute();
 	
+	$('.croc_mute_audio').removeClass('croc_btn_muted');
+	$('.croc_mute_audio').addClass('croc_btn_mute_s');
 	// Restore icon back to white by removing transparency
 	$('.croc_btn_mute_s').removeClass('croc_disabled');
 }

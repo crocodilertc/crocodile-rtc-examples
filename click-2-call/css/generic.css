@@ -19,6 +19,16 @@
 	opacity:0.25;
 }
 
+.croc_btn_muted .croc_ui_image {
+	background: url(../images/icons.png) no-repeat -246px -130px;
+}
+.croc_btn_muted:hover .croc_ui_image {
+	background: url(../images/icons.png) no-repeat -246px -130px;
+}
+.croc_btn_muted.croc_selected .croc_ui_image {
+	background: url(../images/icons.png) no-repeat -246px -130px;
+}
+
 .croc_btn_mute_s .croc_ui_image {
 	background: url(../images/icons.png) no-repeat -83px -170px;
 }

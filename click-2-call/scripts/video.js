@@ -124,6 +124,8 @@ function muteAudio() {
 	// Disable the sessions audio track
 	videoSession.mute();
 	
+	$('.croc_mute_video_audio').removeClass('croc_btn_mute_s');
+	$('.croc_mute_video_audio').addClass('croc_btn_muted');
 	// Turn icon green to show its been pressed
 	$('.croc_btn_mute_s').addClass('croc_selected');
 }
@@ -134,6 +136,8 @@ function unmuteAudio() {
 	// Un-mute the sessions audio track
 	videoSession.unmute();
 	
+	$('.croc_mute_video_audio').removeClass('croc_btn_muted');
+	$('.croc_mute_video_audio').addClass('croc_btn_mute_s');
 	// Restore icon back to white
 	$('.croc_btn_mute_s').removeClass('croc_selected');
 }

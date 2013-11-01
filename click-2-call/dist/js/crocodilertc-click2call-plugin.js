@@ -9788,7 +9788,7 @@ if ( typeof module === "object" && module && typeof module.exports === "object" 
 
 })( window );
 
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-10-15
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-11-01
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -44052,7 +44052,7 @@ var CrocSDK = {};
 	 *       
 	 *       capability: {
 	 *         refreshPeriod: 15,
-	 *         onWatch: function(event) {
+	 *         onWatchRequest: function(event) {
 	 *           // Some code
 	 *         },
 	 *         onWatchChange: function(event) {
@@ -45015,15 +45015,18 @@ var CrocSDK = {};
 	 *       // Some code
 	 *     },
 	 *     
+	 *     // General configuration
+	 *     acceptTimeout: 300,   // Incoming sessions will be rejected if not accepted within this time (seconds)
+	 *     
 	 *     // Data API configuration
 	 *     data: {
 	 *       // Optional parameters
-	 *       acceptTimeout: 300,   // Incoming sessions will be rejected if not accepted within this time (seconds)
 	 *       idleTimeout: 300,     // Idle sessions will be closed if not reused within this time (seconds)
 	 *       
 	 *       // Optional event handlers
-	 *       onSession: function(event) {
+	 *       onDataSession: function(event) {
 	 *         // Handle incoming session
+	 *         event.session.accept();
 	 *       },
 	 *       onData: function(event) {
 	 *         // Handle incoming data (simple case, where SDK handles sessions)
@@ -45784,13 +45787,13 @@ var CrocSDK = {};
 	 *       // Some code
 	 *     },
 	 *   
+	 *     // General configuration
+	 *     acceptTimeout: 30,   // Incoming sessions will be rejected if not accepted within this time (seconds)
+	 *     
 	 *     // Media API configuration
 	 *     media: {
-	 *       // Optional parameters (with default values)
-	 *       acceptTimeout: 30,
-	 *   
 	 *       // Optional event handlers
-	 *       onSession: function(event) {
+	 *       onMediaSession: function(event) {
 	 *         // Handle new incoming session
 	 *       }
 	 *     }
@@ -48225,7 +48228,7 @@ var CrocSDK = {};
 	 *       },
 	 *       
 	 *       data: {
-	 *         onSession: function(event) {
+	 *         onDataSession: function(event) {
 	 *           // Add event handler for file transfers on the new incoming session
 	 *           event.session.onDataStart = function (event) {
 	 *             // Create new progress bar for each file transfer
@@ -48418,11 +48421,11 @@ var CrocSDK = {};
 	 *     var crocObject = $.croc({
 	 *       apiKey: "API_KEY_GOES_HERE",
 	 *       onConnected: function () {
-	 *         this.data.send('bob@example.com', 'Web application ready');
+	 *         this.data.send('bob@crocodilertc.net', 'Web application ready');
 	 *       },
 	 *       
 	 *       data: {
-	 *         onSession: function(event) {
+	 *         onDataSession: function(event) {
 	 *           // Accept every incoming session
 	 *           event.session.accept();
 	 *         },
@@ -52598,6 +52601,8 @@ function muteAudioCall() {
 	// Mute the sessions audio track
 	audioSession.mute();
 	
+	$('.croc_mute_audio').removeClass('croc_btn_mute_s');
+	$('.croc_mute_audio').addClass('croc_btn_muted');
 	// Add transparency to show mute button has been pressed
 	$('.croc_btn_mute_s').addClass('croc_disabled');
 }
@@ -52608,6 +52613,8 @@ function unmuteAudioCall() {
 	// Un-mute the sessions audio track
 	audioSession.unmute();
 	
+	$('.croc_mute_audio').removeClass('croc_btn_muted');
+	$('.croc_mute_audio').addClass('croc_btn_mute_s');
 	// Restore icon back to white by removing transparency
 	$('.croc_btn_mute_s').removeClass('croc_disabled');
 }
@@ -52705,7 +52712,7 @@ var setCallDuration = null;
 var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 
 // The function to set up a click to call tab
-var croc_click2call = function(userConfig) {	
+var croc_click2call = function(userConfig) {
 	
 	// Override default configuration with user configuration if present
 	var defaultConfig = $.extend({
@@ -52715,7 +52722,7 @@ var croc_click2call = function(userConfig) {
 		click2callDisplayName: null,
 		click2callMediaWidget: 'audio',
 		click2callOrientation: 'right',
-		click2callPosition: 'absolute',
+		click2callPosition: 'fixed',
 		countryRingtoneCode: 'gb'
 	}, userConfig||{});
 	
@@ -52779,7 +52786,7 @@ var croc_click2call = function(userConfig) {
 					// Collapse tab.
 					$('.croc_tab-container').animate({
 						top: '0px'
-					});					
+					});
 					break;
 				case 'bottom':
 					$('.croc_audio-bottom-tab').animate({
@@ -52893,11 +52900,6 @@ var croc_click2call = function(userConfig) {
 						top: '343px'
 					});
 					break;
-				case 'bottom':
-					$('.croc_video-bottom-tab').animate({
-						bottom: '10px'
-					});
-					break;
 				case 'left':
 					// Expand tab.
 					$('.croc_tab-container').animate({
@@ -52928,11 +52930,6 @@ var croc_click2call = function(userConfig) {
 					// Collapse tab.
 					$('.croc_tab-container').animate({
 						top: '0px'
-					});
-					break;
-				case 'bottom':
-					$('.croc_video-bottom-tab').animate({
-						bottom: '0px'
 					});
 					break;
 				case 'left':
@@ -53165,6 +53162,7 @@ var croc_click2call = function(userConfig) {
 			$('.croc_side-tab').addClass('croc_audio-side-tab-top');
 			$('.croc_side-tab-content').addClass('croc_audio-top-content');
 			$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
+			$('.croc_powered_by_audio').addClass('croc_top');
 		}
 		break;
 	case 'bottom':
@@ -55418,6 +55416,8 @@ function muteAudio() {
 	// Disable the sessions audio track
 	videoSession.mute();
 	
+	$('.croc_mute_video_audio').removeClass('croc_btn_mute_s');
+	$('.croc_mute_video_audio').addClass('croc_btn_muted');
 	// Turn icon green to show its been pressed
 	$('.croc_btn_mute_s').addClass('croc_selected');
 }
@@ -55428,6 +55428,8 @@ function unmuteAudio() {
 	// Un-mute the sessions audio track
 	videoSession.unmute();
 	
+	$('.croc_mute_video_audio').removeClass('croc_btn_muted');
+	$('.croc_mute_video_audio').addClass('croc_btn_mute_s');
 	// Restore icon back to white
 	$('.croc_btn_mute_s').removeClass('croc_selected');
 }
@@ -55592,7 +55594,7 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 			'</div>' +
 		'</div>' +
 		'<div class="croc_side-tab-content">' +
-			'<div class="croc_ui_widget croc_widget_audiocall croc_hidden">' +
+			'<div class="croc_ui_widget croc_widget_audiocall">' +
 				'<div class="croc_ui_container croc_scheme_widget">' +
 					'<div class="croc_tpl_title">' +
 						'<div class="croc_title_control">' +
@@ -55728,6 +55730,9 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 					'</div>' +
 				'</div>' +
 			'</div>' +
+			'<div class="croc_powered_by_audio">'+
+				'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
+			'</div>' +
 		'</div>' +
 	'</div>';
 	
@@ -55743,7 +55748,7 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 				'</div>' +
 			'</div>' +
 		'<div class="croc_side-tab-content-video">' +
-			'<div class="croc_ui_widget croc_widget_videocall croc_hidden">' +
+			'<div class="croc_ui_widget croc_widget_videocall">' +
 				'<div class="croc_ui_container croc_scheme_widget">' +
 					'<div class="croc_tpl_titlebar">' +
 						'<div class="croc_tpl_title">' +
@@ -55889,6 +55894,9 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 						'</div>' +
 					'</div>' +
 				'</div>' +
+			'</div>' +
+			'<div class="croc_powered_by_video">'+
+				'<p>Powered by <a class="croc_link" target="_blank">crocodilertc.net</a></p>'+
 			'</div>' +
 		'</div>' +
 	'</div>';
