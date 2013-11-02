@@ -20,7 +20,7 @@
 			config.features = ['audio', 'transfer'];
 			config.displayName = this.displayName;
 
-			if(this.callType === 'video')
+			if(this.callType === 'video' || this.callType === 'videofull')
 				config.features.push('video');
 
 			config.onConnected = function(evt){
@@ -36,11 +36,18 @@
 
 		// Start the call
 		call : function(){
+			var This = this;
+
 			if(this.callType === 'audio')
 				this.session = new AudioWidget(this);
 			else
 				this.session = new VideoWidget(this);
 			this.session.connect();
+
+			if(this.callType === 'videofull')
+				setTimeout(function(){
+					This.session.setFullscreen(true);
+				}, 2000);
 		},
 
 		onClose : function(){}
@@ -108,7 +115,7 @@
 			// Set stream configuration
 			config.streamConfig = {};
 			config.streamConfig.audio = { send : true, receive : true };
-			if(this.stack.callType === 'video')
+			if(this.stack.callType === 'video' || this.stack.callType === 'videofull')
 				config.streamConfig.video = { send : true, receive : true };
 			else
 				config.streamConfig.video = null;
