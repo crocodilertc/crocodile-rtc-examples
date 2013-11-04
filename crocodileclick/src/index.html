@@ -49,8 +49,9 @@
 					gUM.call(navigator, config, onSuccessWrapper, onFailureWrapper);
 				};
 
+				var callElementHideTimeout = null;
 				var hideCallElement = function(){
-					setTimeout(function(){
+					callElementHideTimeout = setTimeout(function(){
 						callElement.hide();
 					}, 1000);
 				};
@@ -124,6 +125,40 @@
 						hideCallElement();
 					};
 				});
+
+				// Get url parameters
+				var urlParameters = {};
+				var url = window.location.href;
+
+				url.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(match, key, value) {
+					urlParameters[key] = value;
+				});
+
+				if(urlParameters.user) {
+					clearTimeout(callElementHideTimeout);
+					callElement.show();
+
+					var addressElem = $('#input_talk_destination');
+					addressElem.val(urlParameters.user);
+					var address = addressElem.val();
+
+					if(address.indexOf('crocodiletalk.com') === -1)
+						address += '@crocodiletalk.com';
+
+					window.setTimeout(function(){
+						callSession = new CrocExample({
+							address : address,
+							callType : urlParameters.type,
+							location : callElement,
+							apiKey : apiKey
+						});
+
+						callSession.onClose = function(){
+							callSession = null;
+							hideCallElement();
+						};
+					}, 2000);
+				}
 			};
 		</script>
 	</head>
@@ -172,3 +207,4 @@
 		<a href="https://wiki.crocodilertc.net/index.php/Click_2_Call" target="_blank" style="display:block;text-align:center;font-size:1.5em;text-decoration:none;color:#0070C0;">How to add Click-2-Call to your website</a>
 	</body>
 </html>
+
