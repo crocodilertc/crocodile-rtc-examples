@@ -1,4 +1,4 @@
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-11-01
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-11-18
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -36199,20 +36199,19 @@ var CrocSDK = {};
 			connectConfig = {};
 		}
 
-		var constraints = connectConfig.constraints || null;
+		// Disable DTLS by default until network supports it
+		var constraints = connectConfig.constraints || {};
+		if (!constraints.mandatory) {
+			constraints.mandatory = {};
+		}
+		constraints.mandatory.DtlsSrtpKeyAgreement = false;
 
 		// Force DTLS-SRTP if Chrome is calling Firefox.
 		// We don't turn this on by default to avoid problems with Asterisk.
 		if (watchData) {
 			if (/Chrome/.test(navigator.userAgent) &&
 					/Firefox/.test(watchData.userAgent)) {
-				if (!constraints) {
-					constraints = {};
-				}
-				if (!constraints.optional) {
-					constraints.optional = [];
-				}
-				constraints.optional.push({DtlsSrtpKeyAgreement: true});
+				constraints.mandatory.DtlsSrtpKeyAgreement = true;
 				console.log('Enabling DTLS for Firefox compatibility');
 			}
 		}
