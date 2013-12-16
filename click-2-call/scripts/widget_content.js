@@ -312,7 +312,7 @@
 				'</div>' +
 			'</div>' +
 			'<div class="croc_powered_by_video">'+
-				'<p>Powered by <a class="croc_link" target="_blank">crocodilertc.net</a></p>'+
+				'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
 			'</div>' +
 		'</div>' +
 	'</div>';
