@@ -9788,7 +9788,7 @@ if ( typeof module === "object" && module && typeof module.exports === "object" 
 
 })( window );
 
-/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-11-18
+/*! Crocodile WebRTC SDK: JavaScript Library - v1.0 - 2013-12-23
 * https://www.crocodilertc.net
 * Copyright (c) 2013 Crocodile RCS Ltd; Licensed MIT
 *
@@ -15555,7 +15555,7 @@ RTCSession.prototype.sendUpdate = function(options) {
 /**
  * Send a REFER
  *
- * @param {URI} target
+ * @param {String|URI} refer_uri
  * @param {Object} [options]
  * @param {Object} [options.eventHandlers]
  * @param {String[]} [options.extraHeaders]
@@ -17010,6 +17010,25 @@ UA.prototype.sendMessage = function(target, body, options) {
 
   message = new JsSIP.Message(this);
   message.send(target, body, options);
+};
+
+/**
+ * Send a REFER.
+ *
+ * @param {String|URI} target
+ * @param {String|URI} refer_uri
+ * @param {Object} [options]
+ * @param {Object} [options.eventHandlers]
+ * @param {String[]} [options.extraHeaders]
+ * @param {String} [options.contentType]
+ * @param {String} [options.body]
+ *
+ */
+UA.prototype.sendRefer = function(target, refer_uri, options) {
+  var refer;
+
+  refer = new JsSIP.Refer(this);
+  refer.send(target, refer_uri, options);
 };
 
 /**
@@ -43129,13 +43148,16 @@ var CrocSDK = {};
 		this.username = username;
 		this.retryPeriod = retryPeriod;
 		this.timerId = null;
+		this.running = false;
 	}
 	EphemeralCredentialsManager.prototype.start = function() {
+		this.running = true;
 		if (this.url && !this.timerId) {
 			this.query();
 		}
 	};
 	EphemeralCredentialsManager.prototype.stop = function() {
+		this.running = false;
 		if (this.timerId !== null) {
 			clearTimeout(this.timerId);
 			this.timerId = null;
@@ -43157,6 +43179,11 @@ var CrocSDK = {};
 		}
 
 		this.jQuery.getJSON(this.url, queryParams).done(function(response) {
+			if (!manager.running) {
+				// We were stopped in the meanwhile
+				return;
+			}
+
 			var nextAttemptDelay = Math.max(response.ttl - 5, 60);
 
 			console.log('Next credential refresh in', nextAttemptDelay, 'seconds');
@@ -43166,6 +43193,11 @@ var CrocSDK = {};
 			}, nextAttemptDelay * 1000);
 			CrocSDK.Util.fireEvent(manager, 'onUpdate', response);
 		}).fail(function(jqxhr, textStatus, error) {
+			if (!manager.running) {
+				// Stop trying
+				return;
+			}
+
 			console.warn('Ephemeral credential request failed:', textStatus, error);
 			manager.timerId = setTimeout(function() {
 				manager.timerId = null;
@@ -43197,27 +43229,39 @@ var CrocSDK = {};
 		this.password = password;
 		this.retryPeriod = retryPeriod || 60;
 		this.timerId = null;
+		this.running = false;
 	}
 	RestAuthManager.prototype.start = function() {
+		this.running = true;
 		if (!this.timerId) {
 			this.auth();
 		}
 	};
 	RestAuthManager.prototype.stop = function() {
+		this.running = false;
 		if (this.timerId) {
 			clearTimeout(this.timerId);
 			this.timerId = null;
 		}
 	};
+	RestAuthManager.prototype.restart = function() {
+		this.stop();
+		this.start();
+	};
 	RestAuthManager.prototype.auth = function() {
-		var auth = this;
+		var self = this;
 		var md5 = JsSIP.Utils.calculateMD5;
 		var handleFail = function(jqxhr, textStatus, error) {
-			console.warn('Auth nonce request failed:', textStatus, error);
+			if (!self.running) {
+				// Stop trying
+				return;
+			}
 
-			auth.timerId = setTimeout(function() {
-				auth.auth();
-			}, auth.retryPeriod * 1000);
+			console.warn('Auth request failed:', textStatus, error);
+
+			self.timerId = setTimeout(function() {
+				self.auth();
+			}, self.retryPeriod * 1000);
 		};
 
 		// Get the challenge
@@ -43226,11 +43270,16 @@ var CrocSDK = {};
 			cache : false
 		}).done(
 				function(json) {
+					if (!self.running) {
+						// We were stopped in the meanwhile
+						return;
+					}
+
 					var nc = '00000001';
 					var cnonce = CrocSDK.Util.randomAlphanumericString(10);
-					var ha1 = md5(auth.username.concat(':', json.realm, ':',
-							auth.password));
-					var ha2 = md5('POST:' + auth.path);
+					var ha1 = md5(self.username.concat(':', json.realm, ':',
+							self.password));
+					var ha2 = md5('POST:' + self.path);
 					var response = md5(ha1.concat(':', json.nonce, ':', nc,
 							':', cnonce, ':auth:', ha2));
 
@@ -43240,18 +43289,18 @@ var CrocSDK = {};
 					}
 
 					var data = {
-						username : auth.username,
+						username : self.username,
 						realm : json.realm,
 						nonce : json.nonce,
 						cnonce : cnonce,
 						nc : nc,
 						qop : json.qop,
-						uri : auth.path,
+						uri : self.path,
 						response : response
 					};
 
 					// Send our response
-					auth.jQuery.ajax(this.url, {
+					self.jQuery.ajax(this.url, {
 						type : 'POST',
 						dataType : 'json',
 						data : JSON.stringify(data),
@@ -43259,10 +43308,15 @@ var CrocSDK = {};
 						xhrFields: {withCredentials: true}
 					}).done(
 							function(json) {
+								if (!self.running) {
+									// We were stopped in the meanwhile
+									return;
+								}
+
 								var nextAuth = Math.max(json.ttl - 5,
-										auth.retryPeriod);
-								auth.timerId = setTimeout(function() {
-									auth.auth();
+										self.retryPeriod);
+								self.timerId = setTimeout(function() {
+									self.auth();
 								}, nextAuth * 1000);
 								console.log('Next auth refresh in', nextAuth,
 										'seconds');
@@ -43353,6 +43407,12 @@ var CrocSDK = {};
 
 		// Initialise underlying APIs
 		var apis = {
+			/**
+			 * @memberof CrocSDK.Croc
+			 * @type CrocSDK.AccountAPI
+			 * @instance
+			 */
+			account : new CrocSDK.AccountAPI(this),
 			/**
 			 * @memberof CrocSDK.Croc
 			 * @type CrocSDK.CapabilityAPI
@@ -43478,9 +43538,48 @@ var CrocSDK = {};
 		}
 	};
 
+	CrocSDK.Croc.prototype._setBrowserCapabilities = function() {
+		var cap = this.capabilities;
+		var pc = JsSIP.WebRTC.RTCPeerConnection;
+
+		// Set defaults
+		cap["croc.renegotiate"] = true;
+		cap["croc.dtmf"] = pc && !!pc.prototype.createDTMFSender;
+		cap["croc.screenshare"] = false;
+		cap["croc.conference"] = false;
+		cap["croc.confreneg"] = false;
+
+		// Opera
+		var m = navigator.userAgent.match(/ OPR\/([0-9]*)/);
+		if (m) {
+			cap["croc.conference"] = true;
+			return;
+		}
+
+		// Chrome
+		m = navigator.userAgent.match(/ Chrome\/([0-9]*)/);
+		if (m) {
+			cap["croc.screenshare"] = true;
+			cap["croc.conference"] = true;
+			return;
+		}
+
+		// Firefox
+		m = navigator.userAgent.match(/ Firefox\/([0-9]*)/);
+		if (m) {
+			cap["croc.renegotiate"] = false;
+			return;
+		}
+
+		// Otherwise assume nothing
+		cap["croc.renegotiate"] = false;
+	};
+
 	CrocSDK.Croc.prototype._detectCapabilities = function() {
 		var cap = this.capabilities;
 		var mst = window.MediaStreamTrack;
+
+		this._setBrowserCapabilities();
 
 		if (mst && mst.getSources) {
 			// Check capabilities without requesting access to media
@@ -43757,7 +43856,7 @@ var CrocSDK = {};
 	 *       "sip.data": true,
 	 *       "sip.text": true,
 	 *       "sip.video": true,
-	 *       "croc.sdkversion": "1.0",
+	 *       "croc.sdkversion": "1",
 	 *       "custom.myNameSpace: 'nameSpaceContent'"
 	 *     }
 	 *   </code>
@@ -43766,21 +43865,42 @@ var CrocSDK = {};
 	 *
 	 * @memberof CrocSDK.Croc
 	 * @typedef CrocSDK.Croc~Capabilities
-	 * @property {Boolean} [sip.audio=detected] <code>true</code> if the
-	 *           browser supports PeerConnection. Even if there is no microphone
-	 *           it might be possible to receive audio.
-	 * @property {Boolean} [sip.data=detected] <code>true</code> if MSRP
-	 *           relays are configured.
-	 * @property {Boolean} [sip.text=detected] <code>true</code> if MSRP
-	 *           relays are configured.
-	 * @property {Boolean} [sip.video=detected] <code>true</code> if the
-	 *           browser supports PeerConnection. Even if there is no web-cam it
-	 *           might be possible to receive video.
-	 * @property {String} [croc.sdkversion='1'] Cannot be changed or overridden.
-	 * @property [custom.<String>] Web-app developers can create their own
-	 *           capabilities within the <code>custom.</code> namespace.
-	 *           Custom capabilities may be simple present/not-present tags or
-	 *           attribute value pairs.
+	 * @property {Boolean} [sip.audio=detected]
+	 * <code>true</code> if an audio source is available. Even if no audio
+	 * source is available it might be possible to receive audio.
+	 * @property {Boolean} [sip.data=detected]
+	 * <code>true</code> if MSRP relays are configured.
+	 * @property {Boolean} [sip.text=detected]
+	 * <code>true</code> if MSRP relays are configured.
+	 * @property {Boolean} [sip.video=detected]
+	 * <code>true</code> if a video source is available. Even if no video
+	 * source is available it might be possible to receive video.
+	 * @property {String} [croc.sdkversion='1']
+	 * The version of the SDK.
+	 * @property {Boolean} [croc.renegotiate=detected]
+	 * Whether the browser is capable of renegotiation, which is needed for
+	 * hold/resume, altering media streams, etc.  Firefox (as of version 25)
+	 * does not currently support this functionality.
+	 * @property {Boolean} [croc.dtmf=detected]
+	 * Indicates whether the browser is capable of sending DTMF tones over an
+	 * audio stream.  Firefox (as of version 25) does not currently support this
+	 * functionality.
+	 * @property {Boolean} [croc.screenshare=detected]
+	 * Indicates whether the browser is capable of sharing the user's screen.
+	 * Chrome is the only browser that supports this experimental feature, and
+	 * even then only if the user has explicitly enabled it:
+	 * chrome://flags/#enable-usermedia-screen-capture
+	 * @property {Boolean} [croc.conference=detected]
+	 * Indicates whether the browser is compatible with the network-hosted
+	 * conference feature.  It is not currently compatible with Firefox due to
+	 * network limitations.
+	 * @property {Boolean} [croc.confreneg=detected]
+	 * Indicates whether renegotiation can be used in a network-hosted conference
+	 * session.  This is always false, due to current network limitations.
+	 * @property [custom.<String>]
+	 * Web-app developers can create their own capabilities within the
+	 * <code>custom.</code> namespace. Custom capabilities may be simple
+	 * present/not-present tags or attribute value pairs.
 	 */
 	/**
 	 * @memberof CrocSDK.Croc
@@ -43820,6 +43940,385 @@ var CrocSDK = {};
 }(CrocSDK));
 
 (function(CrocSDK) {
+	/**
+	 * The Account API allows a web-app to perform account management operations,
+	 * such as checking the subscriber's balance.
+	 * <p>
+	 * Note that this API is only applicable when connected to the Crocodile
+	 * network as a subscriber. If the API key in use does not support
+	 * individual subscribers, attempts to use this API will fail. In this case,
+	 * server-side API calls should be used instead; please refer to the
+	 * {@link https://www.crocodilertc.net/documentation/rest REST API documentation}.
+	 * <p>
+	 * Once the {@link CrocSDK.Croc Croc} object is instantiated it will contain
+	 * an instance of the Account API under the <code>account</code> property.
+	 * <p>
+	 * For example, given a {@link CrocSDK.Croc Croc} Object named
+	 * <code>crocObject</code> the <code>getBalance</code> method would be
+	 * available as <code>crocObject.account.getBalance</code>.
+	 * 
+	 * @constructor
+	 * @memberof CrocSDK
+	 * @param {CrocSDK.Croc} crocObject
+	 * The parent {@link CrocSDK.Croc Croc} object.
+	 */
+	CrocSDK.AccountAPI = function(crocObject) {
+		this.crocObject = crocObject;
+		// TODO: get these from bootstrap configuration
+		this.baseAccountUrl = "https://hub.crocodilertc.net:8443/crocodile-sdk-hub/rest/1.0/browser";
+		this.baseConferenceUrl = "https://hub.crocodilertc.net:8443/conference-manager/rest/subscriber/v1/conferences";
+	};
+
+	/**
+	 * Callback executed when a successful response is received for a
+	 * {@link CrocSDK.AccountAPI.getBalance getBalance} request.
+	 * @callback CrocSDK.AccountAPI~balanceCallback
+	 * @param {string} currency
+	 * The currency of the subscriber's balance, represented as the three-
+	 * character ISO 4217 code.
+	 * @param {number} balance
+	 * The subscriber's current balance.
+	 */
+
+	/**
+	 * Callback executed when an error response is received.
+	 * @callback CrocSDK.AccountAPI~errorCallback
+	 * @param {number} status
+	 * The status code returned by the server.
+	 * @param {string} message
+	 * The error message returned by the server.
+	 */
+
+	/**
+	 * Retrieves the subscriber's current balance.
+	 * 
+	 * @param {CrocSDK.AccountAPI~balanceCallback} success
+	 * The callback function to run when a successful response is received.
+	 * @param {CrocSDK.AccountAPI~errorCallback} error
+	 * The callback function to run when an error response is received.
+	 */
+	CrocSDK.AccountAPI.prototype.getBalance = function(success, error) {
+		var crocObject = this.crocObject;
+		var url = this.baseAccountUrl + "/balance";
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
+		xhr.timeout = 5000;
+		// responseType = "json" is not yet working in Chrome stable (29),
+		// though it is in Canary (31).
+		xhr.responseType = "text";
+		xhr.onload = function() {
+			if (this.status === 200) {
+				var resp = JSON.parse(this.response);
+				if (resp.result === "OK") {
+					success(resp.currency, resp.balance);
+					return;
+				}
+			}
+
+			if (this.status === 403) {
+				// Authentication failed - try re-auth
+				crocObject.authManager.restart();
+			}
+
+			if (error && typeof error === 'function') {
+				error(this.status, this.response);
+			}
+		};
+		xhr.onerror = error;
+		xhr.ontimeout = error;
+		xhr.open("GET", url);
+		xhr.send();
+	};
+
+	/**
+	 * Callback executed when a successful response is received for a
+	 * {@link CrocSDK.AccountAPI.createConference createConference} request.
+	 * @callback CrocSDK.AccountAPI~createConferenceCallback
+	 * @param {string} conferenceAddress
+	 * The address of the created conference.
+	 */
+
+	/**
+	 * Creates a conference hosted on the Crocodile network.
+	 * <p>
+	 * Note that the simplest method for creating a conference is to call the
+	 * {@link CrocSDK.MediaAPI.connect media.connect} method with a list of
+	 * participants to invite; this method is included to allow more control
+	 * for applications that require it.
+	 * 
+	 * @param {Object} config
+	 * Configuration for the new conference. This can be null or an empty object
+	 * to use the default configuration.
+	 * @param {number} [config.layout]
+	 * The layout to use for the conference. The following layouts are supported:
+	 * <ul>
+	 * <li>0: 1x1</li>
+	 * <li>1: 2x2</li>
+	 * <li>2: 3x3</li>
+	 * <li>3: 3 large plus 4 small</li>
+	 * <li>4: 1 large plus 7 small</li>
+	 * <li>5: 1 large plus 5 small</li>
+	 * <li>6: 2 large</li>
+	 * <li>7: 1 picture-in-picture</li>
+	 * <li>8: 3 pictures-in-picture</li>
+	 * <li>9: 4x4</li>
+	 * </ul>
+	 * @param {CrocSDK.AccountAPI~createConferenceCallback} success
+	 * The callback function to run when a successful response is received.
+	 * @param {CrocSDK.AccountAPI~errorCallback} [error]
+	 * The callback function to run when an error response is received.
+	 */
+	CrocSDK.AccountAPI.prototype.createConference = function(config, success, error) {
+		if (!success || typeof success !== 'function') {
+			throw new TypeError("Missing success callback function");
+		}
+
+		var crocObject = this.crocObject;
+		var url = this.baseConferenceUrl;
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
+		xhr.timeout = 5000;
+		// responseType = "json" is not yet working in Chrome stable (29),
+		// though it is in Canary (31).
+		xhr.responseType = "text";
+		xhr.onload = function() {
+			if (this.status === 201) {
+				var resp = JSON.parse(this.response);
+				success(resp.conferenceAddress);
+				return;
+			}
+
+			if (this.status === 403) {
+				// Authentication failed - try re-auth
+				crocObject.authManager.restart();
+			}
+
+			if (error && typeof error === 'function') {
+				error(this.status, this.response);
+			}
+		};
+		xhr.onerror = error;
+		xhr.ontimeout = error;
+		xhr.open("POST", url);
+		xhr.setRequestHeader("Content-Type", "application/json");
+		if (!config) {
+			config = {};
+		}
+		xhr.send(JSON.stringify(config));
+	};
+
+	/**
+	 * Callback executed when a successful response is received for a
+	 * {@link CrocSDK.AccountAPI.listConferences listConferences} request.
+	 * @callback CrocSDK.AccountAPI~listConferencesCallback
+	 * @param {string[]} conferenceAddresses
+	 * The list of conference addresses owned by the current subscriber.
+	 */
+
+	/**
+	 * Lists the conferences hosted on the Crocodile network for the current
+	 * subscriber.
+	 * 
+	 * @param {CrocSDK.AccountAPI~listConferencesCallback} success
+	 * The callback function to run when a successful response is received.
+	 * @param {CrocSDK.AccountAPI~errorCallback} [error]
+	 * The callback function to run when an error response is received.
+	 */
+	CrocSDK.AccountAPI.prototype.listConferences = function(success, error) {
+		if (!success || typeof success !== 'function') {
+			throw new TypeError("Missing success callback function");
+		}
+
+		var crocObject = this.crocObject;
+		var url = this.baseConferenceUrl;
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
+		xhr.timeout = 5000;
+		// responseType = "json" is not yet working in Chrome stable (29),
+		// though it is in Canary (31).
+		xhr.responseType = "text";
+		xhr.onload = function() {
+			if (this.status === 200) {
+				var resp = JSON.parse(this.response);
+				success(resp.conferenceAddresses);
+				return;
+			}
+
+			if (this.status === 403) {
+				// Authentication failed - try re-auth
+				crocObject.authManager.restart();
+			}
+
+			if (error && typeof error === 'function') {
+				error(this.status, this.response);
+			}
+		};
+		xhr.onerror = error;
+		xhr.ontimeout = error;
+		xhr.open("GET", url);
+		xhr.send();
+	};
+
+	/**
+	 * Callback executed when a successful response is received for a
+	 * {@link CrocSDK.AccountAPI.getConferenceDetails getConferenceDetails}
+	 * request.
+	 * @callback CrocSDK.AccountAPI~getConferenceDetailsCallback
+	 * @param {Date} created
+	 * The date and time the conference was created.
+	 * @param {string} owner
+	 * The creator/owner of the conference.
+	 * @param {string[]} participantAddresses
+	 * The list of addresses participating in this conference.
+	 */
+
+	/**
+	 * Retrieves details of a conference hosted on the Crocodile network.
+	 * <p>
+	 * Only the conference owner is allowed to retrieve these details.
+	 * 
+	 * @param {string} conferenceAddress
+	 * The address of the target conference.
+	 * @param {CrocSDK.AccountAPI~getConferenceDetailsCallback} success
+	 * The callback function to run when a successful response is received.
+	 * @param {CrocSDK.AccountAPI~errorCallback} [error]
+	 * The callback function to run when an error response is received.
+	 */
+	CrocSDK.AccountAPI.prototype.getConferenceDetails = function(conferenceAddress,
+			success, error) {
+		if (!success || typeof success !== 'function') {
+			throw new TypeError("Missing success callback function");
+		}
+
+		var crocObject = this.crocObject;
+		var url = this.baseConferenceUrl + "/" + conferenceAddress;
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
+		xhr.timeout = 5000;
+		// responseType = "json" is not yet working in Chrome stable (29),
+		// though it is in Canary (31).
+		xhr.responseType = "text";
+		xhr.onload = function() {
+			if (this.status === 200) {
+				var resp = JSON.parse(this.response);
+				success(new Date(resp.created), resp.owner,
+						resp.participantAddresses);
+				return;
+			}
+
+			if (this.status === 403) {
+				// Authentication failed - try re-auth
+				crocObject.authManager.restart();
+			}
+
+			if (error && typeof error === 'function') {
+				error(this.status, this.response);
+			}
+		};
+		xhr.onerror = error;
+		xhr.ontimeout = error;
+		xhr.open("GET", url);
+		xhr.send();
+	};
+
+	/**
+	 * Kicks a participant from a conference hosted on the Crocodile network.
+	 * <p>
+	 * Only the conference owner is allowed to kick participants.
+	 * 
+	 * @param {string} conferenceAddress
+	 * The address of the target conference.
+	 * @param {string} participantAddress
+	 * The address of the target participant.
+	 * @param {function} [success]
+	 * The callback function to run when a successful response is received.
+	 * @param {CrocSDK.AccountAPI~errorCallback} [error]
+	 * The callback function to run when an error response is received.
+	 */
+	CrocSDK.AccountAPI.prototype.kickConferenceParticipant = function(
+			conferenceAddress, participantAddress, success, error) {
+		var crocObject = this.crocObject;
+		var url = this.baseConferenceUrl;
+		url += "/" + conferenceAddress + "/" + participantAddress;
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
+		xhr.timeout = 5000;
+		// responseType = "json" is not yet working in Chrome stable (29),
+		// though it is in Canary (31).
+		xhr.responseType = "text";
+		xhr.onload = function() {
+			if (this.status === 204) {
+				if (success && typeof success === 'function') {
+					success();
+				}
+				return;
+			}
+
+			if (this.status === 403) {
+				// Authentication failed - try re-auth
+				crocObject.authManager.restart();
+			}
+
+			if (error && typeof error === 'function') {
+				error(this.status, this.response);
+			}
+		};
+		xhr.onerror = error;
+		xhr.ontimeout = error;
+		xhr.open("DELETE", url);
+		xhr.send();
+	};
+
+	/**
+	 * Ends a conference hosted on the Crocodile network.
+	 * <p>
+	 * Note that conferences normally end when the last participant leaves. This
+	 * method is included to allow a conference to be ended early, kicking out
+	 * any remaining participants.
+	 * 
+	 * @param {string} conferenceAddress
+	 * The address of the target conference.
+	 * @param {function} [success]
+	 * The callback function to run when a successful response is received.
+	 * @param {CrocSDK.AccountAPI~errorCallback} [error]
+	 * The callback function to run when an error response is received.
+	 */
+	CrocSDK.AccountAPI.prototype.endConference = function(conferenceAddress,
+			success, error) {
+		var crocObject = this.crocObject;
+		var url = this.baseConferenceUrl + "/" + conferenceAddress;
+		var xhr = new XMLHttpRequest();
+		xhr.withCredentials = true;
+		xhr.timeout = 5000;
+		// responseType = "json" is not yet working in Chrome stable (29),
+		// though it is in Canary (31).
+		xhr.responseType = "text";
+		xhr.onload = function() {
+			if (this.status === 204) {
+				if (success && typeof success === 'function') {
+					success();
+				}
+				return;
+			}
+
+			if (this.status === 403) {
+				// Authentication failed - try re-auth
+				crocObject.authManager.restart();
+			}
+
+			if (error && typeof error === 'function') {
+				error(this.status, this.response);
+			}
+		};
+		xhr.onerror = error;
+		xhr.ontimeout = error;
+		xhr.open("DELETE", url);
+		xhr.send();
+	};
+
+}(CrocSDK));
+
+(function(CrocSDK) {
 	// Base tags are sip tags that don't need the sip. prefix
 	var baseTags = {
 		audio : 'boolean',
@@ -43829,7 +44328,12 @@ var CrocSDK = {};
 	};
 	var allowedTags = {
 		croc : {
-			sdkversion : 'string'
+			sdkversion: 'string',
+			renegotiate: 'boolean',
+			dtmf: 'boolean',
+			screenshare: 'boolean',
+			conference: 'boolean',
+			confreneg: 'boolean'
 		}
 	};
 
@@ -44163,12 +44667,17 @@ var CrocSDK = {};
 					if (CrocSDK.Util.isType(value, type)) {
 						switch (type) {
 						case 'boolean':
-							if ((capabilities[cap]) && (tree !== 'custom')) {
-								featureTags += ';' + tag;
-							} else if ((capabilities[cap]) && (tree === 'custom')) {
-								featureTags += ';' + tag + '="TRUE"';
-							} else if ((!capabilities[cap]) && (tree === 'custom')) {
-								featureTags += ';' + tag + '="FALSE"';
+							if (tree === 'sip') {
+								if (capabilities[cap]) {
+									featureTags += ';' + tag;
+								}
+								// The absence of the tag indicates a false value
+							} else {
+								if (capabilities[cap]) {
+									featureTags += ';' + tag + '="TRUE"';
+								} else {
+									featureTags += ';' + tag + '="FALSE"';
+								}
 							}
 							break;
 						case 'string':
@@ -44228,12 +44737,24 @@ var CrocSDK = {};
 						type = allowedTags[tree][tag];
 						if (type) {
 							switch (type) {
+							case 'boolean':
+								if (value === '"TRUE"') {
+									capabilities[cap] = true;
+								} else if (value === '"FALSE"') {
+									capabilities[cap] = false;
+								} else {
+									console.warn('Unexpected boolean format in feature tag:', value);
+								}
+								break;
 							case 'string':
 								if (value.slice(0, 2) === '"<' && value.slice(-2) === '>"') {
 									capabilities[cap] = value.slice(2, -2);
 								} else {
 									console.warn('Unexpected string format in feature tag:', value);
 								}
+								break;
+							default:
+								console.warn('Cannot parse feature tags of type:', type);
 								break;
 							}
 						}
@@ -45854,7 +46375,18 @@ var CrocSDK = {};
 			var capabilityApi = crocObject.capability;
 			var address = sipSession.remote_identity.uri.toAor().replace(
 					/^sip:/, '');
-			var mediaSession = new CrocSDK.MediaSession(this, sipSession, address);
+
+			// Disable DTLS by default until network supports it
+			var constraints = {
+				mandatory: {DtlsSrtpKeyAgreement: false}
+			};
+			// Unless, of course, the remote party has enabled it
+			if (sdp.attributes['fingerprint'] ||
+					sdp.media[0].attributes['fingerprint']) {
+				constraints.mandatory.DtlsSrtpKeyAgreement = true;
+			}
+
+			var mediaSession = new CrocSDK.MediaSession(this, sipSession, address, constraints);
 
 			// Process the sdp offer - this should kick off the ICE agent
 			var onSuccess = function() {
@@ -45921,22 +46453,30 @@ var CrocSDK = {};
 			return;
 		}
 
-		// Check the refer had a known target session
-		var referredSession = data.session;
-		if (!referredSession) {
-			data.refer.reject({
-				status_code: 403,
-				reason_phrase: 'Missing Target-Session Header'
-			});
-			return;
-		}
-
 		// Check that the refer is to a SIP URI
 		if (data.refer.refer_uri.scheme !== JsSIP.C.SIP) {
 			data.refer.reject({
 				status_code: 416,
 				reason_phrase: 'Unsupported Refer URI Scheme'
 			});
+		}
+
+		// Check whether the refer had a known target session
+		var referredSession = data.session;
+		if (!referredSession) {
+			if (data.refer.refer_uri.host === 'conference.crocodilertc.net' &&
+					!this.crocObject.capabilities['croc.conference']) {
+				// This UA is not currently compatible with the conference feature
+				data.refer.reject({
+					status_code: 403,
+					reason_phrase: 'Conferencing not supported'
+				});
+			} else {
+				// Give the application a chance to handle this
+				CrocSDK.Util.fireEvent(this, 'onReferRequest',
+						new ReferRequestEvent(this, data.refer), true);
+			}
+			return;
 		}
 
 		// Find the target session
@@ -45962,15 +46502,19 @@ var CrocSDK = {};
 	 */
 
 	/**
-	 * Initiate a media session to <code>address</code>. Defaults to a
-	 * bi-directional audio session unless specified otherwise using the
-	 * <code>config</code> parameter.
+	 * Initiate a media session to an <code>address</code>, or an array of
+	 * addresses for a multi-party session.
+	 * <p>
+	 * The media session defaults to a bi-directional audio session unless
+	 * specified otherwise using the <code>config</code> parameter.
 	 * <p>
 	 * Returns a {@link CrocSDK.MediaAPI~MediaSession MediaSession} object which
 	 * the required event handlers should be registered with immediately to
 	 * avoid missing events.
 	 * 
-	 * @param {String} address - The target address for the media session.
+	 * @param {String|String[]} address
+	 * The target address for the media session. If an array of addresses is
+	 * provided, a multi-party session will be started.
 	 * @param {CrocSDK.MediaAPI~ConnectConfig} [connectConfig]
 	 * Optional configuration properties.
 	 * @returns CrocSDK.MediaAPI~MediaSession
@@ -45983,7 +46527,8 @@ var CrocSDK = {};
 		var crocObject = this.crocObject;
 		var capabilityApi = crocObject.capability;
 		var sipSession = new JsSIP.RTCSession(crocObject.sipUA);
-		var watchData = capabilityApi.getWatchData(address);
+		var watchData = null;
+		var startConference = false;
 
 		if (!connectConfig) {
 			connectConfig = {};
@@ -45996,14 +46541,22 @@ var CrocSDK = {};
 		}
 		constraints.mandatory.DtlsSrtpKeyAgreement = false;
 
-		// Force DTLS-SRTP if Chrome is calling Firefox.
-		// We don't turn this on by default to avoid problems with Asterisk.
-		if (watchData) {
-			if (/Chrome/.test(navigator.userAgent) &&
-					/Firefox/.test(watchData.userAgent)) {
-				constraints.mandatory.DtlsSrtpKeyAgreement = true;
-				console.log('Enabling DTLS for Firefox compatibility');
+		if (CrocSDK.Util.isType(address, 'string[]')) {
+			startConference = true;
+		} else if (CrocSDK.Util.isType(address, 'string')) {
+			watchData = capabilityApi.getWatchData(address);
+
+			// Force DTLS-SRTP if Chrome is calling Firefox.
+			// We don't turn this on by default to avoid problems with Asterisk.
+			if (watchData) {
+				if (/Chrome/.test(navigator.userAgent) &&
+						/Firefox/.test(watchData.userAgent)) {
+					console.log('Enabling DTLS for Firefox compatibility');
+					constraints.mandatory.DtlsSrtpKeyAgreement = true;
+				}
 			}
+		} else {
+			throw new TypeError("Unexpected address type");
 		}
 
 		var mediaSession = new CrocSDK.MediaSession(this, sipSession, address, constraints);
@@ -46014,7 +46567,24 @@ var CrocSDK = {};
 		mediaSession.capabilities = watchData ? watchData.capabilities : null;
 		mediaSession.streamConfig = connectConfig.streamConfig || new CrocSDK.StreamConfig();
 
-		mediaSession._connect();
+		if (startConference) {
+			var success = function(conferenceAddress) {
+				mediaSession.address = conferenceAddress;
+				mediaSession._connect();
+
+				// Send REFERs to other participants
+				for (var i = 0, len = address.length; i < len; i++) {
+					crocObject.sipUA.sendRefer(address[i], conferenceAddress);
+				}
+			};
+			var error = function() {
+				console.warn("Conference creation failed");
+				mediaSession.close();
+			};
+			crocObject.account.createConference(null, success, error);
+		} else {
+			mediaSession._connect();
+		}
 
 		this.mediaSessions.push(mediaSession);
 		return mediaSession;
@@ -46027,6 +46597,86 @@ var CrocSDK = {};
 		for ( var i = 0, len = this.mediaSessions.length; i < len; i++) {
 			this.mediaSessions[i].close();
 		}
+	};
+
+	/**
+	 * Event fired when a refer request is received.
+	 * <p>
+	 * Currently, refer requests are received when the user is invited to join
+	 * a network-hosted session. The user should be prompted to accept or
+	 * decline the invitation based on the destination.
+	 * <p>
+	 * If this event is not handled, refer requests will be rejected
+	 * automatically.
+	 * 
+	 * @event
+	 * @param {CrocSDK.MediaAPI~ReferRequestEvent} event
+	 * The event object associated with this event.
+	 */
+	MediaAPI.prototype.onReferRequest = function(event) {
+		event.reject();
+	};
+
+	/**
+	 * The event object for the
+	 * {@link CrocSDK.MediaAPI#event:onReferRequest onReferRequest}
+	 * event.
+	 * @constructor
+	 * @alias CrocSDK.MediaAPI~ReferRequestEvent
+	 * @param {CrocSDK.MediaAPI~MediaSession} session
+	 * @param {JsSIP.Refer} refer
+	 */
+	var ReferRequestEvent = function(mediaApi, refer) {
+		var self = this;
+
+		this.mediaApi = mediaApi;
+		this.refer = refer;
+		this.timer = setTimeout(function() {
+			self.reject();
+			self.timer = null;
+		}, mediaApi.acceptTimeout * 1000);
+
+		/**
+		 * The <code>address</code> to which we are being referred.
+		 * @type {String}
+		 */
+		this.address = refer.refer_uri.toString().replace(/^sip:/, '');
+	};
+
+	/**
+	 * Accept the incoming refer request. Returns a new <code>MediaSession</code>
+	 * object representing the media session with the refer target.
+	 * 
+	 * @param {CrocSDK.MediaAPI~ConnectConfig} [config]
+	 * Optional session configuration.
+	 * @returns {CrocSDK.MediaAPI~MediaSession}
+	 * The new session with the refer target.
+	 */
+	ReferRequestEvent.prototype.accept = function(config) {
+		if (this.timer === null) {
+			return;
+		}
+		clearTimeout(this.timer);
+		this.timer = null;
+
+		var newSession = this.mediaApi.connect(this.address, config);
+		this.refer.addSessionNotifyHandlers(newSession.sipSession);
+		return newSession;
+	};
+
+	/**
+	 * Reject the incoming refer request.
+	 */
+	ReferRequestEvent.prototype.reject = function() {
+		if (this.timer === null) {
+			return;
+		}
+		clearTimeout(this.timer);
+		this.timer = null;
+
+		this.refer.reject({
+			status_code: 603
+		});
 	};
 
 	/* Further Documentation in JSDoc */
@@ -46057,20 +46707,19 @@ var CrocSDK = {};
 	// Documented Events
 
 	/**
-	 * Dispatched when Crocodile RTC JavaScript Library receives a request 
-	 * for a new session from another party on the Crocodile RTC Network.
+	 * Event fired when a request for a new session is received from another
+	 * party.
 	 * <p>
-	 * An instance of Crocodile RTC JavaScript Library cannot receive inbound
-	 * sessions unless the <code>register</code> property was set to
-	 * <code>true</code> when the {@link CrocSDK.Croc Croc} Object was
-	 * instantiated.
+	 * Note that inbound session requests cannot be received unless the
+	 * <code>register</code> property was set to <code>true</code> when the
+	 * {@link CrocSDK.Croc Croc} object was created.
 	 * <p>
-	 * If this event is not handled the Crocodile RTC JavaScript Library will
-	 * automatically reject inbound sessions.
+	 * If this event is not handled, inbound sessions will be rejected
+	 * automatically.
 	 * 
 	 * @event CrocSDK.MediaAPI#onMediaSession
-	 * @param {CrocSDK.MediaAPI~MediaSessionEvent}
-	 * [event] The event object associated with this event.
+	 * @param {CrocSDK.MediaAPI~MediaSessionEvent} event
+	 * The event object associated with this event.
 	 */
 
 	CrocSDK.MediaAPI = MediaAPI;
@@ -46136,6 +46785,11 @@ var CrocSDK = {};
 					mLine.replaceAttribute(oldDirection, newDirection, null);
 					sdpChanged = true;
 				}
+
+				if (config.bandwidth) {
+					mLine.bandwidth = ['AS:' + config.bandwidth];
+					sdpChanged = true;
+				}
 			}
 		}
 
@@ -46190,52 +46844,6 @@ var CrocSDK = {};
 		};
 	}
 
-	function configureRemoteMediaDetection(mediaSession) {
-		var fireEvent = function() {
-			// Make sure we only fire the event once
-			if (mediaSession.remoteMediaReceived) {
-				return;
-			}
-			mediaSession.remoteMediaReceived = true;
-			// Decouple event from this thread, in case we have not yet handed
-			// the media session to the higher-level app.
-			setTimeout(function() {
-				CrocSDK.Util.fireEvent(mediaSession, 'onRemoteMediaReceived', {});
-			}, 0);
-		};
-
-		var checkTrackLive = function(track) {
-			if (track.readyState === 'live') {
-				// Fire event now
-				fireEvent();
-			} else {
-				// Wait for the track to unmute
-				track.onunmute = fireEvent;
-			}
-		};
-
-		// Wait for onaddstream event, which should fire when the remote
-		// session description has been provided.
-		mediaSession.peerConnection.onaddstream = function(event) {
-			if (mediaSession.remoteMediaReceived) {
-				return;
-			}
-
-			// We only expect one stream, with a maximum of one audio track
-			// and/or one video track
-			var stream = event.stream;
-			var audioTracks = stream.getAudioTracks();
-			var videoTracks = stream.getVideoTracks();
-
-			if (audioTracks.length > 0) {
-				checkTrackLive(audioTracks[0]);
-			}
-			if (videoTracks.length > 0) {
-				checkTrackLive(videoTracks[0]);
-			}
-		};
-	}
-
 	function configurePeerConnectionDebug(pc) {
 		var onSigStateChange = function() {
 			console.log('PC: signalling state change:', this.signalingState);
@@ -46243,9 +46851,8 @@ var CrocSDK = {};
 		// Official event, according to latest spec
 		if ('onsignalingstatechange' in pc) {
 			pc.onsignalingstatechange = onSigStateChange;
-		}
-		// What Chrome 26 and Mozilla 20 use
-		if ('onstatechange' in pc) {
+		} else if ('onstatechange' in pc) {
+			// What Chrome 26 and Mozilla 20 used
 			pc.onstatechange = onSigStateChange;
 		}
 
@@ -46255,10 +46862,18 @@ var CrocSDK = {};
 		// Official event, according to latest spec
 		if ('oniceconnectionstatechange' in pc) {
 			pc.oniceconnectionstatechange = onIceConStateChange;
-		}
-		// What Chrome 26 and Mozilla 20 use
-		if ('onicechange' in pc) {
+		} else if ('onicechange' in pc) {
+			// What Chrome 26 and Mozilla 20 used
 			pc.onicechange = onIceConStateChange;
+		}
+	}
+
+	function setMediaElementSource(element, stream) {
+		// New stream assignment style - not yet supported by browsers
+		element.srcObject = stream;
+		if (window.URL.createObjectURL) {
+			// Old stream assignment style
+			element.src = window.URL.createObjectURL(stream);
 		}
 	}
 
@@ -46386,9 +47001,9 @@ var CrocSDK = {};
 		 */
 		this.localVideoElement = null;
 
-		configureRemoteMediaDetection(this);
 		configurePeerConnectionDebug(this.peerConnection);
 		this.peerConnection.onnegotiationneeded = this._handleNegotiationNeeded.bind(this);
+		this.peerConnection.onaddstream = this._handleAddStream.bind(this);
 
 		// Configure JsSIP event handlers
 		var mediaSession = this;
@@ -46414,6 +47029,7 @@ var CrocSDK = {};
 			mediaSession.close(status);
 			// Auth failures should trigger croc object to stop
 			if (event.data.cause === JsSIP.C.causes.AUTHENTICATION_ERROR) {
+				console.log('INVITE authentication failed - stopping');
 				croc.stop();
 			}
 		});
@@ -46451,13 +47067,14 @@ var CrocSDK = {};
 				return;
 			}
 
+			var lve = mediaSession.localVideoElement;
 			console.log('Got local media stream');
 			removeOldStream();
 			mediaSession.localStream = stream;
 			mediaSession.peerConnection.addStream(stream);
-			if (constraints.video && mediaSession.localVideoElement) {
-				mediaSession.localVideoElement.src = window.URL.createObjectURL(stream);
-				mediaSession.localVideoElement.muted = true;
+			if (constraints.video && lve) {
+				setMediaElementSource(lve, stream);
+				lve.muted = true;
 			}
 
 			mediaSession._getScreenMedia(screencapture, onSuccess);
@@ -46663,16 +47280,7 @@ var CrocSDK = {};
 			console.warn('createOffer failed:', error);
 			mediaSession.close();
 		};
-		var sc = this.streamConfig;
-
-		// I don't think these are effective when creating an answer - we have
-		// to mess with the SDP ourselves.
-		var constraints = {
-			'mandatory' : {
-				'OfferToReceiveAudio' : !!sc.audio && sc.audio.receive,
-				'OfferToReceiveVideo' : !!sc.video && sc.video.receive
-			}
-		};
+		var constraints = null;
 
 		// Start by requesting an offer
 		pc.createAnswer(answerSuccess, answerFailure, constraints);
@@ -46691,7 +47299,7 @@ var CrocSDK = {};
 	 * @private
 	 */
 	MediaSession.prototype._setRemoteStreamOutput = function() {
-		var streams, stream, audioTracks, videoTracks;
+		var streams;
 		var pc = this.peerConnection;
 
 		if (pc.getRemoteStreams) {
@@ -46703,22 +47311,57 @@ var CrocSDK = {};
 		}
 
 		for (var idx = 0, len = streams.length; idx < len; idx++) {
-			stream = streams[idx];
-			audioTracks = stream.getAudioTracks();
-			videoTracks = stream.getVideoTracks();
+			this._handleAddStream({stream: streams[idx]});
+		}
+	};
 
-			if (videoTracks.length > 0) {
-				if (this.remoteVideoElement) {
-					this.remoteVideoElement.src = window.URL.createObjectURL(stream);
-				} else {
-					console.warn('Video received, but no remoteVideoElement provided');
-				}
-			} else if (audioTracks.length > 0) {
-				if (this.remoteAudioElement) {
-					this.remoteAudioElement.src = window.URL.createObjectURL(stream);
-				} else {
-					console.warn('Audio stream received, but no remoteAudioElement provided');
-				}
+	/**
+	 * @param {MediaStreamEvent} event
+	 * @private
+	 */
+	MediaSession.prototype._handleAddStream = function(event) {
+		var stream, audioTracks, videoTracks;
+		var mediaSession = this;
+		var fireEvent = function() {
+			// Make sure we only fire the event once
+			if (mediaSession.remoteMediaReceived) {
+				return;
+			}
+			mediaSession.remoteMediaReceived = true;
+			// Decouple event from this thread, in case we have not yet handed
+			// the media session to the higher-level app.
+			setTimeout(function() {
+				CrocSDK.Util.fireEvent(mediaSession, 'onRemoteMediaReceived', {});
+			}, 0);
+		};
+
+		var checkTrackLive = function(track) {
+			if (track.readyState === 'live') {
+				// Fire event now
+				fireEvent();
+			} else {
+				// Wait for the track to unmute
+				track.onunmute = fireEvent;
+			}
+		};
+
+		stream = event.stream;
+		audioTracks = stream.getAudioTracks();
+		videoTracks = stream.getVideoTracks();
+
+		if (videoTracks.length > 0) {
+			checkTrackLive(videoTracks[0]);
+			if (this.remoteVideoElement) {
+				setMediaElementSource(this.remoteVideoElement, stream);
+			} else {
+				console.log('Video received, but no remoteVideoElement provided');
+			}
+		} else if (audioTracks.length > 0) {
+			checkTrackLive(audioTracks[0]);
+			if (this.remoteAudioElement) {
+				setMediaElementSource(this.remoteAudioElement, stream);
+			} else {
+				console.log('Audio stream received, but no remoteAudioElement provided');
 			}
 		}
 	};
@@ -46826,7 +47469,6 @@ var CrocSDK = {};
 			var onSuccess = function() {
 				console.log('Remote answer set');
 				CrocSDK.Util.fireEvent(mediaSession, 'onConnect', {});
-				mediaSession._setRemoteStreamOutput();
 			};
 			var onFailure = function(error) {
 				console.warn('setRemoteDescription failed:', error);
@@ -46993,7 +47635,6 @@ var CrocSDK = {};
 			data.reinvite.on('succeeded', function(event) {
 				var onSuccess = function() {
 					console.log('Remote answer set');
-					self._setRemoteStreamOutput();
 				};
 				var onFailure = function(error) {
 					console.warn('setRemoteDescription failed:', error);
@@ -47418,6 +48059,44 @@ var CrocSDK = {};
 	};
 
 	/**
+	 * Invites an additional party to the session.
+	 * <p>
+	 * Note that adding an additional party may require a new media session.
+	 * In this case the new session will be returned, and the existing session
+	 * can be closed once it is no longer required (you may prefer to wait for
+	 * the new session to connect first). If the current session supports
+	 * additional parties, the function will return <code>null</code>.
+	 * 
+	 * @param {String|String[]} address
+	 * The address of the user to invite, or array of addresses to invite.
+	 * @returns {CrocSDK.MediaAPI~MediaSession}
+	 * The new media session, or <code>null</code> if the existing session
+	 * supports additional parties.
+	 */
+	MediaSession.prototype.invite = function(address) {
+		if (CrocSDK.Util.isType(address, 'string')) {
+			address = [address];
+		} else if (!CrocSDK.Util.isType(address, 'string[]')) {
+			throw new TypeError('Unexpected address type: ' + typeof address);
+		}
+
+		if (this.address.indexOf('conference.crocodilertc.net') < 0) {
+			address.unshift(this.address);
+			return this.mediaApi.connect(address, {
+				streamConfig: this.streamConfig
+			});
+		}
+
+		// Send REFERs to new participants
+		var sipUA = this.mediaApi.crocObject.sipUA;
+		for (var i = 0, len = address.length; i < len; i++) {
+			sipUA.sendRefer(address[i], this.address);
+		}
+
+		return null;
+	};
+
+	/**
 	 * Explicitly close this media session.
 	 * <p>
 	 * If <code>accept()</code> has not been called the session will be
@@ -47443,14 +48122,25 @@ var CrocSDK = {};
 
 		if (this.peerConnection) {
 			this.peerConnection.close();
+			this.peerConnection = null;
 		}
 
+		// Stop any media streams we're holding
 		if (this.screenStream) {
 			this.screenStream.stop();
+			this.screenStream = null;
 		}
-
+		if (this.oldScreenStream) {
+			this.oldScreenStream.stop();
+			this.oldScreenStream = null;
+		}
 		if (this.localStream) {
 			this.localStream.stop();
+			this.localStream = null;
+		}
+		if (this.oldLocalStream) {
+			this.oldLocalStream.stop();
+			this.oldLocalStream = null;
 		}
 
 		if (this.sipSession) {
@@ -50504,6 +51194,8 @@ var CrocSDK = {};
 	Util.fireEvent = function (parent, event, data, runDefault) {
 		if (runDefault || parent.hasOwnProperty(event)) {
 			try {
+				console.log('Firing event ' + parent.constructor.name + '.' +
+						event + ':', data);
 				parent[event](data);
 			} catch (e) {
 				console.warn(parent.constructor.name + '.' + event +
@@ -52484,7 +53176,6 @@ var audioSession, transferredSession = null, ringtone;
 
 // Setup Media session configuration
 function setAudioSession (mediaSession) {
-	
 	// The DOM audio element used for playing the remote party's audio
 	mediaSession.remoteAudioElement = $('.croc_receive-audio')[0];
 	
@@ -52493,7 +53184,6 @@ function setAudioSession (mediaSession) {
 	 * received to a new media session request.
 	 */
 	mediaSession.onProvisional = function () {
-		
 		// Start the ring tone.
 		ringtone.start();
 		
@@ -52505,7 +53195,6 @@ function setAudioSession (mediaSession) {
 	 * The event handler to fire when a session request has been accepted.
 	 */
 	mediaSession.onConnect = function () {
-		
 		// Switch new session to current audioSession
 		if (transferredSession) {
 			// Copy current session to oldSession
@@ -52529,7 +53218,6 @@ function setAudioSession (mediaSession) {
 	 * The event handler to fire when a call transfer request is received.
 	 */
 	mediaSession.onTransferRequest = function (event) {
-		
 		// Accept any incoming call transfer request
 		transferredSession = event.accept();
 		
@@ -52545,7 +53233,6 @@ function setAudioSession (mediaSession) {
 	 * remote party or the network.
 	 */
 	mediaSession.onClose = function () {
-		
 		// Check its the current session, don't setup if it isn't
 		if(audioSession !== mediaSession) {
 			return;
@@ -52553,7 +53240,6 @@ function setAudioSession (mediaSession) {
 		
 		// Reset transferredSession ready for another transfer if/when its requested
 		if(mediaSession === transferredSession){
-
 			// Set the status element text to 'Transfer failed'
 			$('.croc_tpl_status').html('Transfer failed');
 			transferredSession = null;
@@ -52564,6 +53250,9 @@ function setAudioSession (mediaSession) {
 		if (ringtone) {
 			ringtone.stop();
 		}
+		
+		// Allow calls to be made on click
+		crocObjectConnected = false;
 		
 		// Stop duration of call
 		clearInterval(setCallDuration);
@@ -52582,47 +53271,98 @@ function setAudioSession (mediaSession) {
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
-		// Close down connection to network.
-		crocObject.disconnect();
+		// Stop duration of call
+		clearInterval(setCallDuration);
+		
+		// Trigger click to collapse the tab
+		isClicked = true;
+		$('.croc_side-tab').trigger('click');
 	};
 }
 
 // End the call by closing media session
 function endAudio() {
-	
 	// Close down connection to network.
 	audioSession.close();
 }
 
 // Mute the audio call
 function muteAudioCall() {
-
 	// Mute the sessions audio track
 	audioSession.mute();
 	
 	$('.croc_mute_audio').removeClass('croc_btn_mute_s');
 	$('.croc_mute_audio').addClass('croc_btn_muted');
+	
 	// Add transparency to show mute button has been pressed
 	$('.croc_btn_mute_s').addClass('croc_disabled');
 }
 
 // Un-mute the audio call
 function unmuteAudioCall() {
-	
 	// Un-mute the sessions audio track
 	audioSession.unmute();
 	
 	$('.croc_mute_audio').removeClass('croc_btn_muted');
 	$('.croc_mute_audio').addClass('croc_btn_mute_s');
+	
 	// Restore icon back to white by removing transparency
 	$('.croc_btn_mute_s').removeClass('croc_disabled');
 }
 
 // Audio session set-up
-function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
+function requestAudio(addressToCall) {
+	// Connection has been established; don't connect on click
+	crocObjectConnected = true;
 	
+	// Show the warning light to indicate a call is live
+	$('.croc_warning-light').show();
+	
+	// Set the status element text to 'Connecting'
+	$('.croc_tpl_status').html('Connecting');
+	
+	// Set the duration element to start timing the duration of the call
+	var callStartDate = new Date().getTime();
+	setDuration(callStartDate);
+	
+	// Get the address of the user to call
+	var address = addressToCall;
+	
+	// Set up stream to be able to send and receive audio
+	var callConfig = {
+			audio: {
+				send: true, receive: true
+			}
+	};
+	
+	// Set up ring tone frequency 
+	var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
+	
+	// Set up ring tone timing
+	var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
+	
+	// Create an instance of the ring tone object
+	ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
+	
+	// media.connect requests a media session and returns the session object
+	audioSession = crocObject.media.connect(address, {
+		streamConfig: callConfig
+	});
+	
+	// Configure new session
+	setAudioSession(audioSession);
+}
+// Global variables
+var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, isFullscreen = false; 
+var setCallDuration = null;
+var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
+
+/*
+ * Croc Object connection, check for capabilities
+ */
+function connectCrocObject(crocApiKey, crocDisplayName, click2callMediaWidget) {
 	// CrocSDK API Configuration
-	var crocConfig = {
+	crocConfig = {
 		// The API Key registered to the Crocodile RTC SDK Network
 		apiKey: crocApiKey,
 		
@@ -52634,85 +53374,33 @@ function requestAudio(crocApiKey, addressToCall, crocDisplayName) {
 		
 		// The event handler to fire when connected to the network
 		onConnected: function() {
+			var hasAudio = crocObject.capabilities["sip.audio"];
+			var hasVideo = crocObject.capabilities["sip.video"];
+			var hasDTMF = crocObject.capabilities["croc.dtmf"];
 			
-			// Connection has been established; don't connect on click
-			crocObjectConnected = true;
-			
-			// Show the warning light to indicate a call is live
-			$('.croc_warning-light').show();
-			
-			// Set remote party's address
-			/*$('.croc_ui_uri').html(address);*/
-			
-			// Set the status element text to 'Connecting'
-			$('.croc_tpl_status').html('Connecting');
-			
-			// Set the duration element to start timing the duration of the call
-			var callStartDate = new Date().getTime();
-			setDuration(callStartDate);
-			
-			// Get the address of the user to call
-			var address = addressToCall;
-			
-			// Set up stream to be able to send and receive audio
-			var callConfig = {
-					audio: {
-						send: true, receive: true
-					}
-			};
-			
-			// Set up ring tone frequency 
-			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
-			
-			// Set up ring tone timing
-			var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
-			
-			// Create an instance of the ring tone object
-			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
-			
-			// media.connect requests a media session and returns the session object
-			audioSession = crocObject.media.connect(address, {
-				streamConfig: callConfig
-			});
-			
-			// Configure new session
-			setAudioSession(audioSession);
-		},
-		
-		/*
-		 * The event handler to fire when a user been has disconnected from 
-		 * the network.
-		 */
-		onDisconnected: function () {
-			
-			// Make sure ringtone has stopped
-			if (ringtone) {
-				ringtone.stop();
+			// Test for audio capabilities
+			if (!hasAudio) {
+				alert("Unable to detect audio capabilities. Please connect and enable an audio device.");
 			}
 			
-			// Stop duration of call
-			clearInterval(setCallDuration);
+			// Test for video capabilities
+			if (!hasVideo && click2callMediaWidget === "video") {
+				alert("Unable to detect video capabilities. Please connect and enable an imaging device.");
+			}
 			
-			// Allow calls to be made on click
-			crocObjectConnected = false;
-
-			// Trigger click to collapse the tab
-			isClicked = true;
-			$('.croc_side-tab').trigger('click');
+			// Test for DTMF capabilities
+			if (!hasDTMF) {
+				$(".croc_btn_keypad").hide();
+			}
 		}
 	};
-
-	// Instantiation of CrocSDK croc object with basic configuration
+	
+	// Instantiation of croc object with non-default configuration
 	crocObject = $.croc(crocConfig);
 }
-// Global variables
-var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, isFullscreen = false; 
-var setCallDuration = null;
-var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 
 // The function to set up a click to call tab
 var croc_click2call = function(userConfig) {
-	
 	// Override default configuration with user configuration if present
 	var defaultConfig = $.extend({
 		apiKey: 'FIXME',
@@ -52732,17 +53420,19 @@ var croc_click2call = function(userConfig) {
 		throw new TypeError("Please set a display name");
 	}
 	
+	// Connect to the Network and check capabilities
+	connectCrocObject(defaultConfig.apiKey, defaultConfig.click2callDisplayName, defaultConfig.click2callMediaWidget);
+	
 	/*
 	 * Setup event handlers for the audio widget
 	 */
 	var setupAudioWidgetHandlers = function () {
 		/*
 		 * Setup tab event handlers
-		 */		
+		 */
 		$('.croc_side-tab').click(function() {
 			
 			if (!isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
@@ -52774,12 +53464,11 @@ var croc_click2call = function(userConfig) {
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestAudio(defaultConfig.apiKey, defaultConfig.addressToCall, defaultConfig.click2callDisplayName);
+					requestAudio(defaultConfig.addressToCall);
 				}
 				
 				isClicked = true;
 			} else if (isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
@@ -52821,14 +53510,12 @@ var croc_click2call = function(userConfig) {
 		
 		// End audio session when clicked
 		$('.croc_btn_close').click(function(){
-
 			// End the audio call
 			endAudio();
 		});
 		
 		// End audio session when clicked
 		$('.croc_btn_endcall_s').click(function() {
-			
 			// End the audio call
 			endAudio();
 		});
@@ -52850,31 +53537,30 @@ var croc_click2call = function(userConfig) {
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
 				while(currentTarget[0]){
-					if(currentTarget[0] === evt.target[0]) {
+					if (currentTarget[0] === evt.target[0]) {
 						return;
 					}
 					
 					currentTarget = currentTarget.parent();
 				}
-
+				
 				$('body').off('click');
-
 				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
-
+			
 			evt.stopPropagation();
 			$('.croc_ui_popout').addClass('croc_ui_popout_open');
 			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
 			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
-
+		
 		// Make sure keypad and tool bars aren't displayed
 		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
-
+		
 		// Setup keypad buttons
 		var keypad = $('.croc_ui_keypad');
 		keypad.find('.croc_tpl_key').click(function(){
@@ -52887,11 +53573,8 @@ var croc_click2call = function(userConfig) {
 	 * Setup event handlers for the video widget
 	 */
 	var setupVideoWidgetHandlers = function () {
-		
 		$('.croc_side-tab').click(function() {
-			
 			if (!isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
@@ -52912,18 +53595,17 @@ var croc_click2call = function(userConfig) {
 					});
 					break;
 				}
-			
+				
 				// Show tab content
 				$('.croc_side-tab-content-video').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestVideo(defaultConfig.apiKey, defaultConfig.addressToCall, defaultConfig.click2callDisplayName);
+					requestVideo(defaultConfig.addressToCall);
 				}
 				
 				isClicked = true;
 			} else if (isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
@@ -53065,26 +53747,20 @@ var croc_click2call = function(userConfig) {
 	switch (defaultConfig.click2callMediaWidget) {
 	default:
 	case 'audio':
-		
 		// Add the HTML as a child of the element specified in the configuration if the element exists.
 		if (htmlElement.length !== 0) {
-			
 			// For every HTML element of that kind, add audio tab
 			for (i=0; i < htmlElement.length; i++) {
-				
 				// Check that document contains HTML element
 				if ($.contains(document, htmlElement[i])) {
-					
 					// Add audio tab
 					$(defaultConfig.appendClick2callTo).append(audioWidgetHtml);
 				} else  {
-					
 					// If the HTML element specified doesn't exist, add to HTML
 					$('html').append(audioWidgetHtml);
 				}
 			}
 		} else {
-			
 			// If the HTML element specified doesn't exist, add to HTML
 			$('html').append(audioWidgetHtml);
 		}
@@ -53093,26 +53769,20 @@ var croc_click2call = function(userConfig) {
 		setupAudioWidgetHandlers();
 		break;
 	case 'video':
-		
 		// Add the HTML as a child of the element specified in the configuration if the element exists.
 		if (htmlElement.length !== 0) {
-			
 			// For every HTML element of that kind, add video tab
 			for (i=0; i < htmlElement.length; i++) {
-				
 				// Check that document contains HTML element
 				if ($.contains(document, htmlElement[i])) {
-					
 					// Add video tab
 					$(defaultConfig.appendClick2callTo).append(videoWidgetHtml);
 				} else  {
-					
 					// If the HTML element specified doesn't exist, add to HTML
 					$('html').append(videoWidgetHtml);
 				}
 			}
 		} else {
-			
 			// If the HTML element specified doesn't exist, add to HTML
 			$('html').append(videoWidgetHtml);
 		}
@@ -53130,20 +53800,18 @@ var croc_click2call = function(userConfig) {
 	
 	// Add to correct widget only if value is absolute or fixed
 	if (mediaWidget === 'video' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
-		
 		// Change css position to user defined/default position
 		$('.croc_tab-wrapper-video').css('position', defaultConfig.click2callPosition);	
 	}
 	
-	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed')  {
-		
+	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
 		// Change css position to user defined/default position
 		$('.croc_tab-wrapper').css('position', defaultConfig.click2callPosition);
 	}
 	
 	/*
 	 * Setup the tab orientation on screen; top, right, bottom or left
-	 */	
+	 */
 	switch (orientationOfClick2Call) {
 	case 'top':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
@@ -53212,11 +53880,11 @@ function formatDuration(time1, time2, format) {
 	var minutes = parseInt(duration / 60, 10);
 	var seconds = parseInt(duration, 10);
 
-	if(minutes >= 1) {
+	if (minutes >= 1) {
 		seconds -= minutes*60;
 	}
 	
-	if(hours >= 1) {
+	if (hours >= 1) {
 		minutes -= hours*60;
 	}
 
@@ -53229,28 +53897,26 @@ function formatDuration(time1, time2, format) {
 
 // Set a timer to update the length of the call
 function setDuration(callStartDate) {
+	if (setCallDuration !== null) {
+		clearInterval(setCallDuration);
+		setCallDuration = null;
+	}
 	
-		if (setCallDuration !== null) {
-			clearInterval(setCallDuration);
-			setCallDuration = null;
-		}
-	
-		// Start call duration
-		setCallDuration = setInterval(function() {
-			
-			// Set the format to display the length of the call
-			var durationTimerFormat = "%H:%i:%s";
-			
-			// Get the current date in milliseconds
-			var currentDate = new Date().getTime();
-			
-			// Format the date using the method formatDuration
-			var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
-			
-			// Set the duration element text to the current duration after formatting 
-			$('.croc_ui_duration').html(formattedCallDuration);
-			
-		}, 1000);
+	// Start call duration
+	setCallDuration = setInterval(function() {
+		// Set the format to display the length of the call
+		var durationTimerFormat = "%H:%i:%s";
+		
+		// Get the current date in milliseconds
+		var currentDate = new Date().getTime();
+		
+		// Format the date using the method formatDuration
+		var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
+		
+		// Set the duration element text to the current duration after formatting 
+		$('.croc_ui_duration').html(formattedCallDuration);
+		
+	}, 1000);
 }
 var localisations = {
 		"al": {
@@ -55294,7 +55960,6 @@ var videoSession, transferredSession = null, ringtone;
 
 //Setup Media session configuration
 function setVideoSession (mediaSession) {
-	
 	// The DOM video element used for playing the local party's video
 	mediaSession.localVideoElement = $('.croc_receive_localVideo')[0];
 	
@@ -55306,7 +55971,6 @@ function setVideoSession (mediaSession) {
 	 * received to a new media session request.
 	 */
 	mediaSession.onProvisional = function () {
-		
 		// Start the ring tone.
 		ringtone.start();
 		
@@ -55318,7 +55982,6 @@ function setVideoSession (mediaSession) {
 	 * The event handler to fire when a session request has been accepted.
 	 */
 	mediaSession.onConnect = function () {
-		
 		// Switch new session to current videoSession
 		if (transferredSession) {
 			// Copy current session to oldSession
@@ -55342,7 +56005,6 @@ function setVideoSession (mediaSession) {
 	 * The event handler to fire when a call transfer request is received.
 	 */
 	mediaSession.onTransferRequest = function (event) {
-		
 		// Accept any incoming call transfer request
 		transferredSession = event.accept();
 		
@@ -55358,15 +56020,13 @@ function setVideoSession (mediaSession) {
 	 * remote party or the network.
 	 */
 	mediaSession.onClose = function () {
-		
 		// Check its the current session, don't setup if it isn't
-		if(videoSession !== mediaSession) {
+		if (videoSession !== mediaSession) {
 			return;
 		} 
 		
 		// Reset transferredSession ready for another transfer if/when its requested
-		if(mediaSession === transferredSession){
-
+		if (mediaSession === transferredSession) {
 			// Set the status element text to 'Transfer failed'
 			$('.croc_ui_status').html('Transfer failed');
 			transferredSession = null;
@@ -55399,8 +56059,15 @@ function setVideoSession (mediaSession) {
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
-		// Close down connection to network
-		crocObject.disconnect();
+		// Allow calls to be made on click
+		crocObjectConnected = false;
+		
+		// Make sure duration of call has stopped
+		clearInterval(setCallDuration);
+		
+		// Trigger click to collapse the tab.
+		isClicked = true;
+		$('.croc_side-tab').trigger('click');
 	};
 }
 
@@ -55411,31 +56078,30 @@ function endVideo() {
 
 // Mute the audio
 function muteAudio() {
-	
 	// Disable the sessions audio track
 	videoSession.mute();
 	
 	$('.croc_mute_video_audio').removeClass('croc_btn_mute_s');
 	$('.croc_mute_video_audio').addClass('croc_btn_muted');
+	
 	// Turn icon green to show its been pressed
 	$('.croc_btn_mute_s').addClass('croc_selected');
 }
 
 // Un-mute the audio
 function unmuteAudio() {
-	
 	// Un-mute the sessions audio track
 	videoSession.unmute();
 	
 	$('.croc_mute_video_audio').removeClass('croc_btn_muted');
 	$('.croc_mute_video_audio').addClass('croc_btn_mute_s');
+	
 	// Restore icon back to white
 	$('.croc_btn_mute_s').removeClass('croc_selected');
 }
 
 // Pause the remote video
 function pauseVideo() {
-	
 	// Disable the sessions video track
 	videoSession.localStream.getVideoTracks()[0].enabled=false;
 	
@@ -55448,7 +56114,6 @@ function pauseVideo() {
 
 // Un-Pause the remote video
 function resumeVideo() {
-	
 	// Un-mute the sessions video track
 	videoSession.localStream.getVideoTracks()[0].enabled=true;
 	
@@ -55466,123 +56131,78 @@ function setVideoToFullscreen(enabled) {
 
 	// Listen for fullscreen change, ignore initial change
 	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
-		if(isFullscreen && !initial) {
+		if (isFullscreen && !initial) {
 			setVideoToFullscreen(false);
 		}
 
 		initial = false;
 	};
 
-	if(enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')){
+	if (enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')) {
 		// Set fullscreen
 		isFullscreen = true;
 		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
-		if(uiElement.webkitRequestFullscreen) {
+		if (uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
-		} else if(uiElement.mozRequestFullscreen) {
+		} else if (uiElement.mozRequestFullscreen) {
 			uiElement.mozRequestFullscreen();
 		}
 	} else {
 		// Exit fullscreen
 		isFullscreen = false;
 		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
-		if(document.webkitExitFullscreen) {
+		if (document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
-		} else if(document.mozExitFullscreen) {
+		} else if (document.mozExitFullscreen) {
 			document.mozExitFullscreen();
 		}
 	}
 }
 
 // Video session set-up
-function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
+function requestVideo(addressToCall) {
+	// Connection has been established; don't connect on click
+	crocObjectConnected = true;
 	
-	// CrocSDK API Configuration
-	var crocConfig = {
-		// The API Key registered to the Crocodile RTC SDK Network
-		apiKey: crocApiKey,
-		
-		// The text to display to call recipient
-		displayName: crocDisplayName,
-		
-		// The features that the application will implement
-		features: ['audio', 'video', 'transfer'],
-		
-		// The event handler to fire when connected to the network
-		onConnected: function() {
-			
-			// Connection has been established; don't connect on click
-			crocObjectConnected = true;
-			
-			// Get the address of the user to call
-			var address = addressToCall;
-			
-			// Set up stream to be able to send and receive video and audio
-			var callConfig = {
-					audio: {
-						send: true, receive: true
-					}, 
-					video: {
-						send: true, receive: true
-					}
-			};
-			
-			// Show the warning light to indicate a call is live
-			$('.croc_warning-light').show();
-			
-			// Set remote party's address
-			/*$('.croc_ui_uri').html(address);*/
-			
-			// Set the status element text to 'Connecting'
-			$('.croc_ui_status').html('Connecting');
-			
-			// Set the duration element to start timing the duration of the call
-			var callStartDate = new Date().getTime();
-			setDuration(callStartDate);
-			
-			// Set up ring tone frequency
-			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
-			
-			// Set up ring tone timing
-			var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
-			
-			// Create an instance of the ring tone object
-			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
-			
-			// media.connect requests a media session and returns the session object
-			videoSession = crocObject.media.connect(address, {
-				streamConfig: callConfig
-			});
-			
-			// Configure new session
-			setVideoSession(videoSession);
-		},
-		
-		/*
-		 * The event handler to fire when a user been has disconnected from 
-		 * the network.
-		 */
-		onDisconnected: function () {
-			
-			// Make sure ringtone has stopped
-			if (ringtone) {
-				ringtone.stop();
+	// Get the address of the user to call
+	var address = addressToCall;
+	
+	// Set up stream to be able to send and receive video and audio
+	var callConfig = {
+			audio: {
+				send: true, receive: true
+			}, 
+			video: {
+				send: true, receive: true
 			}
-			
-			// Allow calls to be made on click
-			crocObjectConnected = false;
-			
-			// Make sure duration of call has stopped
-			clearInterval(setCallDuration);
-			
-			// Trigger click to collapse the tab.
-			isClicked = true;
-			$('.croc_side-tab').trigger('click');
-		}
 	};
-
-	// Instantiation of croc object with basic configuration
-	crocObject = $.croc(crocConfig);
+	
+	// Show the warning light to indicate a call is live
+	$('.croc_warning-light').show();
+	
+	// Set the status element text to 'Connecting'
+	$('.croc_ui_status').html('Connecting');
+	
+	// Set the duration element to start timing the duration of the call
+	var callStartDate = new Date().getTime();
+	setDuration(callStartDate);
+	
+	// Set up ring tone frequency
+	var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
+	
+	// Set up ring tone timing
+	var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
+	
+	// Create an instance of the ring tone object
+	ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
+	
+	// media.connect requests a media session and returns the session object
+	videoSession = crocObject.media.connect(address, {
+		streamConfig: callConfig
+	});
+	
+	// Configure new session
+	setVideoSession(videoSession);
 }
 var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 		'<div class="croc_side-tab croc_rotate-vertical">' +
@@ -55895,7 +56515,7 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 				'</div>' +
 			'</div>' +
 			'<div class="croc_powered_by_video">'+
-				'<p>Powered by <a class="croc_link" target="_blank">crocodilertc.net</a></p>'+
+				'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
 			'</div>' +
 		'</div>' +
 	'</div>';

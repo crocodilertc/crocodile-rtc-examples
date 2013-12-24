@@ -3,7 +3,6 @@ var videoSession, transferredSession = null, ringtone;
 
 //Setup Media session configuration
 function setVideoSession (mediaSession) {
-	
 	// The DOM video element used for playing the local party's video
 	mediaSession.localVideoElement = $('.croc_receive_localVideo')[0];
 	
@@ -15,7 +14,6 @@ function setVideoSession (mediaSession) {
 	 * received to a new media session request.
 	 */
 	mediaSession.onProvisional = function () {
-		
 		// Start the ring tone.
 		ringtone.start();
 		
@@ -27,7 +25,6 @@ function setVideoSession (mediaSession) {
 	 * The event handler to fire when a session request has been accepted.
 	 */
 	mediaSession.onConnect = function () {
-		
 		// Switch new session to current videoSession
 		if (transferredSession) {
 			// Copy current session to oldSession
@@ -51,7 +48,6 @@ function setVideoSession (mediaSession) {
 	 * The event handler to fire when a call transfer request is received.
 	 */
 	mediaSession.onTransferRequest = function (event) {
-		
 		// Accept any incoming call transfer request
 		transferredSession = event.accept();
 		
@@ -67,15 +63,13 @@ function setVideoSession (mediaSession) {
 	 * remote party or the network.
 	 */
 	mediaSession.onClose = function () {
-		
 		// Check its the current session, don't setup if it isn't
-		if(videoSession !== mediaSession) {
+		if (videoSession !== mediaSession) {
 			return;
 		} 
 		
 		// Reset transferredSession ready for another transfer if/when its requested
-		if(mediaSession === transferredSession){
-
+		if (mediaSession === transferredSession) {
 			// Set the status element text to 'Transfer failed'
 			$('.croc_ui_status').html('Transfer failed');
 			transferredSession = null;
@@ -108,8 +102,15 @@ function setVideoSession (mediaSession) {
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
-		// Close down connection to network
-		crocObject.disconnect();
+		// Allow calls to be made on click
+		crocObjectConnected = false;
+		
+		// Make sure duration of call has stopped
+		clearInterval(setCallDuration);
+		
+		// Trigger click to collapse the tab.
+		isClicked = true;
+		$('.croc_side-tab').trigger('click');
 	};
 }
 
@@ -120,31 +121,30 @@ function endVideo() {
 
 // Mute the audio
 function muteAudio() {
-	
 	// Disable the sessions audio track
 	videoSession.mute();
 	
 	$('.croc_mute_video_audio').removeClass('croc_btn_mute_s');
 	$('.croc_mute_video_audio').addClass('croc_btn_muted');
+	
 	// Turn icon green to show its been pressed
 	$('.croc_btn_mute_s').addClass('croc_selected');
 }
 
 // Un-mute the audio
 function unmuteAudio() {
-	
 	// Un-mute the sessions audio track
 	videoSession.unmute();
 	
 	$('.croc_mute_video_audio').removeClass('croc_btn_muted');
 	$('.croc_mute_video_audio').addClass('croc_btn_mute_s');
+	
 	// Restore icon back to white
 	$('.croc_btn_mute_s').removeClass('croc_selected');
 }
 
 // Pause the remote video
 function pauseVideo() {
-	
 	// Disable the sessions video track
 	videoSession.localStream.getVideoTracks()[0].enabled=false;
 	
@@ -157,7 +157,6 @@ function pauseVideo() {
 
 // Un-Pause the remote video
 function resumeVideo() {
-	
 	// Un-mute the sessions video track
 	videoSession.localStream.getVideoTracks()[0].enabled=true;
 	
@@ -175,121 +174,76 @@ function setVideoToFullscreen(enabled) {
 
 	// Listen for fullscreen change, ignore initial change
 	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
-		if(isFullscreen && !initial) {
+		if (isFullscreen && !initial) {
 			setVideoToFullscreen(false);
 		}
 
 		initial = false;
 	};
 
-	if(enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')){
+	if (enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')) {
 		// Set fullscreen
 		isFullscreen = true;
 		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
-		if(uiElement.webkitRequestFullscreen) {
+		if (uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
-		} else if(uiElement.mozRequestFullscreen) {
+		} else if (uiElement.mozRequestFullscreen) {
 			uiElement.mozRequestFullscreen();
 		}
 	} else {
 		// Exit fullscreen
 		isFullscreen = false;
 		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
-		if(document.webkitExitFullscreen) {
+		if (document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
-		} else if(document.mozExitFullscreen) {
+		} else if (document.mozExitFullscreen) {
 			document.mozExitFullscreen();
 		}
 	}
 }
 
 // Video session set-up
-function requestVideo(crocApiKey, addressToCall, crocDisplayName) {
+function requestVideo(addressToCall) {
+	// Connection has been established; don't connect on click
+	crocObjectConnected = true;
 	
-	// CrocSDK API Configuration
-	var crocConfig = {
-		// The API Key registered to the Crocodile RTC SDK Network
-		apiKey: crocApiKey,
-		
-		// The text to display to call recipient
-		displayName: crocDisplayName,
-		
-		// The features that the application will implement
-		features: ['audio', 'video', 'transfer'],
-		
-		// The event handler to fire when connected to the network
-		onConnected: function() {
-			
-			// Connection has been established; don't connect on click
-			crocObjectConnected = true;
-			
-			// Get the address of the user to call
-			var address = addressToCall;
-			
-			// Set up stream to be able to send and receive video and audio
-			var callConfig = {
-					audio: {
-						send: true, receive: true
-					}, 
-					video: {
-						send: true, receive: true
-					}
-			};
-			
-			// Show the warning light to indicate a call is live
-			$('.croc_warning-light').show();
-			
-			// Set remote party's address
-			/*$('.croc_ui_uri').html(address);*/
-			
-			// Set the status element text to 'Connecting'
-			$('.croc_ui_status').html('Connecting');
-			
-			// Set the duration element to start timing the duration of the call
-			var callStartDate = new Date().getTime();
-			setDuration(callStartDate);
-			
-			// Set up ring tone frequency
-			var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
-			
-			// Set up ring tone timing
-			var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
-			
-			// Create an instance of the ring tone object
-			ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
-			
-			// media.connect requests a media session and returns the session object
-			videoSession = crocObject.media.connect(address, {
-				streamConfig: callConfig
-			});
-			
-			// Configure new session
-			setVideoSession(videoSession);
-		},
-		
-		/*
-		 * The event handler to fire when a user been has disconnected from 
-		 * the network.
-		 */
-		onDisconnected: function () {
-			
-			// Make sure ringtone has stopped
-			if (ringtone) {
-				ringtone.stop();
+	// Get the address of the user to call
+	var address = addressToCall;
+	
+	// Set up stream to be able to send and receive video and audio
+	var callConfig = {
+			audio: {
+				send: true, receive: true
+			}, 
+			video: {
+				send: true, receive: true
 			}
-			
-			// Allow calls to be made on click
-			crocObjectConnected = false;
-			
-			// Make sure duration of call has stopped
-			clearInterval(setCallDuration);
-			
-			// Trigger click to collapse the tab.
-			isClicked = true;
-			$('.croc_side-tab').trigger('click');
-		}
 	};
-
-	// Instantiation of croc object with basic configuration
-	crocObject = $.croc(crocConfig);
+	
+	// Show the warning light to indicate a call is live
+	$('.croc_warning-light').show();
+	
+	// Set the status element text to 'Connecting'
+	$('.croc_ui_status').html('Connecting');
+	
+	// Set the duration element to start timing the duration of the call
+	var callStartDate = new Date().getTime();
+	setDuration(callStartDate);
+	
+	// Set up ring tone frequency
+	var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
+	
+	// Set up ring tone timing
+	var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
+	
+	// Create an instance of the ring tone object
+	ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
+	
+	// media.connect requests a media session and returns the session object
+	videoSession = crocObject.media.connect(address, {
+		streamConfig: callConfig
+	});
+	
+	// Configure new session
+	setVideoSession(videoSession);
 }

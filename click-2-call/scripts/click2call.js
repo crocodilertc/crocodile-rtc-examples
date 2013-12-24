@@ -3,9 +3,50 @@ var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, 
 var setCallDuration = null;
 var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 
+/*
+ * Croc Object connection, check for capabilities
+ */
+function connectCrocObject(crocApiKey, crocDisplayName, click2callMediaWidget) {
+	// CrocSDK API Configuration
+	crocConfig = {
+		// The API Key registered to the Crocodile RTC SDK Network
+		apiKey: crocApiKey,
+		
+		// The text to display to call recipient
+		displayName: crocDisplayName,
+		
+		// The features that the application will implement
+		features: ['audio', 'video', 'transfer'],
+		
+		// The event handler to fire when connected to the network
+		onConnected: function() {
+			var hasAudio = crocObject.capabilities["sip.audio"];
+			var hasVideo = crocObject.capabilities["sip.video"];
+			var hasDTMF = crocObject.capabilities["croc.dtmf"];
+			
+			// Test for audio capabilities
+			if (!hasAudio) {
+				alert("Unable to detect audio capabilities. Please connect and enable an audio device.");
+			}
+			
+			// Test for video capabilities
+			if (!hasVideo && click2callMediaWidget === "video") {
+				alert("Unable to detect video capabilities. Please connect and enable an imaging device.");
+			}
+			
+			// Test for DTMF capabilities
+			if (!hasDTMF) {
+				$(".croc_btn_keypad").hide();
+			}
+		}
+	};
+	
+	// Instantiation of croc object with non-default configuration
+	crocObject = $.croc(crocConfig);
+}
+
 // The function to set up a click to call tab
 var croc_click2call = function(userConfig) {
-	
 	// Override default configuration with user configuration if present
 	var defaultConfig = $.extend({
 		apiKey: 'FIXME',
@@ -25,17 +66,19 @@ var croc_click2call = function(userConfig) {
 		throw new TypeError("Please set a display name");
 	}
 	
+	// Connect to the Network and check capabilities
+	connectCrocObject(defaultConfig.apiKey, defaultConfig.click2callDisplayName, defaultConfig.click2callMediaWidget);
+	
 	/*
 	 * Setup event handlers for the audio widget
 	 */
 	var setupAudioWidgetHandlers = function () {
 		/*
 		 * Setup tab event handlers
-		 */		
+		 */
 		$('.croc_side-tab').click(function() {
 			
 			if (!isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
@@ -67,12 +110,11 @@ var croc_click2call = function(userConfig) {
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestAudio(defaultConfig.apiKey, defaultConfig.addressToCall, defaultConfig.click2callDisplayName);
+					requestAudio(defaultConfig.addressToCall);
 				}
 				
 				isClicked = true;
 			} else if (isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
@@ -114,14 +156,12 @@ var croc_click2call = function(userConfig) {
 		
 		// End audio session when clicked
 		$('.croc_btn_close').click(function(){
-
 			// End the audio call
 			endAudio();
 		});
 		
 		// End audio session when clicked
 		$('.croc_btn_endcall_s').click(function() {
-			
 			// End the audio call
 			endAudio();
 		});
@@ -143,31 +183,30 @@ var croc_click2call = function(userConfig) {
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
 				while(currentTarget[0]){
-					if(currentTarget[0] === evt.target[0]) {
+					if (currentTarget[0] === evt.target[0]) {
 						return;
 					}
 					
 					currentTarget = currentTarget.parent();
 				}
-
+				
 				$('body').off('click');
-
 				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
-
+			
 			evt.stopPropagation();
 			$('.croc_ui_popout').addClass('croc_ui_popout_open');
 			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
 			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
-
+		
 		// Make sure keypad and tool bars aren't displayed
 		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
-
+		
 		// Setup keypad buttons
 		var keypad = $('.croc_ui_keypad');
 		keypad.find('.croc_tpl_key').click(function(){
@@ -180,11 +219,8 @@ var croc_click2call = function(userConfig) {
 	 * Setup event handlers for the video widget
 	 */
 	var setupVideoWidgetHandlers = function () {
-		
 		$('.croc_side-tab').click(function() {
-			
 			if (!isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
@@ -205,18 +241,17 @@ var croc_click2call = function(userConfig) {
 					});
 					break;
 				}
-			
+				
 				// Show tab content
 				$('.croc_side-tab-content-video').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestVideo(defaultConfig.apiKey, defaultConfig.addressToCall, defaultConfig.click2callDisplayName);
+					requestVideo(defaultConfig.addressToCall);
 				}
 				
 				isClicked = true;
 			} else if (isClicked) {
-				
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Collapse tab.
@@ -358,26 +393,20 @@ var croc_click2call = function(userConfig) {
 	switch (defaultConfig.click2callMediaWidget) {
 	default:
 	case 'audio':
-		
 		// Add the HTML as a child of the element specified in the configuration if the element exists.
 		if (htmlElement.length !== 0) {
-			
 			// For every HTML element of that kind, add audio tab
 			for (i=0; i < htmlElement.length; i++) {
-				
 				// Check that document contains HTML element
 				if ($.contains(document, htmlElement[i])) {
-					
 					// Add audio tab
 					$(defaultConfig.appendClick2callTo).append(audioWidgetHtml);
 				} else  {
-					
 					// If the HTML element specified doesn't exist, add to HTML
 					$('html').append(audioWidgetHtml);
 				}
 			}
 		} else {
-			
 			// If the HTML element specified doesn't exist, add to HTML
 			$('html').append(audioWidgetHtml);
 		}
@@ -386,26 +415,20 @@ var croc_click2call = function(userConfig) {
 		setupAudioWidgetHandlers();
 		break;
 	case 'video':
-		
 		// Add the HTML as a child of the element specified in the configuration if the element exists.
 		if (htmlElement.length !== 0) {
-			
 			// For every HTML element of that kind, add video tab
 			for (i=0; i < htmlElement.length; i++) {
-				
 				// Check that document contains HTML element
 				if ($.contains(document, htmlElement[i])) {
-					
 					// Add video tab
 					$(defaultConfig.appendClick2callTo).append(videoWidgetHtml);
 				} else  {
-					
 					// If the HTML element specified doesn't exist, add to HTML
 					$('html').append(videoWidgetHtml);
 				}
 			}
 		} else {
-			
 			// If the HTML element specified doesn't exist, add to HTML
 			$('html').append(videoWidgetHtml);
 		}
@@ -423,20 +446,18 @@ var croc_click2call = function(userConfig) {
 	
 	// Add to correct widget only if value is absolute or fixed
 	if (mediaWidget === 'video' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
-		
 		// Change css position to user defined/default position
 		$('.croc_tab-wrapper-video').css('position', defaultConfig.click2callPosition);	
 	}
 	
-	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed')  {
-		
+	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
 		// Change css position to user defined/default position
 		$('.croc_tab-wrapper').css('position', defaultConfig.click2callPosition);
 	}
 	
 	/*
 	 * Setup the tab orientation on screen; top, right, bottom or left
-	 */	
+	 */
 	switch (orientationOfClick2Call) {
 	case 'top':
 		if (mediaWidget === 'video' && orientationOfClick2Call === 'top') {
@@ -505,11 +526,11 @@ function formatDuration(time1, time2, format) {
 	var minutes = parseInt(duration / 60, 10);
 	var seconds = parseInt(duration, 10);
 
-	if(minutes >= 1) {
+	if (minutes >= 1) {
 		seconds -= minutes*60;
 	}
 	
-	if(hours >= 1) {
+	if (hours >= 1) {
 		minutes -= hours*60;
 	}
 
@@ -522,26 +543,24 @@ function formatDuration(time1, time2, format) {
 
 // Set a timer to update the length of the call
 function setDuration(callStartDate) {
+	if (setCallDuration !== null) {
+		clearInterval(setCallDuration);
+		setCallDuration = null;
+	}
 	
-		if (setCallDuration !== null) {
-			clearInterval(setCallDuration);
-			setCallDuration = null;
-		}
-	
-		// Start call duration
-		setCallDuration = setInterval(function() {
-			
-			// Set the format to display the length of the call
-			var durationTimerFormat = "%H:%i:%s";
-			
-			// Get the current date in milliseconds
-			var currentDate = new Date().getTime();
-			
-			// Format the date using the method formatDuration
-			var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
-			
-			// Set the duration element text to the current duration after formatting 
-			$('.croc_ui_duration').html(formattedCallDuration);
-			
-		}, 1000);
+	// Start call duration
+	setCallDuration = setInterval(function() {
+		// Set the format to display the length of the call
+		var durationTimerFormat = "%H:%i:%s";
+		
+		// Get the current date in milliseconds
+		var currentDate = new Date().getTime();
+		
+		// Format the date using the method formatDuration
+		var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
+		
+		// Set the duration element text to the current duration after formatting 
+		$('.croc_ui_duration').html(formattedCallDuration);
+		
+	}, 1000);
 }
