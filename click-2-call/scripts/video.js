@@ -126,9 +126,6 @@ function muteAudio() {
 	
 	$('.croc_mute_video_audio').removeClass('croc_btn_mute_s');
 	$('.croc_mute_video_audio').addClass('croc_btn_muted');
-	
-	// Turn icon green to show its been pressed
-	$('.croc_btn_mute_s').addClass('croc_selected');
 }
 
 // Un-mute the audio
@@ -138,9 +135,6 @@ function unmuteAudio() {
 	
 	$('.croc_mute_video_audio').removeClass('croc_btn_muted');
 	$('.croc_mute_video_audio').addClass('croc_btn_mute_s');
-	
-	// Restore icon back to white
-	$('.croc_btn_mute_s').removeClass('croc_selected');
 }
 
 // Pause the remote video

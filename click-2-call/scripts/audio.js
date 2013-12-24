@@ -91,15 +91,13 @@ function setAudioSession (mediaSession) {
 		$('.croc_warning-light').hide();
 		
 		// Reset mute button
-		$('.croc_btn_mute_s').removeClass('croc_disabled');
+		$('.croc_mute_audio').removeClass('croc_btn_muted');
+		$('.croc_mute_audio').addClass('croc_btn_mute_s');
 		
 		// Reset pop-out
 		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
-		
-		// Stop duration of call
-		clearInterval(setCallDuration);
 		
 		// Trigger click to collapse the tab
 		isClicked = true;
@@ -120,9 +118,6 @@ function muteAudioCall() {
 	
 	$('.croc_mute_audio').removeClass('croc_btn_mute_s');
 	$('.croc_mute_audio').addClass('croc_btn_muted');
-	
-	// Add transparency to show mute button has been pressed
-	$('.croc_btn_mute_s').addClass('croc_disabled');
 }
 
 // Un-mute the audio call
@@ -132,9 +127,6 @@ function unmuteAudioCall() {
 	
 	$('.croc_mute_audio').removeClass('croc_btn_muted');
 	$('.croc_mute_audio').addClass('croc_btn_mute_s');
-	
-	// Restore icon back to white by removing transparency
-	$('.croc_btn_mute_s').removeClass('croc_disabled');
 }
 
 // Audio session set-up
