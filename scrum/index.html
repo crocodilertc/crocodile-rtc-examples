@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Crocodile Scrum</title>
+		<link href='css/croc_reset.css' rel='stylesheet' type='text/css'/>
+		<link href='css/croc_scrum.css' rel='stylesheet' type='text/css'/>
+		<meta name="viewport" content="width=device-width" />
+	</head>
+	<body>
+		<div class="wrapper">
+			<header class="header">
+				<section class="header_content">
+					<div class="title">
+						<h1>Crocodile Scrum</h1>
+					</div>
+					<div class="form_container">
+						<div class="form_join">
+							<input class="chat_room" type="text" name="chat_room" maxlength="20" placeholder="Scrum"/>
+							<input class="join_chat" type="submit" name="chat_go" value="Join"/>
+							<div class="error_container disabled">
+								<p class="error"></p>
+							</div>
+						</div>
+					</div>
+				</section>
+			</header>
+			<section class="chat_container disabled">
+				<div class="video_content">
+					<div class="form_status disabled">
+						<p class="status"></p>
+					</div>
+					<div class="spin"></div>
+					<video class="video_chat" autoplay="autoplay"></video>
+					<div class="form_leave disabled">
+						<label for="scrum_address" class="form_leave_label">Link:</label> 
+						<input id="scrum_address" class="display_name" type="text" name="scrum_address" autofocus readonly/>
+						<button class="leave_chat chat_buttons">Leave</button>
+					</div>
+				</div>
+			</section>
+		</div>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+		<script src="//www.crocodilertc.net/sdk/latest/crocodile-rtc.min.js"></script>
+		<script type="text/javascript" src="libs/spin.min.js"></script>
+		<script type="text/javascript" src="js/croc_spin.js"></script>
+		<script type="text/javascript" src="js/croc_scrum.js"></script>
+	</body>
+</html>
