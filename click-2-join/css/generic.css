@@ -1,0 +1,53 @@
+/* Generic */
+.croc_ui_hidden {
+	display:none !important;
+}
+
+.croc_disabled {
+	opacity:0.25;
+}
+
+.croc_btn_muted .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -246px -130px;
+}
+.croc_btn_muted:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -246px -130px;
+}
+.croc_btn_muted.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -246px -130px;
+}
+
+.croc_btn_mute_s .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -83px -170px;
+}
+.croc_btn_mute_s:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -83px -170px;
+}
+.croc_btn_mute_s.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -83px -199px;
+}
+.croc_btn_pausevideo_s .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -124px -170px;
+}
+.croc_btn_pausevideo_s:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -124px -170px;
+}
+.croc_btn_pausevideo_s.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -124px -199px;
+}
+.croc_btn_endcall_s .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -165px -170px;
+}
+.croc_btn_endcall_s:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -165px -170px;
+}
+.croc_btn_endcall_s.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -165px -199px;
+}
+
+.croc_btn_close .croc_ui_image {
+	background:url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -109px -341px;
+}
+.croc_btn_fullscreen .croc_ui_image {
+	background:url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -82px -341px;
+}

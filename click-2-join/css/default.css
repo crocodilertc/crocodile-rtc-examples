@@ -1,0 +1,55 @@
+.croc_scheme_button_6.croc_disabled {
+	background-color:#555555;
+	color:#AAA;
+	pointer-events:none;
+}
+
+/*
+ *  Button style 6
+ */
+
+.croc_scheme_button_6 {
+	background:#FFFFFF;
+	border-color:#E4E4E4;
+}
+.croc_scheme_button_6:hover {
+	border-color:#C2D3CF;
+}
+.croc_scheme_button_6:focus {
+	border-color:#409F89;
+}
+
+/*
+ * Action button style
+ */
+
+.croc_scheme_action_button {
+	border-radius:5px;
+	border:1px solid transparent;
+}
+.croc_scheme_action_button:hover {
+	border-top: 1px solid rgba(0, 0, 0, 0.2);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+	background: rgba(0, 0, 0, 0.2);
+}
+.croc_scheme_action_button:focus {
+	background-color:rgba(255, 255, 255, 0.2);
+}
+
+.croc_scheme_action_button.selected {
+	background-color:rgba(255, 255, 255, 0.1);
+}
+.croc_scheme_action_button.ui_selected_2 {
+	background-color:rgba(0, 0, 0, 0.5);
+}
+
+.croc_scheme_label_1 {
+	color:#1A3E36;
+}
+.croc_scheme_label_2 {
+	color:#64857D;
+}
+
+.croc_scheme_widget {
+	background-color:#e6ebea;
+}

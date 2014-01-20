@@ -1,0 +1,67 @@
+.croc_widget_audiocall {
+	height:11em;
+	position:absolute;
+	width: 23em;
+}
+
+.croc_widget_audiocall .croc_ui_container .croc_ui_content {
+	position: absolute;
+	right: 0px;
+	left: 0px;
+	bottom: 0px;
+	top: 2.5em;
+}
+
+.croc_widget_audiocall .croc_ui_container .croc_ui_content > .croc_tpl_content {
+	position: absolute;
+	right: 0;
+	left: 0;
+	bottom: 0;
+	top: 0;
+}
+
+.croc_widget_audiocall .croc_ui_container .croc_ui_content .croc_tpl_actions {
+	border-radius: 0px 0px 10px 10px;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	position: absolute;
+	background: #409F89;
+	height:3em;
+	text-align: center;
+}
+
+.croc_widget_audiocall .croc_tpl_info {
+	margin-top:1.5em;
+}
+
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_remoteid .croc_ui_label {
+	display: block;
+	font-size: 18px;
+	font-weight: bold;
+	text-align: center;
+}
+
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details {
+	margin-top: 0.5em;
+	text-align: center;
+}
+
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_tpl_status,
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_ui_duration {
+	display: inline-block;
+	padding: 0 0.25em;
+	font-size: 13px;
+}
+
+.croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_input_button {
+	height: 1.75em;
+	width: 2.5em;
+	display:inline-block;
+}
+
+.croc_widget_audiocall .croc_tpl_actions .croc_tpl_group {
+	position:relative;
+	top:50%;
+	margin-top:-1em;
+}

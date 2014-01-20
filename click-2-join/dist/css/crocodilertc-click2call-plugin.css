@@ -1,0 +1,514 @@
+.croc_scheme_button_6.croc_disabled {
+	background-color:#555555;
+	color:#AAA;
+	pointer-events:none;
+}
+
+/*
+ *  Button style 6
+ */
+
+.croc_scheme_button_6 {
+	background:#FFFFFF;
+	border-color:#E4E4E4;
+}
+.croc_scheme_button_6:hover {
+	border-color:#C2D3CF;
+}
+.croc_scheme_button_6:focus {
+	border-color:#409F89;
+}
+
+/*
+ * Action button style
+ */
+
+.croc_scheme_action_button {
+	border-radius:5px;
+	border:1px solid transparent;
+}
+.croc_scheme_action_button:hover {
+	border-top: 1px solid rgba(0, 0, 0, 0.2);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+	background: rgba(0, 0, 0, 0.2);
+}
+.croc_scheme_action_button:focus {
+	background-color:rgba(255, 255, 255, 0.2);
+}
+
+.croc_scheme_action_button.selected {
+	background-color:rgba(255, 255, 255, 0.1);
+}
+.croc_scheme_action_button.ui_selected_2 {
+	background-color:rgba(0, 0, 0, 0.5);
+}
+
+.croc_scheme_label_1 {
+	color:#1A3E36;
+}
+.croc_scheme_label_2 {
+	color:#64857D;
+}
+
+.croc_scheme_widget {
+	background-color:#e6ebea;
+}
+
+.croc_ui_hidden {
+	display:none !important;
+}
+
+.croc_disabled {
+	opacity:0.25;
+}
+
+.croc_btn_muted .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -246px -130px;
+}
+.croc_btn_muted:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -246px -130px;
+}
+.croc_btn_muted.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -246px -130px;
+}
+
+.croc_btn_mute_s .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -83px -170px;
+}
+.croc_btn_mute_s:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -83px -170px;
+}
+.croc_btn_mute_s.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -83px -199px;
+}
+.croc_btn_pausevideo_s .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -124px -170px;
+}
+.croc_btn_pausevideo_s:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -124px -170px;
+}
+.croc_btn_pausevideo_s.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -124px -199px;
+}
+.croc_btn_endcall_s .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -165px -170px;
+}
+.croc_btn_endcall_s:hover .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -165px -170px;
+}
+.croc_btn_endcall_s.croc_selected .croc_ui_image {
+	background: url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -165px -199px;
+}
+
+.croc_btn_close .croc_ui_image {
+	background:url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -109px -341px;
+}
+.croc_btn_fullscreen .croc_ui_image {
+	background:url(https://demos.crocodilertc.net/click_2_join/dist/images/icons.png) no-repeat -82px -341px;
+}
+
+.croc_tab-container h1, h2, h3, h4, h5, h6 {
+	margin: 0px;
+	padding: 0px;
+}
+.croc_tab-container {
+	padding:0;
+	margin:0;
+	cursor:default;
+	font-family: proxima-nova-condensed,Arial,sans-serif;
+	user-select:none;
+	-moz-user-select:none;
+	-o-user-select:none;
+	-webkit-user-select:none;
+	-khtml-user-select:none;
+	-webkit-touch-callout:none;
+	overflow:visible;
+	font-size: 16px;
+	width:100%;
+}
+.croc_tab-container:focus {
+	outline:none;
+}
+
+/* Default right tab styling */
+.croc_tab-wrapper {
+	width: 40px;
+	position: fixed;
+	top: 100px; /* 100px */
+	right: 0;
+	-webkit-transition: right 2s;
+	-moz-transition: right 2s;
+	-ms-transition: right 2s;
+	-o-transition: right 2s;
+	transition: right 2s;
+	outline: none;
+}
+.croc_tab-logo {
+	width: 47px;
+	height: 25px;
+	position: relative;
+	z-index: 1030;
+	cursor: pointer;
+	pointer-events: none;
+}
+.croc_side-tab {
+	border-radius: 10px 10px 0 0;
+	padding: 5px;
+	width: 102px;
+	height: 30px;
+	position: relative;
+	top: 52px;
+	left: -36px;
+	background-color: #000000;
+	color: #FFFFFF;
+	font-size: 15px;
+	cursor: pointer;
+}
+.croc_side-tab  p {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+	position: relative;
+	top: -18px;
+	left: 30px;
+}
+.croc_side-tab-content  p {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+.croc_side-tab-content {
+	width: 370px;
+	height: 176px;
+	position: relative;
+	top: -40px;
+	left: 45px;
+	display: none;
+}
+.croc_powered_by_audio {
+	position: relative;
+	top: 180px;
+	font-size: 12px;
+	font-style: italic;
+	left: 109.5px;
+	width: 151px;
+	color: #409F89;
+}
+.croc_powered_by_audio a {
+	color: #409f89;
+	text-decoration: underline;
+}
+
+/* rotate element 90 degrees counter-clockwise */
+.croc_rotate-vertical {
+
+	/* Safari */
+	-webkit-transform: rotate(-90deg);
+	
+	/* Firefox */
+	-moz-transform: rotate(-90deg);
+	
+	/* IE */
+	-ms-transform: rotate(-90deg);
+	
+	/* Opera */
+	-o-transform: rotate(-90deg);
+	
+	/* Internet Explorer */
+	filter: progid:DXImageTransform.Microsoft.BasicImage(rotation=3);
+
+}
+
+/* Convert right tab to left tab for audio */
+.croc_tab-wrapper.croc_audio-left-tab {
+	left: 0px;
+	-webkit-transition: left 2s;
+	-moz-transition: left 2s;
+	transition: left 2s;
+}
+.croc_side-tab-content.croc_audio-left-content {
+	left: -374px;
+}
+
+/* Convert right tab to bottom tab for audio */
+.croc_audio-bottom-tab {
+	bottom: 0px;
+	left: 615px;
+	-webkit-transition: bottom 2s;
+	-moz-transition: bottom 2s;
+	transition: bottom 2s;
+}
+.croc_side-tab.croc_rotate-horizontal {
+	top: 0px;
+	left: 15px;
+}
+.croc_side-tab-content.croc_audio-bottom-content {
+	top: 5px;
+	left: 0;
+}
+
+/* Convert right tab to top tab for audio */
+.croc_audio-top-tab {
+	top: 0px;
+	left: 615px;
+	-webkit-transition: top 2s;
+	-moz-transition: top 2s;
+	transition: top 2s;
+}
+.croc_side-tab.croc_audio-side-tab-top {
+	top: 0;
+	left: 15px;
+}
+.croc_side-tab-content.croc_audio-top-content {
+	top: -220px;
+	left: 0px;
+}
+.croc_powered_by_audio.croc_top {
+    left: 132px;
+}
+
+/* Style for making a red circle pulsate */
+@-webkit-keyframes resize {
+	100% {
+		background-color:rgba(255,0,0,0.2);
+	}
+}
+@-moz-keyframes resize {
+	100% {
+		background-color:rgba(255,0,0,0.2);
+	}
+}
+@-ms-keyframes resize {
+	100% {
+		background-color:rgba(255,0,0,0.2);
+	}
+}
+@-o-keyframes resize {
+	100% {
+		background-color:rgba(255,0,0,0.2);
+	}
+}
+@keyframes resize {
+	100% {
+		background-color:rgba(255,0,0,0.2);
+	}
+}
+.croc_warning-light {
+	height:6px;
+	width:6px;
+	display: none;
+	position: relative;
+	top: -29px;
+	left: 95px;
+}
+.croc_warning-light .croc_warning-light-circle {
+	height:5px;
+	width:5px;
+	border:1px red solid;
+	border-radius: 2.5px;
+	position: relative;
+	z-index: 9999;
+	background-color:rgba(255,0,0,255);
+}
+
+/* Creates an infinite pulsating effect */
+.croc_warning-light:hover .croc_warning-light-circle, .croc_warning-light .croc_warning-light-circle {
+	-webkit-animation-name: resize;
+	-webkit-animation-duration: 1s;
+	-webkit-animation-iteration-count: infinite;
+	-webkit-animation-direction: alternate;
+
+	-moz-animation-name: resize;
+	-moz-animation-duration: 1s;
+	-moz-animation-iteration-count: infinite;
+	-moz-animation-direction: alternate;
+
+	-o-animation-name: resize;
+	-o-animation-duration: 1s;
+	-o-animation-iteration-count: infinite;
+	-o-animation-direction: alternate;
+
+	animation-name: resize;
+	animation-duration: 1s;
+	animation-iteration-count: infinite;
+	animation-direction: alternate;
+}
+.croc_ui_input_button {
+	cursor:pointer;
+	position:relative;
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	outline:none;
+}
+
+.croc_ui_input_button .croc_ui_image {
+	position:absolute;
+	top:0;
+	left:0;
+	height:100%;
+	width:100%;
+	pointer-events:none;
+}
+
+.croc_ui_input_button.croc_scheme_button_6 {
+	border-width:1px;
+	border-style:solid;
+	border-radius:4px;
+}
+
+.croc_ui_label {
+	overflow:hidden;
+	text-overflow:ellipsis;
+	white-space:nowrap;
+}
+
+.croc_ui_widget {
+	position:absolute;
+}
+
+.croc_ui_widget .croc_ui_container {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	bottom: 0;
+}
+
+.croc_ui_widget .croc_tpl_title {
+	background: #ffffff; /* Old browsers */
+	background: -moz-linear-gradient(top,  #ffffff 0%, #e7eceb 100%); /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#ffffff), color-stop(100%,#e7eceb)); /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #ffffff 0%,#e7eceb 100%); /* IE10+ */
+	background: linear-gradient(to bottom,  #ffffff 0%,#e7eceb 100%); /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#e7eceb',GradientType=0 ); /* IE6-9 */
+
+	border-radius: 10px 10px 0px 0px;
+	-moz-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	-o-border-radius: 10px 10px 0px 0px;
+
+	border-bottom: 1px solid #c2d3cf;
+	height: 2.5em;
+	cursor:default;
+	width: 100%;
+}
+
+.croc_tpl_title .croc_title_control h1.croc_ui_title {
+	color: #1a3e36;
+	font-size: 13px;
+	font-weight: bold;
+	padding: 13px 13px 0px 13px;
+}
+
+.croc_ui_widget .croc_ui_content {
+	position:relative;
+	padding:0px;
+}
+
+.croc_ui_widget .croc_ui_input_button .croc_ui_input:active {
+	box-shadow:inset 0 3px 5px #000;
+	border-radius:5px;
+}
+
+.croc_scheme_widget {
+	border-radius:10px;
+	box-shadow:0px 0px 10px 1px #343434;
+}
+
+.croc_ui_title_toolbar {
+	position: absolute;
+	top: 7px;
+	right: 13px;
+}
+
+.croc_ui_title_toolbar .croc_ui_input_button {
+	display: block;
+	float: left;
+	height: 26px;
+	margin-left: 2px;
+	width: 26px;
+}
+
+.croc_ui_title_toolbar .croc_ui_input_button .croc_ui_text {
+	display:none;
+}
+
+.croc_ui_title_toolbar .croc_selected {
+	border-color:#409f89;
+}
+.croc_widget_audiocall {
+	height:11em;
+	position:absolute;
+	width: 23em;
+}
+
+.croc_widget_audiocall .croc_ui_container .croc_ui_content {
+	position: absolute;
+	right: 0px;
+	left: 0px;
+	bottom: 0px;
+	top: 2.5em;
+}
+
+.croc_widget_audiocall .croc_ui_container .croc_ui_content > .croc_tpl_content {
+	position: absolute;
+	right: 0;
+	left: 0;
+	bottom: 0;
+	top: 0;
+}
+
+.croc_widget_audiocall .croc_ui_container .croc_ui_content .croc_tpl_actions {
+	border-radius: 0px 0px 10px 10px;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	position: absolute;
+	background: #409F89;
+	height:3em;
+	text-align: center;
+}
+
+.croc_widget_audiocall .croc_tpl_info {
+	margin-top:1.5em;
+}
+
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_remoteid .croc_ui_label {
+	display: block;
+	font-size: 18px;
+	font-weight: bold;
+	text-align: center;
+}
+
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details {
+	margin-top: 0.5em;
+	text-align: center;
+}
+
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_tpl_status,
+.croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_ui_duration {
+	display: inline-block;
+	padding: 0 0.25em;
+	font-size: 13px;
+}
+
+.croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_input_button {
+	height: 1.75em;
+	width: 2.5em;
+	display:inline-block;
+}
+
+.croc_widget_audiocall .croc_tpl_actions .croc_tpl_group {
+	position:relative;
+	top:50%;
+	margin-top:-1em;
+}
