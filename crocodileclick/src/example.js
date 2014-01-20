@@ -436,6 +436,7 @@
 		this.node = Audio.getContext().createOscillator();
 		this.node.type = 0;
 		this.node.frequency.value = frequency;
+		this.node.start(0);
 	};
 
 	Audio.Tone.prototype = {
@@ -448,9 +449,6 @@
 			this.playing = true;
 
 			this.node.connect(Audio.getContext().destination);
-			if(this.node.noteOn) {
-				this.node.noteOn(0);
-			}
 		},
 
 		// Stop Tone
