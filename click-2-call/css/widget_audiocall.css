@@ -3,7 +3,6 @@
 	position:absolute;
 	width: 23em;
 }
-
 .croc_widget_audiocall .croc_ui_container .croc_ui_content {
 	position: absolute;
 	right: 0px;
@@ -11,7 +10,6 @@
 	bottom: 0px;
 	top: 2.5em;
 }
-
 .croc_widget_audiocall .croc_ui_container .croc_ui_content > .croc_tpl_content {
 	position: absolute;
 	right: 0;
@@ -19,7 +17,6 @@
 	bottom: 0;
 	top: 0;
 }
-
 .croc_widget_audiocall .croc_ui_container .croc_ui_content .croc_tpl_actions {
 	border-radius: 0px 0px 10px 10px;
 	left: 0;
@@ -30,41 +27,34 @@
 	height:3em;
 	text-align: center;
 }
-
 .croc_widget_audiocall .croc_tpl_info {
 	margin-top:1.5em;
 }
-
 .croc_widget_audiocall .croc_tpl_info .croc_tpl_remoteid .croc_ui_label {
 	display: block;
 	font-size: 18px;
 	font-weight: bold;
 	text-align: center;
 }
-
 .croc_widget_audiocall .croc_tpl_info .croc_tpl_details {
 	margin-top: 0.5em;
 	text-align: center;
 }
-
 .croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_tpl_status,
 .croc_widget_audiocall .croc_tpl_info .croc_tpl_details .croc_ui_duration {
 	display: inline-block;
 	padding: 0 0.25em;
 	font-size: 13px;
 }
-
 .croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_popout {
 	display:inline-block;
 }
-
 .croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_input_button,
 .croc_widget_audiocall .croc_tpl_actions > .croc_tpl_group > .croc_ui_popout > .croc_ui_input_button {
 	height: 1.75em;
 	width: 2.5em;
 	display:inline-block;
 }
-
 .croc_widget_audiocall .croc_ui_keypad {
 	width:8em;
 	height:10em;
@@ -72,9 +62,107 @@
 .croc_widget_audiocall .croc_ui_keypad table {
 	font-size:12px;
 }
-
 .croc_widget_audiocall .croc_tpl_actions .croc_tpl_group {
 	position:relative;
 	top:50%;
 	margin-top:-1em;
+}
+
+/* sorted */
+.croc_ui_hidden {
+	display:none !important;
+}
+.croc_scheme_label_2 {
+	color:#64857D;
+}
+
+/* Default right tab styling */
+.croc_tab-wrapper {
+	width: 40px;
+	position: fixed;
+	top: 100px;
+	right: 0;
+	-webkit-transition: right 2s;
+	-moz-transition: right 2s;
+	-ms-transition: right 2s;
+	-o-transition: right 2s;
+	transition: right 2s;
+	outline: none;
+}
+.croc_side-tab-content  p {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	font-size: 100%;
+	font: inherit;
+	vertical-align: baseline;
+}
+.croc_side-tab-content {
+	width: 370px;
+	height: 195px;
+	position: relative;
+	top: -40px;
+	left: 45px;
+	display: none;
+}
+.croc_powered_by_audio {
+	position: relative;
+	top: 180px;
+	left: 109.5px;
+	width: 151px;
+	color: #409F89;
+	font-size: 12px;
+	font-style: italic;
+}
+.croc_powered_by_audio a {
+	color: #409f89;
+	text-decoration: underline;
+}
+
+/* Convert right tab to left tab for audio */
+.croc_tab-wrapper.croc_audio-left-tab {
+	left: 0px;
+	-webkit-transition: left 2s;
+	-moz-transition: left 2s;
+	transition: left 2s;
+}
+.croc_side-tab-content.croc_audio-left-content {
+	left: -374px;
+}
+
+/* Convert right tab to bottom tab for audio */
+.croc_audio-bottom-tab {
+	bottom: 0px;
+	left: 615px;
+	-webkit-transition: bottom 2s;
+	-moz-transition: bottom 2s;
+	transition: bottom 2s;
+}
+.croc_side-tab.croc_rotate-horizontal {
+	top: 0px;
+	left: 15px;
+}
+.croc_side-tab-content.croc_audio-bottom-content {
+	top: 5px;
+	left: 0;
+}
+
+/* Convert right tab to top tab for audio */
+.croc_audio-top-tab {
+	top: 0px;
+	left: 615px;
+	-webkit-transition: top 2s;
+	-moz-transition: top 2s;
+	transition: top 2s;
+}
+.croc_side-tab.croc_audio-side-tab-top {
+	top: 0;
+	left: 15px;
+}
+.croc_side-tab-content.croc_audio-top-content {
+	top: -220px;
+	left: 0px;
+}
+.croc_powered_by_audio.croc_top {
+    left: 132px;
 }

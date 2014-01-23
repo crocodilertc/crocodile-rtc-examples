@@ -1,17 +1,15 @@
+/* Keypad Styling */
 .croc_ui_keypad {
 	position:relative;
 }
-
 .croc_ui_keypad table {
 	width:100%;
 	height:100%;
 	border-spacing:0px;
 }
-
 .croc_ui_keypad tr {
 	height:25%;
 }
-
 .croc_ui_keypad td {
 	width:33%;
 	font-family:Arial;
@@ -19,7 +17,6 @@
 	position: relative;
 	padding:0.2em 0;
 }
-
 .croc_ui_keypad td .croc_ui_input_button {
 	position: relative;
 	width: 100%;
@@ -41,15 +38,12 @@
 	text-align:center;
 	text-shadow:0 -1px 0 rgba(100,100,100,0.25);
 }
-
 .croc_ui_keypad td:first-child .croc_ui_input_button {
     border-radius:5px 0 0 5px;
 }
-
 .croc_ui_keypad td:last-child .croc_ui_input_button {
     border-radius:0 5px 5px 0;
 }
-
 .croc_ui_keypad td .croc_ui_input_button:hover {
 	background: rgb(255,255,255); /* Old browsers */
 	/* IE9 SVG, needs conditional override of 'filter' to 'none' */
@@ -62,7 +56,6 @@
 	background: linear-gradient(to bottom,  rgba(255,255,255,1) 18%,rgba(247,245,242,1) 100%); /* W3C */
 	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#f7f5f2',GradientType=0 ); /* IE6-8 */
 }
-
 .croc_ui_keypad td .croc_ui_input_button:active {
 	background: rgb(231,236,235); /* Old browsers */
 	/* IE9 SVG, needs conditional override of 'filter' to 'none' */
@@ -76,7 +69,6 @@
 	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e7eceb', endColorstr='#ffffff',GradientType=0 ); /* IE6-8 */
 	text-shadow:0 1px 0 rgba(100,100,100,0.25);
 }
-
 .croc_ui_keypad td .croc_ui_input_button .croc_tpl_main {
 	position:absolute;
 	top:50%;
@@ -85,7 +77,6 @@
 	font-size: 1.5em;
 	margin-top:-0.9em;
 }
-
 .croc_ui_keypad td .croc_ui_input_button .croc_tpl_alternate {
 	position:absolute;
 	top:50%;

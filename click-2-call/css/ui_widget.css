@@ -1,8 +1,7 @@
-/* Widget Styles */
+/* General widget styling */
 .croc_ui_widget {
 	position:absolute;
 }
-
 .croc_ui_widget .croc_ui_container {
 	position: absolute;
 	left: 0;
@@ -10,7 +9,6 @@
 	top: 0;
 	bottom: 0;
 }
-
 .croc_ui_widget .croc_tpl_title {
 	background: #ffffff; /* Old browsers */
 	background: -moz-linear-gradient(top,  #ffffff 0%, #e7eceb 100%); /* FF3.6+ */
@@ -31,35 +29,29 @@
 	cursor:default;
 	width: 100%;
 }
-
 .croc_tpl_title .croc_title_control h1.croc_ui_title {
 	color: #1a3e36;
 	font-size: 13px;
 	font-weight: bold;
 	padding: 13px 13px 0px 13px;
 }
-
 .croc_ui_widget .croc_ui_content {
 	position:relative;
 	padding:0px;
 }
-
 .croc_ui_widget .croc_ui_input_button .croc_ui_input:active {
 	box-shadow:inset 0 3px 5px #000;
 	border-radius:5px;
 }
-
 .croc_scheme_widget {
 	border-radius:10px;
 	box-shadow:0px 0px 10px 1px #343434;
 }
-
 .croc_ui_title_toolbar {
 	position: absolute;
 	top: 7px;
 	right: 13px;
 }
-
 .croc_ui_title_toolbar .croc_ui_input_button {
 	display: block;
 	float: left;
@@ -67,11 +59,9 @@
 	margin-left: 2px;
 	width: 26px;
 }
-
 .croc_ui_title_toolbar .croc_ui_input_button .croc_ui_text {
 	display:none;
 }
-
 .croc_ui_title_toolbar .croc_selected {
 	border-color:#409f89;
 }

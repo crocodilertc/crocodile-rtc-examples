@@ -23,9 +23,53 @@ module.exports = function(grunt) {
         ],
         dest: 'dist/js/<%= pkg.name %>.js'
       },
+      audiojs: {
+        src: [
+          'libs/jquery-1.10.js',
+          'libs/crocodile-rtc.js',
+          'scripts/widget_audio.js',
+          'scripts/localisations.js',
+          'scripts/ringtone.js',
+          'scripts/audio.js',
+          'scripts/click2call.js',
+        ],
+        dest: 'dist/js/<%= pkg.name %>.js'
+      },
+      videojs: {
+        src: [
+          'libs/jquery-1.10.js',
+          'libs/crocodile-rtc.js',
+          'scripts/widget_video.js',
+          'scripts/localisations.js',
+          'scripts/ringtone.js',
+          'scripts/video.js',
+          'scripts/click2call.js',
+        ],
+        dest: 'dist/js/<%= pkg.name %>.js'
+      },
       css: {
         src: [
           'css/*.css'
+        ],
+        dest: 'dist/css/<%= pkg.name %>.css'
+      },
+      audiocss: {
+        src: [
+          'css/generic.css',
+          'css/ui_keypad.css',
+          'css/ui_popout.css',
+          'css/ui_widget.css',
+          'css/widget_audiocall.css'
+        ],
+        dest: 'dist/css/<%= pkg.name %>.css'
+      },
+      videocss: {
+        src: [
+          'css/generic.css',
+          'css/ui_keypad.css',
+          'css/ui_popout.css',
+          'css/ui_widget.css',
+          'css/widget_videocall.css'
         ],
         dest: 'dist/css/<%= pkg.name %>.css'
       },
@@ -33,6 +77,14 @@ module.exports = function(grunt) {
     uglify: {
       dist: {
         src: '<%= concat.js.dest %>',
+        dest: 'dist/js/<%= pkg.name %>.min.js'
+      },
+      audiodist: {
+        src: '<%= concat.audiojs.dest %>',
+        dest: 'dist/js/<%= pkg.name %>.min.js'
+      },
+      videodist: {
+        src: '<%= concat.videojs.dest %>',
         dest: 'dist/js/<%= pkg.name %>.min.js'
       },
     },
@@ -58,6 +110,18 @@ module.exports = function(grunt) {
         },
         src: ['scripts/*.js']
       },
+      audio: {
+        options: {
+          jshintrc: 'scripts/.jshintrc'
+        },
+        src: ['scripts/click2call.js', 'scripts/audio.js', 'scripts/ringtone.js', 'scripts/localisations.js', 'scripts/widget_audio.js']
+      },
+      video: {
+        options: {
+          jshintrc: 'scripts/.jshintrc'
+        },
+        src: ['scripts/click2call.js', 'scripts/video.js', 'scripts/ringtone.js', 'scripts/localisations.js', 'scripts/widget_video.js']
+      },
     },
     watch: {
       gruntfile: {
@@ -67,6 +131,14 @@ module.exports = function(grunt) {
       src: {
         files: '<%= jshint.src.src %>',
         tasks: ['jshint:src']
+      },
+      audio: {
+        files: '<%= jshint.audio.src %>',
+        tasks: ['jshint:audio']
+      },
+      video: {
+        files: '<%= jshint.video.src %>',
+        tasks: ['jshint:video']
       },
     },
     copy: {
@@ -88,12 +160,36 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
-  // Default task.
+  // Default Build.
   grunt.registerTask('default', [
-    'jshint',
+    'jshint:gruntfile',
+    'jshint:src',
     'clean',
-    'concat',
-    'uglify',
+    'concat:js',
+    'concat:css',
+    'uglify:dist',
+    'cssmin',
+    'copy',
+  ]);
+  
+  // Build Audio only.
+  grunt.registerTask('audio', [
+    'jshint:audio',
+    'clean',
+    'concat:audiojs',
+    'concat:audiocss',
+    'uglify:audiodist',
+    'cssmin',
+    'copy',
+  ]);
+  
+  // Build Video only.
+  grunt.registerTask('video', [
+    'jshint:video',
+    'clean',
+    'concat:videojs',
+    'concat:videocss',
+    'uglify:videodist',
     'cssmin',
     'copy',
   ]);

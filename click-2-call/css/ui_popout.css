@@ -1,7 +1,7 @@
+/* Popout containing keypad */
 .croc_ui_popout {
 	position:relative;
 }
-
 .croc_ui_popout .croc_tpl_content,
 .croc_ui_popout .croc_tpl_deco {
 	display: none;
@@ -9,7 +9,6 @@
 .croc_ui_popout_open .croc_tpl_deco {
 	display: block;
 }
-
 .croc_ui_popout_open .croc_tpl_content {
 	background:#f7f7f7;
 	border-radius: 0px 5px 5px 5px;
@@ -23,7 +22,6 @@
 	z-index: 10001;
 
 }
-
 .croc_ui_popout .croc_tpl_content div {
 	position:relative;
 	bottom:0;
@@ -31,11 +29,9 @@
 	left:0;
 	right:0;
 }
-
 .croc_ui_popout .croc_ui_text {
 	padding-right: 10px;
 }
-
 .croc_scheme_popout_1 > .croc_tpl_content {
 	position:absolute;
 	bottom:100%;
@@ -46,7 +42,6 @@
 	border:1px solid;
 	border-radius:5px;
 }
-
 .croc_ui_popout.croc_scheme_popout_1 .croc_tpl_deco {
 	position:absolute;
 	left:50%;
