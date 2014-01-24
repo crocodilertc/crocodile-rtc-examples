@@ -171,3 +171,222 @@ function requestAudio(addressToCall) {
 	// Configure new session
 	setAudioSession(audioSession);
 }
+
+function setClick2CallAudioWidget(config) {
+	if (!audioWidgetHtml) {
+		throw new TypeError(config.click2callMediaWidget + "widget has not been set, cannot build click-2-call tab");
+	}
+	
+	orientationOfClick2Call = config.click2callOrientation;
+	
+	/*
+	 * Setup event handlers for the audio widget
+	 */
+	var setupAudioWidgetHandlers = function () {
+		/*
+		 * Setup tab event handlers
+		 */
+		$('.croc_side-tab').click(function() {
+			
+			if (!isClicked) {
+				switch (orientationOfClick2Call) {
+				case 'top':
+					// Expand tab.
+					$('.croc_tab-container').animate({
+						top: '185px'
+					});
+					break;
+				case 'bottom':
+					$('.croc_audio-bottom-tab').animate({
+						bottom: '10px'
+					});
+					break;
+				case 'left':
+					// Expand tab.
+					$('.croc_tab-container').animate({
+						left: '379px'
+					});
+					break;
+				default:
+					// Expand tab.
+					$('.croc_tab-container').animate({
+						right: '379px'
+					});
+					break;
+				}
+			
+				// Show tab content
+				$('.croc_side-tab-content').show(600);
+				
+				// Make a call if not already making a call
+				if (!crocObjectConnected) {
+					requestAudio(config.addressToCall);
+				}
+				
+				isClicked = true;
+			} else if (isClicked) {
+				switch (orientationOfClick2Call) {
+				case 'top':
+					// Collapse tab.
+					$('.croc_tab-container').animate({
+						top: '0px'
+					});
+					break;
+				case 'bottom':
+					$('.croc_audio-bottom-tab').animate({
+						bottom: '0px'
+					});
+					break;
+				case 'left':
+					// Collapse tab.
+					$('.croc_tab-container').animate({
+						left: '0px'
+					});
+					break;
+				default:
+					// Collapse tab.
+					$('.croc_tab-container').animate({
+						right: '0px'
+					});
+					break;
+				}
+				
+				// Hide tab content
+				$('.croc_side-tab-content').hide(1000);
+				
+				isClicked = false;
+			}
+			
+		});
+		
+		/*
+		 * Setup audio widget buttons
+		 */
+		var toggleOnMute = false;
+		
+		// End audio session when clicked
+		$('.croc_btn_close').click(function(){
+			// End the audio call
+			endAudio();
+		});
+		
+		// End audio session when clicked
+		$('.croc_btn_endcall_s').click(function() {
+			// End the audio call
+			endAudio();
+		});
+		
+		// Set mute call button
+		$('.croc_mute_audio').click(function () {
+			if (!toggleOnMute) {
+				toggleOnMute = true;
+				muteAudioCall();
+			} else {
+				toggleOnMute = false;
+				unmuteAudioCall();
+			}
+		});
+
+		// Setup keypad popout
+		$('.croc_ui_popout').click(function(evt){
+			$('body').click(function(evt2){
+				// Dont close if popout content is pressed
+				var currentTarget = $(evt.target);
+				while(currentTarget[0]){
+					if (currentTarget[0] === evt.target[0]) {
+						return;
+					}
+					
+					currentTarget = currentTarget.parent();
+				}
+				
+				$('body').off('click');
+				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+				$('.croc_tpl_actions').removeClass('croc_ui_shown');
+			});
+			
+			evt.stopPropagation();
+			$('.croc_ui_popout').addClass('croc_ui_popout_open');
+			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
+			$('.croc_tpl_actions').addClass('croc_ui_shown');
+		});
+		
+		// Make sure keypad and tool bars aren't displayed
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
+		
+		// Setup keypad buttons
+		var keypad = $('.croc_ui_keypad');
+		keypad.find('.croc_tpl_key').click(function(){
+			var value = $(this).find('.croc_tpl_main').text();
+			audioSession.sendDTMF(value);
+		});
+	};
+	
+	// Get the HTML element to append to
+	var htmlElement = $(config.appendClick2callTo);
+	var i;
+	
+	// Add the HTML as a child of the element specified in the configuration if the element exists.
+	if (htmlElement.length !== 0) {
+		// For every HTML element of that kind, add audio tab
+		for (i=0; i < htmlElement.length; i++) {
+			// Check that document contains HTML element
+			if ($.contains(document, htmlElement[i])) {
+				// Add audio tab
+				$(config.appendClick2callTo).append(audioWidgetHtml);
+			} else  {
+				// If the HTML element specified doesn't exist, add to HTML
+				$('html').append(audioWidgetHtml);
+			}
+		}
+	} else {
+		// If the HTML element specified doesn't exist, add to HTML
+		$('html').append(audioWidgetHtml);
+	}
+	
+	// Add audio widget event handlers
+	setupAudioWidgetHandlers();
+	
+	/*
+	 * Setup the position of the click to call tab; fixed or absolute
+	 */
+	var positionOfClick2Call = config.click2callPosition;
+	mediaWidget = config.click2callMediaWidget;
+	
+	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
+		// Change css position to user defined/default position
+		$('.croc_tab-wrapper').css('position', config.click2callPosition);
+	}
+	
+	/*
+	 * Setup the tab orientation on screen; top, right, bottom or left
+	 */
+	switch (orientationOfClick2Call) {
+	case 'top':
+		$('.croc_tab-container').removeClass('croc_tab-wrapper');
+		$('.croc_tab-container').addClass('croc_audio-top-tab');
+		$('.croc_side-tab').removeClass('croc_rotate-vertical');
+		$('.croc_side-tab').addClass('croc_audio-side-tab-top');
+		$('.croc_side-tab-content').addClass('croc_audio-top-content');
+		$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
+		$('.croc_powered_by_audio').addClass('croc_top');
+		break;
+	case 'bottom':
+		$('.croc_tab-container').removeClass('croc_tab-wrapper');
+		$('.croc_tab-container').addClass('croc_audio-bottom-tab');
+		$('.croc_side-tab').removeClass('croc_rotate-vertical');
+		$('.croc_side-tab').addClass('croc_rotate-horizontal');
+		$('.croc_side-tab-content').addClass('croc_audio-bottom-content');
+		break;
+	case 'left':
+		$('.croc_tab-container').addClass('croc_audio-left-tab');
+		$('.croc_side-tab-content').addClass('croc_audio-left-content');
+		$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
+		break;
+	default:
+		break;
+	}
+}
