@@ -3,6 +3,16 @@ var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, 
 var setCallDuration = null;
 var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 
+/* 
+ * Load icons.png to make sure image is retrieved before widget is used. 
+ */
+window.onload = function() {
+	if (document.images) {
+		var img1 = new Image();
+		img1.src = "images/icons.png";
+	}
+};
+ 
 /*
  * Croc Object connection, check for capabilities
  */
