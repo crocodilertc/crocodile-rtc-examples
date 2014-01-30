@@ -52,30 +52,115 @@ input[type="submit"]:hover {
 .form_leave {
 	text-align: left;
 }
-.form_leave_label label {
-	float:left;
-}
 .display_name{
-	width: 62%;
+	width: 61%;
 }
 .chat_buttons {
-    border: 0.0625em solid #515A59;
-    border-radius: 0.3125em;
-    padding: 0.0625em;
-    width: 18%;
-    font-size: 1.063em;
-	float:right;
-	margin-bottom: 0;
+	border: 0.0625em solid #515A59;
+	border-radius: 0.3125em;
+ 	padding: 0.0625em;
+	width: 18%;
+	font-size: 1.063em;
+	float: right;
+}
+
+/* Styling for video controls */
+.croc_scheme_button_6.croc_disabled {
+	background-color:#555555;
+	color:#AAA;
+	pointer-events:none;
+}
+.croc_scheme_button_6 {
+	background:#FFFFFF;
+	border-color:#E4E4E4;
+}
+.croc_scheme_button_6:hover {
+	border-color:#C2D3CF;
+}
+.croc_scheme_button_6:focus {
+	border-color:#409F89;
+}
+
+.croc_ui_input_button {
+	cursor:pointer;
+	position:relative;
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	outline:none;
+}
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_input_button {
+	background-color:#e6ebea;
+	height: 28px;
+	width: 33px;
+	display:inline-block;
+	position:relative;
+	top:3px;
+	margin-right:0.2em;
+}
+.croc_ui_input_button .croc_ui_image {
+	position:absolute;
+	top:0;
+	left:0;
+	height:100%;
+	width:100%;
+	pointer-events:none;
+}
+.croc_ui_input_button.croc_scheme_button_6 {
+	border-width:1px;
+	border-style:solid;
+	border-radius:4px;
+}
+.croc_btn_fullscreen {
+	background:url(https://demos.crocodilertc.net/click_2_call/dist/images/icons.png) no-repeat -77px -341px;
+}
+
+.croc_ui_widget {
+	position: absolute;
+	overflow: hidden;
+}
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions {
+	position: absolute;
+	display: block;
+	height: 124px;
+	width: 100%;
+	bottom: -42px;
+	transition: bottom 1s 1s;
+	-moz-transition: bottom 1s 1s;
+	-webkit-transition: bottom 1s 1s;
+	-o-transition: bottom 1s 1s;
+}
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions:hover {
+	bottom: 0px;
+	-moz-transition-delay: 0s !important;
+	-webkit-transition-delay: 0s !important;
+	-o-transition-delay: 0s !important;
+}
+.croc_tpl_bar {
+	background: rgba(0, 0, 0, 0.3);
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	height: 34px;
+}
+.croc_tpl_callactions {
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	height: 100%;
 }
 
 /* fullscreen video */
+.controls_container_fullscreen, .video_widget_videocall_fullscreen, .video_chat_fullscreen, .video_content_fullscreen {
+	width:100% !important;
+}
 .video_content_fullscreen {
 	position:absolute !important;
 	top:0 !important;
 	bottom:0 !important;
 	left:0 !important;
 	right:0 !important;
-	width:100% !important;
 	height:100% !important;
 	background-color: #99DDEE !important;
 	background-image: -webkit-linear-gradient(top, #3289BF, #99DDEE);
@@ -84,9 +169,32 @@ input[type="submit"]:hover {
 	background-image: -o-linear-gradient(top, #3289BF, #99DDEE);
 	background-image: linear-gradient(top, #3289BF, #99DDEE);
 }
+.controls_container_fullscreen {
+	height: 88% !important;
+	margin-left: 0px !important;
+}
+.video_widget_videocall_fullscreen {
+	height: 88% !important;
+}
 .video_chat_fullscreen {
-	width: 100% !important;
 	height: 100% !important;
+}
+.croc_tpl_actions_fullscreen, .form_leave_fullscreen {
+	width: 66% !important;
+}
+.croc_tpl_actions_fullscreen {
+	left: 17% !important;
+}
+.croc_tpl_actions_landscape {
+	width: 60% !important;
+	margin-left: 20% !important;
+}
+.form_leave_fullscreen {
+	margin-left: 17% !important;
+}
+.form_leave_landscape {
+	width: 62% !important;
+	margin-left: 19% !important;
 }
 
 /* Desktops and laptops ----------- */
@@ -110,6 +218,11 @@ and (min-width : 1223px) {
 	/* Video Styling */
 	.spin{
 		top: 12.3125em;
+	}
+	
+	.chat_buttons {
+		margin-top: 0;
+		margin-bottom: 0;
 	}
 }
 

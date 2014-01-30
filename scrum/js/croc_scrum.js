@@ -7,13 +7,18 @@ var crocScrum = {
 	crocObjectConnected: false,
 	inConference: false,
 	videoSession: null,
-	scrumURL: null
+	scrumURL: null,
+	isFullscreen: false
 };
 
 /*
  * Check for URL Parameters
  */
 window.onload = function() {
+	if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
+		$('.croc_tpl_bar').addClass('disabled');
+	}
+	
 	// Connect to the Network and check capabilities
 	connectCrocObject(crocScrum.crocApiKey, "Scrum");
 
@@ -63,16 +68,25 @@ function doOnOrientationChange() {
 	$('.form_leave').width(videoWidth);
 	$('.video_chat').width(videoWidth);
 	$('.video_chat').height(videoHeight);
+	$('.controls-container').width(videoWidth);
+	$('.controls-container').height(videoHeight);
+	$('.controls-container').css('margin-left', leaveFormLeftMargin);
 	
 	switch(window.orientation) {
 		case -90:
 		case 90:
 		$('.video_content').addClass('video_content_fullscreen');
+		$('.controls-container').addClass('controls_container_fullscreen');
+		$('.croc_widget_videocall').addClass('video_widget_videocall_fullscreen');
 		$('.video_chat').addClass('video_chat_fullscreen');
+		$('.form_leave').addClass('form_leave_landscape');
 		break;
 		default:
 		$('.video_content').removeClass('video_content_fullscreen');
+		$('.controls-container').removeClass('controls_container_fullscreen');
+		$('.croc_widget_videocall').removeClass('video_widget_videocall_fullscreen');
 		$('.video_chat').removeClass('video_chat_fullscreen');
+		$('.form_leave').removeClass('form_leave_landscape');
 		break;
 	}
 }
@@ -103,6 +117,9 @@ $(window).resize(function(){
 	$('.form_leave').width(videoWidth);
 	$('.video_chat').width(videoWidth);
 	$('.video_chat').height(videoHeight);
+	$('.controls-container').width(videoWidth);
+	$('.controls-container').height(videoHeight);
+	$('.controls-container').css('margin-left', leaveFormLeftMargin);
 });
 
 $('.join_chat').click(function(){
@@ -153,6 +170,16 @@ $(document).keypress(function(event){
 	}
 });
 
+$('.croc_btn_fullscreen').click(function () {
+	if (!crocScrum.isFullscreen) {
+		crocScrum.isFullscreen = true;
+		setVideoToFullscreen(true);
+	} else {
+		crocScrum.isFullscreen = false;
+		setVideoToFullscreen(false);
+	}
+});
+
 $('.display_name').click(function() {
 	$(this).select();
 });
@@ -164,6 +191,51 @@ $('.display_name').focus(function() {
 $('.leave_chat').click(function(){
 	crocScrum.videoSession.close();
 });
+
+// Determine whether to go full screen or not
+function setVideoToFullscreen(enabled) {
+	var initial = true;
+	var uiElement = $('.video_content')[0]; // jQuery element to make full screen
+
+	// Listen for fullscreen change, ignore initial change
+	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
+		if (crocScrum.isFullscreen && !initial) {
+			setVideoToFullscreen(false);
+		}
+
+		initial = false;
+	};
+
+	if (enabled && !$('.video_content').hasClass('video_content_fullscreen')) {
+		// Set fullscreen
+		crocScrum.isFullscreen = true;
+		$('.video_content').addClass('video_content_fullscreen');
+		$('.controls-container').addClass('controls_container_fullscreen');
+		$('.croc_widget_videocall').addClass('video_widget_videocall_fullscreen');
+		$('.video_chat').addClass('video_chat_fullscreen');
+		$('.croc_tpl_actions').addClass('croc_tpl_actions_fullscreen');
+		$('.form_leave').addClass('form_leave_fullscreen');
+		if (uiElement.webkitRequestFullscreen) {
+			uiElement.webkitRequestFullscreen();
+		} else if (uiElement.mozRequestFullscreen) {
+			uiElement.mozRequestFullscreen();
+		}
+	} else {
+		// Exit fullscreen
+		crocScrum.isFullscreen = false;
+		$('.video_content').removeClass('video_content_fullscreen');
+		$('.controls-container').removeClass('controls_container_fullscreen');
+		$('.croc_widget_videocall').removeClass('video_widget_videocall_fullscreen');
+		$('.video_chat').removeClass('video_chat_fullscreen');
+		$('.croc_tpl_actions').removeClass('croc_tpl_actions_fullscreen');
+		$('.form_leave').removeClass('form_leave_fullscreen');
+		if (document.webkitExitFullscreen) {
+			document.webkitExitFullscreen();
+		} else if (document.mozExitFullscreen) {
+			document.mozExitFullscreen();
+		}
+	}
+}
 
 /*
  * Croc Object connection, check for capabilities
@@ -200,7 +272,7 @@ function connectCrocObject(crocApiKey, crocDisplayName) {
 			
 			// Test for conferencing capabilities
 			if (!hasConferencing) {
-				alert("Scrum is not supported with this browser; please use either Chrome or Opera.");
+				alert("Scrum is not supported with this web browser; please use another web browser.");
 				$('.chat_room').attr("disabled", "disabled");
 				$('.join_chat').attr("disabled", "disabled");
 			}
