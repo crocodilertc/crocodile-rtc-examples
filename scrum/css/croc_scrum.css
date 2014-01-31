@@ -131,7 +131,7 @@ input[type="submit"]:hover {
 	-o-transition: bottom 1s 1s;
 }
 .croc_widget_videocall .croc_tpl_controls .croc_tpl_actions:hover {
-	bottom: 0px;
+	bottom: 0px !important;
 	-moz-transition-delay: 0s !important;
 	-webkit-transition-delay: 0s !important;
 	-o-transition-delay: 0s !important;

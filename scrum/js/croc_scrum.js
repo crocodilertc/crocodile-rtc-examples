@@ -324,7 +324,7 @@ function requestVideo(addressToCall) {
 	});
 	
 	// The DOM video element used for playing the remote party's video
-	crocScrum.videoSession.remoteVideoElement = $('.video_chat')[0];	
+	crocScrum.videoSession.remoteVideoElement = $('.video_chat')[0];
 	
 	/*
 	 * The event handler to fire when a session request has been accepted.
@@ -334,6 +334,15 @@ function requestVideo(addressToCall) {
 		if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
 			// Enable the button bar
 			$('.croc_tpl_bar').removeClass('disabled');
+			$('.croc_tpl_actions').animate({
+				bottom: '0px'
+			});
+			setTimeout(function () {
+				$('.croc_tpl_actions').animate({
+					bottom: '-42px'
+				});
+				$('.croc_tpl_actions').removeAttr("style");
+			}, 3000);
 		}
 		
 		// Connection has been established; don't connect on click
