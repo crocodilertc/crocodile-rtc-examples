@@ -341,7 +341,6 @@ function requestVideo(addressToCall) {
 				$('.croc_tpl_actions').animate({
 					bottom: '-42px'
 				});
-				$('.croc_tpl_actions').removeAttr("style");
 			}, 3000);
 		}
 		
