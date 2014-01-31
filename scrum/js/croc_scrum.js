@@ -15,10 +15,6 @@ var crocScrum = {
  * Check for URL Parameters
  */
 window.onload = function() {
-	if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-		$('.croc_tpl_bar').addClass('disabled');
-	}
-	
 	// Connect to the Network and check capabilities
 	connectCrocObject(crocScrum.crocApiKey, "Scrum");
 
@@ -112,9 +108,11 @@ $(window).resize(function(){
 			videoHeight  = width * 3 / 4;
 		}
 	}
+	var leaveFormWidth = Math.round(videoWidth); // fix to stop leave button wrapping on window downsize to 480 x 320
+	leaveFormWidth ++;
 	var leaveFormLeftMargin = (width - videoWidth) / 2;
 	$('.form_leave').css('margin-left', leaveFormLeftMargin);
-	$('.form_leave').width(videoWidth);
+	$('.form_leave').width(leaveFormWidth);
 	$('.video_chat').width(videoWidth);
 	$('.video_chat').height(videoHeight);
 	$('.controls-container').width(videoWidth);
@@ -159,6 +157,9 @@ $('.join_chat').click(function(){
 	doOnOrientationChange();
 	
 	address += "@click2conference.crocodilertc.net";
+	
+	// Disable button bar before connect
+	$('.croc_tpl_bar').addClass('disabled');
 	
 	// Request video for chat
 	requestVideo(address);
@@ -287,6 +288,16 @@ function connectCrocObject(crocApiKey, crocDisplayName) {
  * Video session set-up
  */
 function requestVideo(addressToCall) {
+	// Check to make sure fullscreen styling is applied if still in fullscreen
+	if (document.webkitFullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || document.fullScreenElement) {
+		$('.video_content').addClass('video_content_fullscreen');
+		$('.controls-container').addClass('controls_container_fullscreen');
+		$('.croc_widget_videocall').addClass('video_widget_videocall_fullscreen');
+		$('.video_chat').addClass('video_chat_fullscreen');
+		$('.croc_tpl_actions').addClass('croc_tpl_actions_fullscreen');
+		$('.form_leave').addClass('form_leave_fullscreen');
+	}
+	
 	// Set UI to connecting status
 	$('.status').html('Connecting...');
 	$('.chat_container').removeClass('disabled');
@@ -313,12 +324,18 @@ function requestVideo(addressToCall) {
 	});
 	
 	// The DOM video element used for playing the remote party's video
-	crocScrum.videoSession.remoteVideoElement = $('.video_chat')[0];
+	crocScrum.videoSession.remoteVideoElement = $('.video_chat')[0];	
 	
 	/*
 	 * The event handler to fire when a session request has been accepted.
 	 */
 	crocScrum.videoSession.onConnect = function () {
+		// Disable full screen button for hand held devices
+		if (!/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+			// Enable the button bar
+			$('.croc_tpl_bar').removeClass('disabled');
+		}
+		
 		// Connection has been established; don't connect on click
 		crocScrum.crocObjectConnected = true;
 		
