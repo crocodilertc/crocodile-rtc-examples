@@ -216,10 +216,14 @@ function setVideoToFullscreen(enabled) {
 		$('.video_chat').addClass('video_chat_fullscreen');
 		$('.croc_tpl_actions').addClass('croc_tpl_actions_fullscreen');
 		$('.form_leave').addClass('form_leave_fullscreen');
-		if (uiElement.webkitRequestFullscreen) {
+		if (uiElement.requestFullscreen) {
+			uiElement.requestFullscreen();
+		} else if (uiElement.msRequestFullscreen) {
+			uiElement.msRequestFullscreen();
+		} else if (uiElement.mozRequestFullScreen) {
+			uiElement.mozRequestFullScreen();
+		} else if (uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
-		} else if (uiElement.mozRequestFullscreen) {
-			uiElement.mozRequestFullscreen();
 		}
 	} else {
 		// Exit fullscreen
@@ -230,10 +234,14 @@ function setVideoToFullscreen(enabled) {
 		$('.video_chat').removeClass('video_chat_fullscreen');
 		$('.croc_tpl_actions').removeClass('croc_tpl_actions_fullscreen');
 		$('.form_leave').removeClass('form_leave_fullscreen');
-		if (document.webkitExitFullscreen) {
+		if (document.exitFullscreen) {
+			document.exitFullscreen();
+		} else if (document.msExitFullscreen) {
+			document.msExitFullscreen();
+		} else if (document.mozCancelFullScreen) {
+			document.mozCancelFullScreen();
+		} else if (document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
-		} else if (document.mozExitFullscreen) {
-			document.mozExitFullscreen();
 		}
 	}
 }
