@@ -1,6 +1,7 @@
 .croc_widget_videocall {
 	height: 333px;
 	width: 501px;
+	z-index: 9999;
 }
 .croc_widget_videocall .croc_ui_content {
 	height:100%;
