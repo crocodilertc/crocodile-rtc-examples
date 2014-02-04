@@ -179,19 +179,27 @@ function setVideoToFullscreen(enabled) {
 		// Set fullscreen
 		isFullscreen = true;
 		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
-		if (uiElement.webkitRequestFullscreen) {
+		if (uiElement.requestFullscreen) {
+			uiElement.requestFullscreen();
+		} else if (uiElement.msRequestFullscreen) {
+			uiElement.msRequestFullscreen();
+		} else if (uiElement.mozRequestFullScreen) {
+			uiElement.mozRequestFullScreen();
+		} else if (uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
-		} else if (uiElement.mozRequestFullscreen) {
-			uiElement.mozRequestFullscreen();
 		}
 	} else {
 		// Exit fullscreen
 		isFullscreen = false;
 		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
-		if (document.webkitExitFullscreen) {
+		if (document.exitFullscreen) {
+			document.exitFullscreen();
+		} else if (document.msExitFullscreen) {
+			document.msExitFullscreen();
+		} else if (document.mozCancelFullScreen) {
+			document.mozCancelFullScreen();
+		} else if (document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
-		} else if (document.mozExitFullscreen) {
-			document.mozExitFullscreen();
 		}
 	}
 }
