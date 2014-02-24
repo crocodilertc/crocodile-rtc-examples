@@ -1,0 +1,12 @@
+This file lists all the known issues with the examples. Only support Opera, Firefox and Chrome.
+These examples use WebRTC. WebRTC is an experimental technology and is therefore subject to change. 
+
+Firefox to Chrome - video calls don't work.
+Chrome to Firefox - audio and video calls don't work.
+Opera - No ringback tone.
+Firefox to Opera - video calls don't work.
+Chrome to Opera - No ringback tone.
+Opera to Firefox - No audio or video calls.
+Firefox, Opera - No Conferencing.
+Firefox - Public Switched Telephone Network (PSTN) calls don't work.
+
