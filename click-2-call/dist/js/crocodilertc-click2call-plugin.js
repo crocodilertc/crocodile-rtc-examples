@@ -55856,8 +55856,13 @@ function setVideoSession (mediaSession) {
 		// Allow calls to be made on click
 		crocObjectConnected = false;
 		
-		// Make sure duration of call has stopped
-		clearInterval(setCallDuration);
+		// Trigger click to exit fullscreen.
+		if (document.mozFullScreenElement || document.webkitFullscreenElement || document.fullscreenElement) {
+			$('.croc_btn_fullscreen').trigger('click');
+		}
+		
+		// Reset remote video.
+		$('.croc_tpl_remotevideo').attr('src', '');
 		
 		// Trigger click to collapse the tab.
 		isClicked = true;
@@ -55918,7 +55923,7 @@ function setVideoToFullscreen(enabled) {
 	var uiElement = $('.croc_widget_videocall')[0]; // jQuery element to make full screen
 
 	// Listen for fullscreen change, ignore initial change
-	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
+	document.onmozfullscreenchange = document.onwebkitfullscreenchange = document.onfullscreenchange = function(){
 		if (isFullscreen && !initial) {
 			setVideoToFullscreen(false);
 		}
@@ -55930,19 +55935,27 @@ function setVideoToFullscreen(enabled) {
 		// Set fullscreen
 		isFullscreen = true;
 		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
-		if (uiElement.webkitRequestFullscreen) {
+		if (uiElement.requestFullscreen) {
+			uiElement.requestFullscreen();
+		} else if (uiElement.msRequestFullscreen) {
+			uiElement.msRequestFullscreen();
+		} else if (uiElement.mozRequestFullScreen) {
+			uiElement.mozRequestFullScreen();
+		} else if (uiElement.webkitRequestFullscreen) {
 			uiElement.webkitRequestFullscreen();
-		} else if (uiElement.mozRequestFullscreen) {
-			uiElement.mozRequestFullscreen();
 		}
 	} else {
 		// Exit fullscreen
 		isFullscreen = false;
 		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
-		if (document.webkitExitFullscreen) {
+		if (document.exitFullscreen) {
+			document.exitFullscreen();
+		} else if (document.msExitFullscreen) {
+			document.msExitFullscreen();
+		} else if (document.mozCancelFullScreen) {
+			document.mozCancelFullScreen();
+		} else if (document.webkitExitFullscreen) {
 			document.webkitExitFullscreen();
-		} else if (document.mozExitFullscreen) {
-			document.mozExitFullscreen();
 		}
 	}
 }

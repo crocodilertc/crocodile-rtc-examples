@@ -105,8 +105,13 @@ function setVideoSession (mediaSession) {
 		// Allow calls to be made on click
 		crocObjectConnected = false;
 		
-		// Make sure duration of call has stopped
-		clearInterval(setCallDuration);
+		// Trigger click to exit fullscreen.
+		if (document.mozFullScreenElement || document.webkitFullscreenElement || document.fullscreenElement) {
+			$('.croc_btn_fullscreen').trigger('click');
+		}
+		
+		// Reset remote video.
+		$('.croc_tpl_remotevideo').attr('src', '');
 		
 		// Trigger click to collapse the tab.
 		isClicked = true;
@@ -167,7 +172,7 @@ function setVideoToFullscreen(enabled) {
 	var uiElement = $('.croc_widget_videocall')[0]; // jQuery element to make full screen
 
 	// Listen for fullscreen change, ignore initial change
-	uiElement.onmozfullscreenchange = uiElement.onwebkitfullscreenchange = function(){
+	document.onmozfullscreenchange = document.onwebkitfullscreenchange = document.onfullscreenchange = function(){
 		if (isFullscreen && !initial) {
 			setVideoToFullscreen(false);
 		}
