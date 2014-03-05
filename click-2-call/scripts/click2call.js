@@ -9,7 +9,7 @@ var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 window.onload = function() {
 	if (document.images) {
 		var img1 = new Image();
-		img1.src = "images/icons.png";
+		img1.src = "dist/images/icons.png";
 	}
 };
  
