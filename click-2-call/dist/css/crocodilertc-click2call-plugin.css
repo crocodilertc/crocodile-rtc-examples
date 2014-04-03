@@ -631,3 +631,273 @@
 .croc_powered_by_audio.croc_top {
     left: 132px;
 }
+.croc_widget_videocall {
+	height: 333px;
+	width: 501px;
+	z-index: 9999;
+}
+.croc_widget_videocall .croc_ui_content {
+	height:100%;
+}
+.croc_widget_videocall .croc_title_control {
+	position:relative;
+	top:50%;
+	margin-top:-0.5em;
+	margin-left:1em;
+	font-size:13px;
+}
+.croc_widget_videocall .croc_tpl_titlebar .croc_tpl_title {
+	position:absolute;
+	top:0;
+}
+.croc_widget_videocall .croc_tpl_title .croc_ui_uri {
+	font-weight:bold;
+}
+.croc_widget_videocall .croc_ui_container {
+	overflow:hidden;
+}
+.croc_widget_videocall .croc_ui_content > .croc_tpl_content {
+	width:100%;
+	height:100%;
+	background:#000;
+}
+.croc_widget_videocall .croc_tpl_remotevideo {
+	background: #000;
+	border-radius:10px;
+	-moz-border-radius:10px;
+    -webkit-border-radius:10px;
+	height:100%;
+	width: 100%;
+}
+.croc_widget_videocall .croc_tpl_titlebar.croc_ui_shown,
+.croc_widget_videocall .croc_tpl_titlebar:hover {
+	top: 0px;
+	-moz-transition-delay: 0s !important;
+	-webkit-transition-delay: 0s !important;
+	-o-transition-delay: 0s !important;
+	transition-delay:0s !important;
+}
+.croc_widget_videocall .croc_tpl_titlebar {
+	position: absolute;
+	top:-43px;
+	z-index:100;
+	width:100%;
+	height:92%;
+	-webkit-transition:top 1s ease-in-out 2s;
+	-moz-transition:top 1s ease-in-out 2s;
+	-o-transition:top 1s ease-in-out 2s;
+	transition:top 1s ease-in-out 2s;
+}
+.croc_widget_videocall .croc_tpl_localvideo {
+	display: none;
+	position: absolute;
+	left: 13px;
+	bottom: 7px;
+	background: #000;
+	border: 3px solid #409f89;
+	border-radius: 3px 3px 0px 3px;
+	height: 69px;
+	width: 69px;
+}
+.croc_widget_videocall .croc_tpl_localvideo .croc_tpl_video {
+	width:100%;
+	height:100%;
+}
+.croc_widget_videocall .croc_ui_localvideoshown .croc_tpl_localvideo {
+	display:block;
+}
+.croc_widget_videocall .croc_tpl_localvideo .croc_tpl_disabledvideo {
+	background: url(../images/icons.png) no-repeat -190px -1px #000;
+	display: none;
+	opacity: 0.5;
+	position: absolute;
+	top:0;
+	left:0;
+	width:100%;
+	height:100%;
+}
+.croc_widget_videocall .croc_ui_localvideodisabled .croc_tpl_localvideo .croc_tpl_disabledvideo {
+	display:block;
+}
+.croc_widget_videocall .croc_btn_localvideo {
+	border-radius: 0px 2px 2px 0px;
+	padding: 3px 3px 3px 0px;
+	position: absolute;
+	bottom: 7px;
+	left: 0.5em;
+	width: 22px;
+	height: 22px;
+}
+.croc_widget_videocall .croc_ui_localvideoshown .croc_btn_localvideo {
+	background: #409f89;
+	left:88px;
+}
+.croc_widget_videocall .croc_ui_localvideoshown .croc_btn_localvideo .croc_ui_image {
+	border-bottom: 1px solid #9ec8be;
+	border-top: 1px solid #2b6c5d;.
+}
+.croc_widget_videocall .croc_btn_localvideo .croc_ui_image {
+	border-radius: 2px;
+	top:50%;
+	left: 50%;
+	margin:-10px -1px -1px -10px;
+	height: 20px;
+	width: 20px;
+}
+.croc_widget_videocall .croc_tpl_actions .croc_tpl_bar {
+	background:rgba(0, 0, 0, 0.3);
+	position:absolute;
+	bottom:0;
+	left:0;
+	right:0;
+	height:34px;
+}
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions {
+	position: absolute;
+	display: block;
+	height: 124px;
+	width: 100%;
+	bottom: -42px;
+
+	transition: bottom 1s 1s;
+	-moz-transition: bottom 1s 1s;
+	-webkit-transition: bottom 1s 1s;
+	-o-transition: bottom 1s 1s;
+}
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions.croc_ui_shown,
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_actions:hover {
+	bottom: 0px;
+	-moz-transition-delay: 0s !important;
+	-webkit-transition-delay: 0s !important;
+	-o-transition-delay: 0s !important;
+}
+.croc_widget_videocall .croc_tpl_controls .croc_tpl_callactions {
+	position: absolute;
+	bottom: 0;
+	right:0;
+	height: 100%;
+}
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_popout {
+	display:inline-block;
+}
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_input_button,
+.croc_widget_videocall .croc_tpl_callactions > .croc_ui_popout > .croc_ui_input_button {
+	height: 28px;
+	width: 40px;
+	display:inline-block;
+	position:relative;
+	top:3px;
+	margin-right:0.2em;
+}
+.croc_widget_videocall .croc_ui_keypad {
+	width:8em;
+	height:10em;
+}
+.croc_widget_videocall .croc_ui_keypad table {
+	font-size:12px;
+}
+/* sorted */
+.croc_ui_fullscreen {
+	position:fixed !important;
+	top:0 !important;
+	bottom:0 !important;
+	left:0 !important;
+	right:0 !important;
+	width:auto !important;
+	height:auto !important;
+}
+.croc_btn_pausevideo_s .croc_ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.croc_btn_pausevideo_s:hover .croc_ui_image {
+	background: url(../images/icons.png) no-repeat -124px -170px;
+}
+.croc_btn_pausevideo_s.croc_selected .croc_ui_image {
+	background: url(../images/icons.png) no-repeat -124px -199px;
+}
+.croc_btn_fullscreen .croc_ui_image {
+	background:url(../images/icons.png) no-repeat -82px -341px;
+}
+.croc_btn_localvideo .croc_ui_image {
+	background:url(../images/icons.png) no-repeat -192px -144px;
+}
+
+/* Default right tab styling */
+.croc_tab-wrapper-video {
+	width: 40px;
+	position: fixed;
+	top: 100px;
+	right: 0;
+	-webkit-transition: right 2s;
+	-moz-transition: right 2s;
+	-ms-transition: right 2s;
+	-o-transition: right 2s;
+	transition: right 2s;
+	outline: none;
+}
+.croc_side-tab-content-video {
+	width: 501px;
+	height: 353px;
+	position: relative;
+	top: -40px;
+	left: 45px;
+	display: none;
+}
+.croc_powered_by_video {
+	position: relative;
+	top: 338px;
+	left: 175px;
+	width: 151px;
+	color: #409F89;
+	font-size: 12px;
+	font-style: italic;
+}
+.croc_powered_by_video a {
+	color: #409f89;
+	text-decoration: underline;
+}
+
+/* Convert right tab to left tab for video*/
+.croc_tab-wrapper-video.croc_video-left-tab {
+	left: 0;
+	-webkit-transition: left 2s;
+	-moz-transition: left 2s;
+	transition: left 2s;
+}
+.croc_side-tab-content-video.croc_video-left-content {
+	left: -506px;
+}
+
+/* Convert right tab to bottom tab for video */
+.croc_video-bottom-tab {
+	left:  615px;
+	bottom: 0px;
+	-webkit-transition: bottom 2s;
+	-moz-transition: bottom 2s;
+	transition: bottom 2s;
+}
+.croc_side-tab.croc_video-side-tab-bottom {
+	left: 15px;
+	top: 0px;
+}
+.croc_side-tab-content-video.croc_video-bottom-content {
+	top: -4px;
+	left: 0px;
+}
+
+/* Convert right tab to top tab for video */
+.croc_video-top-tab {
+	top: 0;
+	left: 615px;
+	-webkit-transition: top 2s;
+	-moz-transition: top 2s;
+	transition: top 2s;
+}
+.croc_side-tab.croc_video-top-side-tab {
+	left: 15px;
+	top: 0;
+}
+.croc_side-tab-content-video.croc_video-top-content {
+	left: 0;
+	top: -390px;
+}

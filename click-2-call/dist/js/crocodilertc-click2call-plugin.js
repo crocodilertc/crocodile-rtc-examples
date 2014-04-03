@@ -53171,156 +53171,549 @@ var CrocSDK = {};
 
 }(jQuery));
 
-var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
-	'<div class="croc_side-tab croc_rotate-vertical">' +
-		'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
-		'<p>Call Now</p>' +
-		'<div class="croc_warning-light">' +
-			'<div class="croc_warning-light-circle"></div>' +
-		'</div>' +
-	'</div>' +
-	'<div class="croc_side-tab-content">' +
-		'<div class="croc_ui_widget croc_widget_audiocall">' +
-			'<div class="croc_ui_container croc_scheme_widget">' +
-				'<div class="croc_tpl_title">' +
-					'<div class="croc_title_control">' +
-						'<h1 class="croc_ui_title"></h1>' +
-					'</div>' +
-					'<div class="croc_ui_title_toolbar">' +
-						'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
-							'<div class="croc_ui_image"></div>' +
-							'<div class="croc_ui_text"></div>' +
-						'</div>' +
-					'</div>' +
-				'</div>' +
-				'<div class="croc_ui_content">' +
-					'<div class="croc_tpl_content">' +
-						'<div class="croc_tpl_info">' +
-							'<div class="croc_tpl_remoteid">' +
-								'<span class="croc_ui_label croc_scheme_label_1 croc_ui_uri"></span>' +
-							'</div>' +
-							'<div class="croc_tpl_details croc_scheme_label_2">' +
-								'<span class="croc_ui_label croc_tpl_status"></span>' +
-								'<span class="croc_ui_label croc_ui_duration"></span>' +
-							'</div>' +
-						'</div>' +
-						'<div class="croc_tpl_actions">' +
-							'<div class="croc_tpl_group">' +
-								'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
-									'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
-										'<div class="croc_ui_image"></div>' +
-										'<div class="croc_ui_text"></div>' +
-									'</div>' +
-									'<div class="croc_ui_panel croc_tpl_content">' +
-										'<div class="croc_ui_keypad">' +
-											'<table>' +
-												'<tr>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">1</div>' +
-															'<div class="croc_tpl_alternate"></div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">2</div>' +
-															'<div class="croc_tpl_alternate">ABC</div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">3</div>' +
-															'<div class="croc_tpl_alternate">DEF</div>' +
-														'</div>' +
-													'</td>' +
-												'</tr>' +
-												'<tr>' +
-													'<td>' +
-														'<div class="croc_ui_input_button tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">4</div>' +
-															'<div class="croc_tpl_alternate">GHI</div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">5</div>' +
-															'<div class="croc_tpl_alternate">JKL</div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">6</div>' +
-															'<div class="croc_tpl_alternate">MNO</div>' +
-														'</div>' +
-													'</td>' +
-												'</tr>' +
-												'<tr>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">7</div>' +
-															'<div class="croc_tpl_alternate">PQRS</div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">8</div>' +
-															'<div class="croc_tpl_alternate">TUV</div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">9</div>' +
-															'<div class="croc_tpl_alternate">WXYZ</div>' +
-														'</div>' +
-													'</td>' +
-												'</tr>' +
-												'<tr>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">*</div>' +
-															'<div class="croc_tpl_alternate"></div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">0</div>' +
-															'<div class="croc_tpl_alternate">+</div>' +
-														'</div>' +
-													'</td>' +
-													'<td>' +
-														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
-															'<div class="croc_tpl_main">#</div>' +
-															'<div class="croc_tpl_alternate"></div>' +
-														'</div>' +
-													'</td>' +
-												'</tr>' +
-											'</table>' +
-										'</div>' +
-									'</div>' +
-									'<div class="croc_tpl_deco"></div>' +
-								'</div>' +
-								'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_audio">' +
-									'<div class="croc_ui_image"></div>' +
-									'<div class="croc_ui_text"></div>' +
-								'</div>' +
-								'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
-									'<div class="croc_ui_image"></div>' +
-									'<div class="croc_ui_text"></div>' +
-								'</div>' +
-							'</div>' +
-						'</div>' +
-						'<div class="croc_ui_hidden">' +
-							'<audio class="croc_tpl_tpl croc_receive-audio" autoplay="autoplay"></audio>' +
-						'</div>' +
-					'</div>' +
-				'</div>' +
-			'</div>' +
-		'</div>' +
-		'<div class="croc_powered_by_audio">'+
-			'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
-		'</div>' +
-	'</div>' +
-'</div>';
+// Global variables
+var audioSession, transferredSession = null, ringtone;
+
+// Setup Media session configuration
+function setAudioSession (mediaSession) {
+	// The DOM audio element used for playing the remote party's audio
+	mediaSession.remoteAudioElement = $('.croc_receive-audio')[0];
+	
+	/* 
+	 * The event handler to fire when a provisional response has been 
+	 * received to a new media session request.
+	 */
+	mediaSession.onProvisional = function () {
+		// Start the ring tone.
+		ringtone.start();
+		
+		// Set the state element text to 'Ringing'
+		$('.croc_tpl_status').html('Ringing');
+	};
+	
+	/*
+	 * The event handler to fire when a session request has been accepted.
+	 */
+	mediaSession.onConnect = function () {
+		// Switch new session to current audioSession
+		if (transferredSession) {
+			// Copy current session to oldSession
+			var oldSession = audioSession;
+			// Make the new session usable
+			audioSession = transferredSession;
+			// Reset transferredSession ready for a new transfer
+			transferredSession = null;
+			// Close the old session that is no longer used
+			oldSession.close();
+		}
+		
+		// Stop the ring tone.
+		ringtone.stop();
+		
+		// Set the status element text to 'Connected'
+		$('.croc_tpl_status').html('Connected');
+	};
+	
+	/*
+	 * The event handler to fire when a call transfer request is received.
+	 */
+	mediaSession.onTransferRequest = function (event) {
+		// Accept any incoming call transfer request
+		transferredSession = event.accept();
+		
+		// Set the status element text to 'Transferring...'
+		$('.croc_tpl_status').html('Transferring...');
+		
+		// Configure new session
+		setAudioSession(transferredSession);
+	};
+	
+	/*
+	 * The event handler to fire when a session has been closed by the 
+	 * remote party or the network.
+	 */
+	mediaSession.onClose = function () {
+		// Check its the current session, don't setup if it isn't
+		if(audioSession !== mediaSession) {
+			return;
+		} 
+		
+		// Reset transferredSession ready for another transfer if/when its requested
+		if(mediaSession === transferredSession){
+			// Set the status element text to 'Transfer failed'
+			$('.croc_tpl_status').html('Transfer failed');
+			transferredSession = null;
+			return;
+		}
+		
+		// Make sure ringtone has stopped
+		if (ringtone) {
+			ringtone.stop();
+		}
+		
+		// Allow calls to be made on click
+		crocObjectConnected = false;
+		
+		// Stop duration of call
+		clearInterval(setCallDuration);
+		
+		// Set the status element text to 'Disconnected'
+		$('.croc_tpl_status').html('Disconnected');
+		
+		// Hide the warning light to indicate there are no calls
+		$('.croc_warning-light').hide();
+		
+		// Reset mute button
+		$('.croc_mute_audio').removeClass('croc_btn_muted');
+		$('.croc_mute_audio').addClass('croc_btn_mute_s');
+		
+		// Reset pop-out
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
+		
+		// Trigger click to collapse the tab
+		isClicked = true;
+		$('.croc_side-tab').trigger('click');
+	};
+}
+
+// End the call by closing media session
+function endAudio() {
+	// Close down connection to network.
+	audioSession.close();
+}
+
+// Mute the audio call
+function muteAudioCall() {
+	// Mute the sessions audio track
+	audioSession.mute();
+	
+	$('.croc_mute_audio').removeClass('croc_btn_mute_s');
+	$('.croc_mute_audio').addClass('croc_btn_muted');
+}
+
+// Un-mute the audio call
+function unmuteAudioCall() {
+	// Un-mute the sessions audio track
+	audioSession.unmute();
+	
+	$('.croc_mute_audio').removeClass('croc_btn_muted');
+	$('.croc_mute_audio').addClass('croc_btn_mute_s');
+}
+
+// Audio session set-up
+function requestAudio(addressToCall) {
+	// Connection has been established; don't connect on click
+	crocObjectConnected = true;
+	
+	// Show the warning light to indicate a call is live
+	$('.croc_warning-light').show();
+	
+	// Set the status element text to 'Connecting'
+	$('.croc_tpl_status').html('Connecting');
+	
+	// Set the duration element to start timing the duration of the call
+	var callStartDate = new Date().getTime();
+	setDuration(callStartDate);
+	
+	// Get the address of the user to call
+	var address = addressToCall;
+	
+	// Set up stream to be able to send and receive audio
+	var callConfig = {
+			audio: {
+				send: true, receive: true
+			}
+	};
+	
+	// Set up ring tone frequency 
+	var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
+	
+	// Set up ring tone timing
+	var ringtone_timing = localisations[ringtoneToUse].ringbacktone.timing;
+	
+	// Create an instance of the ring tone object
+	ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
+	
+	// media.connect requests a media session and returns the session object
+	audioSession = crocObject.media.connect(address, {
+		streamConfig: callConfig
+	});
+	
+	// Configure new session
+	setAudioSession(audioSession);
+}
+
+function setClick2CallAudioWidget(config) {
+	if (!audioWidgetHtml) {
+		throw new TypeError(config.click2callMediaWidget + "widget has not been set, cannot build click-2-call tab");
+	}
+	
+	orientationOfClick2Call = config.click2callOrientation;
+	
+	/*
+	 * Setup event handlers for the audio widget
+	 */
+	var setupAudioWidgetHandlers = function () {
+		/*
+		 * Setup tab event handlers
+		 */
+		$('.croc_side-tab').click(function() {
+			
+			if (!isClicked) {
+				switch (orientationOfClick2Call) {
+				case 'top':
+					// Expand tab.
+					$('.croc_tab-container').animate({
+						top: '185px'
+					});
+					break;
+				case 'bottom':
+					$('.croc_audio-bottom-tab').animate({
+						bottom: '10px'
+					});
+					break;
+				case 'left':
+					// Expand tab.
+					$('.croc_tab-container').animate({
+						left: '379px'
+					});
+					break;
+				default:
+					// Expand tab.
+					$('.croc_tab-container').animate({
+						right: '379px'
+					});
+					break;
+				}
+			
+				// Show tab content
+				$('.croc_side-tab-content').show(600);
+				
+				// Make a call if not already making a call
+				if (!crocObjectConnected) {
+					requestAudio(config.addressToCall);
+				}
+				
+				isClicked = true;
+			} else if (isClicked) {
+				switch (orientationOfClick2Call) {
+				case 'top':
+					// Collapse tab.
+					$('.croc_tab-container').animate({
+						top: '0px'
+					});
+					break;
+				case 'bottom':
+					$('.croc_audio-bottom-tab').animate({
+						bottom: '0px'
+					});
+					break;
+				case 'left':
+					// Collapse tab.
+					$('.croc_tab-container').animate({
+						left: '0px'
+					});
+					break;
+				default:
+					// Collapse tab.
+					$('.croc_tab-container').animate({
+						right: '0px'
+					});
+					break;
+				}
+				
+				// Hide tab content
+				$('.croc_side-tab-content').hide(1000);
+				
+				isClicked = false;
+			}
+			
+		});
+		
+		/*
+		 * Setup audio widget buttons
+		 */
+		var toggleOnMute = false;
+		
+		// End audio session when clicked
+		$('.croc_btn_close').click(function(){
+			// End the audio call
+			endAudio();
+		});
+		
+		// End audio session when clicked
+		$('.croc_btn_endcall_s').click(function() {
+			// End the audio call
+			endAudio();
+		});
+		
+		// Set mute call button
+		$('.croc_mute_audio').click(function () {
+			if (!toggleOnMute) {
+				toggleOnMute = true;
+				muteAudioCall();
+			} else {
+				toggleOnMute = false;
+				unmuteAudioCall();
+			}
+		});
+
+		// Setup keypad popout
+		$('.croc_ui_popout').click(function(evt){
+			$('body').click(function(evt2){
+				// Dont close if popout content is pressed
+				var currentTarget = $(evt.target);
+				while(currentTarget[0]){
+					if (currentTarget[0] === evt.target[0]) {
+						return;
+					}
+					
+					currentTarget = currentTarget.parent();
+				}
+				
+				$('body').off('click');
+				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+				$('.croc_tpl_actions').removeClass('croc_ui_shown');
+			});
+			
+			evt.stopPropagation();
+			$('.croc_ui_popout').addClass('croc_ui_popout_open');
+			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
+			$('.croc_tpl_actions').addClass('croc_ui_shown');
+		});
+		
+		// Make sure keypad and tool bars aren't displayed
+		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
+		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
+		$('.croc_tpl_actions').removeClass('croc_ui_shown');
+		
+		// Setup keypad buttons
+		var keypad = $('.croc_ui_keypad');
+		keypad.find('.croc_tpl_key').click(function(){
+			var value = $(this).find('.croc_tpl_main').text();
+			audioSession.sendDTMF(value);
+		});
+	};
+	
+	// Get the HTML element to append to
+	var htmlElement = $(config.appendClick2callTo);
+	var i;
+	
+	// Add the HTML as a child of the element specified in the configuration if the element exists.
+	if (htmlElement.length !== 0) {
+		// For every HTML element of that kind, add audio tab
+		for (i=0; i < htmlElement.length; i++) {
+			// Check that document contains HTML element
+			if ($.contains(document, htmlElement[i])) {
+				// Add audio tab
+				$(config.appendClick2callTo).append(audioWidgetHtml);
+			} else  {
+				// If the HTML element specified doesn't exist, add to HTML
+				$('html').append(audioWidgetHtml);
+			}
+		}
+	} else {
+		// If the HTML element specified doesn't exist, add to HTML
+		$('html').append(audioWidgetHtml);
+	}
+	
+	// Add audio widget event handlers
+	setupAudioWidgetHandlers();
+	
+	/*
+	 * Setup the position of the click to call tab; fixed or absolute
+	 */
+	var positionOfClick2Call = config.click2callPosition;
+	mediaWidget = config.click2callMediaWidget;
+	
+	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
+		// Change css position to user defined/default position
+		$('.croc_tab-wrapper').css('position', config.click2callPosition);
+	}
+	
+	/*
+	 * Setup the tab orientation on screen; top, right, bottom or left
+	 */
+	switch (orientationOfClick2Call) {
+	case 'top':
+		$('.croc_tab-container').removeClass('croc_tab-wrapper');
+		$('.croc_tab-container').addClass('croc_audio-top-tab');
+		$('.croc_side-tab').removeClass('croc_rotate-vertical');
+		$('.croc_side-tab').addClass('croc_audio-side-tab-top');
+		$('.croc_side-tab-content').addClass('croc_audio-top-content');
+		$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
+		$('.croc_powered_by_audio').addClass('croc_top');
+		break;
+	case 'bottom':
+		$('.croc_tab-container').removeClass('croc_tab-wrapper');
+		$('.croc_tab-container').addClass('croc_audio-bottom-tab');
+		$('.croc_side-tab').removeClass('croc_rotate-vertical');
+		$('.croc_side-tab').addClass('croc_rotate-horizontal');
+		$('.croc_side-tab-content').addClass('croc_audio-bottom-content');
+		break;
+	case 'left':
+		$('.croc_tab-container').addClass('croc_audio-left-tab');
+		$('.croc_side-tab-content').addClass('croc_audio-left-content');
+		$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
+		break;
+	default:
+		break;
+	}
+}
+// Global variables
+var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, isFullscreen = false;
+var setCallDuration = null;
+var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
+
+/* 
+ * Load icons.png to make sure image is retrieved before widget is used. 
+ */
+window.onload = function() {
+	if (document.images) {
+		var img1 = new Image();
+		img1.src = "../images/icons.png";
+	}
+};
+ 
+/*
+ * Croc Object connection, check for capabilities
+ */
+function connectCrocObject(crocApiKey, crocDisplayName, click2callMediaWidget) {
+	// CrocSDK API Configuration
+	crocConfig = {
+		// The API Key registered to the Crocodile RTC SDK Network
+		apiKey: crocApiKey,
+		
+		// The text to display to call recipient
+		displayName: crocDisplayName,
+		
+		// The features that the application will implement
+		features: ['audio', 'video', 'transfer'],
+		
+		// The event handler to fire when connected to the network
+		onConnected: function() {
+			var hasAudio = crocObject.capabilities["sip.audio"];
+			var hasVideo = crocObject.capabilities["sip.video"];
+			var hasDTMF = crocObject.capabilities["croc.dtmf"];
+			
+			// Test for audio capabilities
+			if (!hasAudio) {
+				alert("Unable to detect audio capabilities. Please connect and enable an audio device.");
+			}
+			
+			// Test for video capabilities
+			if (!hasVideo && click2callMediaWidget === "video") {
+				alert("Unable to detect video capabilities. Please connect and enable an imaging device.");
+			}
+			
+			// Test for DTMF capabilities
+			if (!hasDTMF) {
+				$(".croc_btn_keypad").hide();
+			}
+		}
+	};
+	
+	// Instantiation of croc object with non-default configuration
+	crocObject = $.croc(crocConfig);
+}
+
+// The function to set up a click to call tab
+var croc_click2call = function(userConfig) {
+	// Override default configuration with user configuration if present
+	var defaultConfig = $.extend({
+		apiKey: 'FIXME',
+		addressToCall: 'FIXME@crocodilertc.net',
+		appendClick2callTo: 'body',
+		click2callDisplayName: null,
+		click2callMediaWidget: 'audio',
+		click2callOrientation: 'right',
+		click2callPosition: 'fixed',
+		countryRingtoneCode: 'gb'
+	}, userConfig||{});
+	
+	// Check for a display name
+	if (!defaultConfig.click2callDisplayName) {
+		throw new TypeError("Please set a display name");
+	}
+	
+	// Connect to the Network and check capabilities
+	connectCrocObject(defaultConfig.apiKey, defaultConfig.click2callDisplayName, defaultConfig.click2callMediaWidget);
+	
+	/*
+	 * Configure ringtone to use. Can be set using country codes such as 'gb' 
+	 * for Great Britain.
+	 */
+	var getUserDefinedRingtone = defaultConfig.countryRingtoneCode;
+	ringtoneToUse = getUserDefinedRingtone||'gb';
+	
+	// Configure appropriate widget
+	var widgetChoice = defaultConfig.click2callMediaWidget;
+	if (widgetChoice === 'video') {
+		// Setup video widget
+		try {
+			setClick2CallVideoWidget(defaultConfig);
+		} catch(err) {
+			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for video.");
+		}
+	} else {
+		// Setup audio widget
+		try {
+			setClick2CallAudioWidget(defaultConfig);
+		} catch(err) {
+			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for audio.");
+		}
+	}
+};
+
+// Format the timer for widget
+function formatDuration(time1, time2, format) {
+	var duration = ((time1 < time2)?(time2 - time1):(time1 - time2))/1000;
+
+	var hours = parseInt(duration / 3600, 10);
+	var minutes = parseInt(duration / 60, 10);
+	var seconds = parseInt(duration, 10);
+
+	if (minutes >= 1) {
+		seconds -= minutes*60;
+	}
+	
+	if (hours >= 1) {
+		minutes -= hours*60;
+	}
+
+	var string = format.replace('%H', (((""+hours).length > 1)?hours:('0' + hours)));
+	string = string.replace('%i', (((""+minutes).length > 1)?minutes:('0' + minutes)));
+	string = string.replace('%s', (((""+seconds).length > 1)?seconds:('0' + seconds)));
+
+	return string;
+}
+
+// Set a timer to update the length of the call
+function setDuration(callStartDate) {
+	if (setCallDuration !== null) {
+		clearInterval(setCallDuration);
+		setCallDuration = null;
+	}
+	
+	// Start call duration
+	setCallDuration = setInterval(function() {
+		// Set the format to display the length of the call
+		var durationTimerFormat = "%H:%i:%s";
+		
+		// Get the current date in milliseconds
+		var currentDate = new Date().getTime();
+		
+		// Format the date using the method formatDuration
+		var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
+		
+		// Set the duration element text to the current duration after formatting 
+		$('.croc_ui_duration').html(formattedCallDuration);
+		
+	}, 1000);
+}
 var localisations = {
 		"al": {
 			dateformat	: '%d.%m.%yy',
@@ -55357,12 +55750,15 @@ if(audioContext) {
 	audio.setContext(new audioContext());
 }
 // Global variables
-var audioSession, transferredSession = null, ringtone;
+var videoSession, transferredSession = null, ringtone;
 
-// Setup Media session configuration
-function setAudioSession (mediaSession) {
-	// The DOM audio element used for playing the remote party's audio
-	mediaSession.remoteAudioElement = $('.croc_receive-audio')[0];
+//Setup Media session configuration
+function setVideoSession (mediaSession) {
+	// The DOM video element used for playing the local party's video
+	mediaSession.localVideoElement = $('.croc_receive_localVideo')[0];
+	
+	// The DOM video element used for playing the remote party's video
+	mediaSession.remoteVideoElement = $('.croc_tpl_remotevideo')[0];
 	
 	/* 
 	 * The event handler to fire when a provisional response has been 
@@ -55373,19 +55769,19 @@ function setAudioSession (mediaSession) {
 		ringtone.start();
 		
 		// Set the state element text to 'Ringing'
-		$('.croc_tpl_status').html('Ringing');
+		$('.croc_ui_status').html('Ringing');
 	};
 	
 	/*
 	 * The event handler to fire when a session request has been accepted.
 	 */
 	mediaSession.onConnect = function () {
-		// Switch new session to current audioSession
+		// Switch new session to current videoSession
 		if (transferredSession) {
 			// Copy current session to oldSession
-			var oldSession = audioSession;
+			var oldSession = videoSession;
 			// Make the new session usable
-			audioSession = transferredSession;
+			videoSession = transferredSession;
 			// Reset transferredSession ready for a new transfer
 			transferredSession = null;
 			// Close the old session that is no longer used
@@ -55396,7 +55792,7 @@ function setAudioSession (mediaSession) {
 		ringtone.stop();
 		
 		// Set the status element text to 'Connected'
-		$('.croc_tpl_status').html('Connected');
+		$('.croc_ui_status').html('Connected');
 	};
 	
 	/*
@@ -55407,10 +55803,10 @@ function setAudioSession (mediaSession) {
 		transferredSession = event.accept();
 		
 		// Set the status element text to 'Transferring...'
-		$('.croc_tpl_status').html('Transferring...');
+		$('.croc_ui_status').html('Transferring...');
 		
 		// Configure new session
-		setAudioSession(transferredSession);
+		setVideoSession(transferredSession);
 	};
 	
 	/*
@@ -55419,14 +55815,14 @@ function setAudioSession (mediaSession) {
 	 */
 	mediaSession.onClose = function () {
 		// Check its the current session, don't setup if it isn't
-		if(audioSession !== mediaSession) {
+		if (videoSession !== mediaSession) {
 			return;
 		} 
 		
 		// Reset transferredSession ready for another transfer if/when its requested
-		if(mediaSession === transferredSession){
+		if (mediaSession === transferredSession) {
 			// Set the status element text to 'Transfer failed'
-			$('.croc_tpl_status').html('Transfer failed');
+			$('.croc_ui_status').html('Transfer failed');
 			transferredSession = null;
 			return;
 		}
@@ -55436,83 +55832,163 @@ function setAudioSession (mediaSession) {
 			ringtone.stop();
 		}
 		
-		// Allow calls to be made on click
-		crocObjectConnected = false;
-		
 		// Stop duration of call
 		clearInterval(setCallDuration);
 		
 		// Set the status element text to 'Disconnected'
-		$('.croc_tpl_status').html('Disconnected');
+		$('.croc_ui_status').html('Disconnected');
 		
 		// Hide the warning light to indicate there are no calls
 		$('.croc_warning-light').hide();
 		
 		// Reset mute button
-		$('.croc_mute_audio').removeClass('croc_btn_muted');
-		$('.croc_mute_audio').addClass('croc_btn_mute_s');
+		$('.croc_btn_mute_s').removeClass('croc_selected');
+		
+		// Reset video pause button
+		$('.croc_btn_pausevideo_s').removeClass('croc_selected');
+		$('.croc_tpl_controls').removeClass('croc_ui_localvideodisabled');
 		
 		// Reset pop-out
 		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
 		
-		// Trigger click to collapse the tab
+		// Allow calls to be made on click
+		crocObjectConnected = false;
+		
+		// Trigger click to exit fullscreen.
+		if (document.mozFullScreenElement || document.webkitFullscreenElement || document.fullscreenElement) {
+			$('.croc_btn_fullscreen').trigger('click');
+		}
+		
+		// Reset remote video.
+		$('.croc_tpl_remotevideo').attr('src', '');
+		
+		// Trigger click to collapse the tab.
 		isClicked = true;
 		$('.croc_side-tab').trigger('click');
 	};
 }
 
 // End the call by closing media session
-function endAudio() {
-	// Close down connection to network.
-	audioSession.close();
+function endVideo() {
+	videoSession.close();
 }
 
-// Mute the audio call
-function muteAudioCall() {
-	// Mute the sessions audio track
-	audioSession.mute();
+// Mute the audio
+function muteAudio() {
+	// Disable the sessions audio track
+	videoSession.mute();
 	
-	$('.croc_mute_audio').removeClass('croc_btn_mute_s');
-	$('.croc_mute_audio').addClass('croc_btn_muted');
+	$('.croc_mute_video_audio').removeClass('croc_btn_mute_s');
+	$('.croc_mute_video_audio').addClass('croc_btn_muted');
 }
 
-// Un-mute the audio call
-function unmuteAudioCall() {
+// Un-mute the audio
+function unmuteAudio() {
 	// Un-mute the sessions audio track
-	audioSession.unmute();
+	videoSession.unmute();
 	
-	$('.croc_mute_audio').removeClass('croc_btn_muted');
-	$('.croc_mute_audio').addClass('croc_btn_mute_s');
+	$('.croc_mute_video_audio').removeClass('croc_btn_muted');
+	$('.croc_mute_video_audio').addClass('croc_btn_mute_s');
 }
 
-// Audio session set-up
-function requestAudio(addressToCall) {
+// Pause the remote video
+function pauseVideo() {
+	// Disable the sessions video track
+	videoSession.localStream.getVideoTracks()[0].enabled=false;
+	
+	// Turn icon green to show its been pressed
+	$('.croc_btn_pausevideo_s').addClass('croc_selected');
+	
+	// Add disabled icon to local video
+	$('.croc_tpl_controls').addClass('croc_ui_localvideodisabled');
+}
+
+// Un-Pause the remote video
+function resumeVideo() {
+	// Un-mute the sessions video track
+	videoSession.localStream.getVideoTracks()[0].enabled=true;
+	
+	// Restore icon back to white
+	$('.croc_btn_pausevideo_s').removeClass('croc_selected');
+	
+	// Remove disabled icon on local video
+	$('.croc_tpl_controls').removeClass('croc_ui_localvideodisabled');
+}
+
+// Determine whether to go full screen or not
+function setVideoToFullscreen(enabled) {
+	var initial = true;
+	var uiElement = $('.croc_widget_videocall')[0]; // jQuery element to make full screen
+
+	// Listen for fullscreen change, ignore initial change
+	document.onmozfullscreenchange = document.onwebkitfullscreenchange = document.onfullscreenchange = function(){
+		if (isFullscreen && !initial) {
+			setVideoToFullscreen(false);
+		}
+
+		initial = false;
+	};
+
+	if (enabled && !$('.croc_widget_videocall').hasClass('croc_ui_fullscreen')) {
+		// Set fullscreen
+		isFullscreen = true;
+		$('.croc_widget_videocall').addClass('croc_ui_fullscreen');
+		if (uiElement.requestFullscreen) {
+			uiElement.requestFullscreen();
+		} else if (uiElement.msRequestFullscreen) {
+			uiElement.msRequestFullscreen();
+		} else if (uiElement.mozRequestFullScreen) {
+			uiElement.mozRequestFullScreen();
+		} else if (uiElement.webkitRequestFullscreen) {
+			uiElement.webkitRequestFullscreen();
+		}
+	} else {
+		// Exit fullscreen
+		isFullscreen = false;
+		$('.croc_widget_videocall').removeClass('croc_ui_fullscreen');
+		if (document.exitFullscreen) {
+			document.exitFullscreen();
+		} else if (document.msExitFullscreen) {
+			document.msExitFullscreen();
+		} else if (document.mozCancelFullScreen) {
+			document.mozCancelFullScreen();
+		} else if (document.webkitExitFullscreen) {
+			document.webkitExitFullscreen();
+		}
+	}
+}
+
+// Video session set-up
+function requestVideo(addressToCall) {
 	// Connection has been established; don't connect on click
 	crocObjectConnected = true;
+	
+	// Get the address of the user to call
+	var address = addressToCall;
+	
+	// Set up stream to be able to send and receive video and audio
+	var callConfig = {
+			audio: {
+				send: true, receive: true
+			}, 
+			video: {
+				send: true, receive: true
+			}
+	};
 	
 	// Show the warning light to indicate a call is live
 	$('.croc_warning-light').show();
 	
 	// Set the status element text to 'Connecting'
-	$('.croc_tpl_status').html('Connecting');
+	$('.croc_ui_status').html('Connecting');
 	
 	// Set the duration element to start timing the duration of the call
 	var callStartDate = new Date().getTime();
 	setDuration(callStartDate);
 	
-	// Get the address of the user to call
-	var address = addressToCall;
-	
-	// Set up stream to be able to send and receive audio
-	var callConfig = {
-			audio: {
-				send: true, receive: true
-			}
-	};
-	
-	// Set up ring tone frequency 
+	// Set up ring tone frequency
 	var ringtone_frequency = localisations[ringtoneToUse].ringbacktone.freq;
 	
 	// Set up ring tone timing
@@ -55522,63 +55998,55 @@ function requestAudio(addressToCall) {
 	ringtone = new audio.Ringtone(ringtone_frequency, ringtone_timing);
 	
 	// media.connect requests a media session and returns the session object
-	audioSession = crocObject.media.connect(address, {
+	videoSession = crocObject.media.connect(address, {
 		streamConfig: callConfig
 	});
 	
 	// Configure new session
-	setAudioSession(audioSession);
+	setVideoSession(videoSession);
 }
 
-function setClick2CallAudioWidget(config) {
-	if (!audioWidgetHtml) {
+// Setup video widget html and event handlers
+function setClick2CallVideoWidget(config) {
+	if (!videoWidgetHtml) {
 		throw new TypeError(config.click2callMediaWidget + "widget has not been set, cannot build click-2-call tab");
 	}
 	
 	orientationOfClick2Call = config.click2callOrientation;
 	
 	/*
-	 * Setup event handlers for the audio widget
+	 * Setup event handlers for the video widget
 	 */
-	var setupAudioWidgetHandlers = function () {
-		/*
-		 * Setup tab event handlers
-		 */
+	var setupVideoWidgetHandlers = function () {
 		$('.croc_side-tab').click(function() {
-			
 			if (!isClicked) {
 				switch (orientationOfClick2Call) {
 				case 'top':
 					// Expand tab.
 					$('.croc_tab-container').animate({
-						top: '185px'
-					});
-					break;
-				case 'bottom':
-					$('.croc_audio-bottom-tab').animate({
-						bottom: '10px'
+						top: '343px'
 					});
 					break;
 				case 'left':
 					// Expand tab.
 					$('.croc_tab-container').animate({
-						left: '379px'
+						left: '511px'
 					});
 					break;
 				default:
 					// Expand tab.
 					$('.croc_tab-container').animate({
-						right: '379px'
+						right: '511px'
 					});
 					break;
 				}
-			
+				
 				// Show tab content
-				$('.croc_side-tab-content').show(600);
+				$('.croc_side-tab-content-video').show(600);
 				
 				// Make a call if not already making a call
 				if (!crocObjectConnected) {
-					requestAudio(config.addressToCall);
+					requestVideo(config.addressToCall);
 				}
 				
 				isClicked = true;
@@ -55588,11 +56056,6 @@ function setClick2CallAudioWidget(config) {
 					// Collapse tab.
 					$('.croc_tab-container').animate({
 						top: '0px'
-					});
-					break;
-				case 'bottom':
-					$('.croc_audio-bottom-tab').animate({
-						bottom: '0px'
 					});
 					break;
 				case 'left':
@@ -55609,77 +56072,112 @@ function setClick2CallAudioWidget(config) {
 					break;
 				}
 				
-				// Hide tab content
-				$('.croc_side-tab-content').hide(1000);
+				// Show tab content
+				$('.croc_side-tab-content-video').hide(1000);
 				
 				isClicked = false;
 			}
 			
 		});
 		
-		/*
-		 * Setup audio widget buttons
-		 */
-		var toggleOnMute = false;
-		
-		// End audio session when clicked
+		// Setup close button
 		$('.croc_btn_close').click(function(){
-			// End the audio call
-			endAudio();
+			// End the video call
+			endVideo();
 		});
 		
-		// End audio session when clicked
+		// Setup end call button
 		$('.croc_btn_endcall_s').click(function() {
-			// End the audio call
-			endAudio();
+			// End the video call
+			endVideo();
 		});
 		
-		// Set mute call button
-		$('.croc_mute_audio').click(function () {
-			if (!toggleOnMute) {
-				toggleOnMute = true;
-				muteAudioCall();
+		var togglePauseVideo = false;
+		
+		// Set pause video button
+		$('.croc_btn_pausevideo_s').click(function () {
+			if (!togglePauseVideo) {
+				togglePauseVideo = true;
+				pauseVideo();
 			} else {
-				toggleOnMute = false;
-				unmuteAudioCall();
+				togglePauseVideo = false;
+				resumeVideo();
 			}
 		});
-
+		
+		var toggleOnMute = false;
+		
+		// Set mute audio button
+		$('.croc_mute_video_audio').click(function () {
+			if (!toggleOnMute) {
+				toggleOnMute = true;
+				muteAudio();
+			} else {
+				toggleOnMute = false;
+				unmuteAudio();
+			}
+		});
+		
+		var toggleLocalVideo = true;
+		
+		// Setup click event for local video button to display/hide local video
+		$('.croc_btn_localvideo').click(function () {
+			if (toggleLocalVideo) {
+				toggleLocalVideo = false;
+				$('.croc_tpl_controls').removeClass("croc_ui_localvideoshown");
+			} else {
+				toggleLocalVideo = true;
+				$('.croc_tpl_controls').addClass("croc_ui_localvideoshown");
+			}
+		});
+		
+		// Setup full screen button
+		$('.croc_btn_fullscreen').click(function() {
+			if (!isFullscreen) {
+				isFullscreen = true;
+				setVideoToFullscreen(true);
+			} else {
+				isFullscreen = false;
+				setVideoToFullscreen(false);
+			}
+		});
+		
 		// Setup keypad popout
 		$('.croc_ui_popout').click(function(evt){
 			$('body').click(function(evt2){
 				// Dont close if popout content is pressed
 				var currentTarget = $(evt.target);
 				while(currentTarget[0]){
-					if (currentTarget[0] === evt.target[0]) {
+					if(currentTarget[0] === evt.target[0]) {
 						return;
 					}
 					
 					currentTarget = currentTarget.parent();
 				}
-				
+
 				$('body').off('click');
+
 				$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 				$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 				$('.croc_tpl_actions').removeClass('croc_ui_shown');
 			});
-			
+
 			evt.stopPropagation();
 			$('.croc_ui_popout').addClass('croc_ui_popout_open');
 			$('.croc_tpl_titlebar').addClass('croc_ui_shown');
 			$('.croc_tpl_actions').addClass('croc_ui_shown');
 		});
-		
+
 		// Make sure keypad and tool bars aren't displayed
 		$('.croc_ui_popout').removeClass('croc_ui_popout_open');
 		$('.croc_tpl_titlebar').removeClass('croc_ui_shown');
 		$('.croc_tpl_actions').removeClass('croc_ui_shown');
-		
+
 		// Setup keypad buttons
 		var keypad = $('.croc_ui_keypad');
 		keypad.find('.croc_tpl_key').click(function(){
 			var value = $(this).find('.croc_tpl_main').text();
-			audioSession.sendDTMF(value);
+			videoSession.sendDTMF(value);
 		});
 	};
 	
@@ -55689,24 +56187,24 @@ function setClick2CallAudioWidget(config) {
 	
 	// Add the HTML as a child of the element specified in the configuration if the element exists.
 	if (htmlElement.length !== 0) {
-		// For every HTML element of that kind, add audio tab
+		// For every HTML element of that kind, add video tab
 		for (i=0; i < htmlElement.length; i++) {
 			// Check that document contains HTML element
 			if ($.contains(document, htmlElement[i])) {
-				// Add audio tab
-				$(config.appendClick2callTo).append(audioWidgetHtml);
+				// Add video tab
+				$(config.appendClick2callTo).append(videoWidgetHtml);
 			} else  {
 				// If the HTML element specified doesn't exist, add to HTML
-				$('html').append(audioWidgetHtml);
+				$('html').append(videoWidgetHtml);
 			}
 		}
 	} else {
 		// If the HTML element specified doesn't exist, add to HTML
-		$('html').append(audioWidgetHtml);
+		$('html').append(videoWidgetHtml);
 	}
 	
-	// Add audio widget event handlers
-	setupAudioWidgetHandlers();
+	// Add video widget event handlers
+	setupVideoWidgetHandlers();
 	
 	/*
 	 * Setup the position of the click to call tab; fixed or absolute
@@ -55714,9 +56212,10 @@ function setClick2CallAudioWidget(config) {
 	var positionOfClick2Call = config.click2callPosition;
 	mediaWidget = config.click2callMediaWidget;
 	
-	if (mediaWidget === 'audio' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
+	// Add to correct widget only if value is absolute or fixed
+	if (mediaWidget === 'video' && positionOfClick2Call === 'absolute' || positionOfClick2Call === 'fixed') {
 		// Change css position to user defined/default position
-		$('.croc_tab-wrapper').css('position', config.click2callPosition);
+		$('.croc_tab-wrapper-video').css('position', config.click2callPosition);
 	}
 	
 	/*
@@ -55724,178 +56223,337 @@ function setClick2CallAudioWidget(config) {
 	 */
 	switch (orientationOfClick2Call) {
 	case 'top':
-		$('.croc_tab-container').removeClass('croc_tab-wrapper');
-		$('.croc_tab-container').addClass('croc_audio-top-tab');
+		$('.croc_tab-container').removeClass('croc_tab-wrapper-video');
+		$('.croc_tab-container').addClass('croc_video-top-tab');
 		$('.croc_side-tab').removeClass('croc_rotate-vertical');
-		$('.croc_side-tab').addClass('croc_audio-side-tab-top');
-		$('.croc_side-tab-content').addClass('croc_audio-top-content');
+		$('.croc_side-tab').addClass('croc_video-top-side-tab');
+		$('.croc_side-tab-content-video').addClass('croc_video-top-content');
 		$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
-		$('.croc_powered_by_audio').addClass('croc_top');
 		break;
 	case 'bottom':
-		$('.croc_tab-container').removeClass('croc_tab-wrapper');
-		$('.croc_tab-container').addClass('croc_audio-bottom-tab');
+		$('.croc_tab-container').removeClass('croc_tab-wrapper-video');
+		$('.croc_tab-container').addClass('croc_video-bottom-tab');
 		$('.croc_side-tab').removeClass('croc_rotate-vertical');
-		$('.croc_side-tab').addClass('croc_rotate-horizontal');
-		$('.croc_side-tab-content').addClass('croc_audio-bottom-content');
+		$('.croc_side-tab').addClass('croc_video-side-tab-bottom');
+		$('.croc_side-tab-content-video').addClass('croc_video-bottom-content');
 		break;
 	case 'left':
-		$('.croc_tab-container').addClass('croc_audio-left-tab');
-		$('.croc_side-tab-content').addClass('croc_audio-left-content');
+		$('.croc_tab-container').addClass('croc_video-left-tab');
+		$('.croc_side-tab-content-video').addClass('croc_video-left-content');
 		$('.croc_side-tab').css('borderRadius', '0 0 10px 10px');
 		break;
 	default:
 		break;
 	}
 }
-// Global variables
-var crocObjectConnected = false, isClicked = false, isDurationTimerSet = false, isFullscreen = false;
-var setCallDuration = null;
-var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
-
-/* 
- * Load icons.png to make sure image is retrieved before widget is used. 
- */
-window.onload = function() {
-	if (document.images) {
-		var img1 = new Image();
-		img1.src = "dist/images/icons.png";
-	}
-};
- 
-/*
- * Croc Object connection, check for capabilities
- */
-function connectCrocObject(crocApiKey, crocDisplayName, click2callMediaWidget) {
-	// CrocSDK API Configuration
-	crocConfig = {
-		// The API Key registered to the Crocodile RTC SDK Network
-		apiKey: crocApiKey,
-		
-		// The text to display to call recipient
-		displayName: crocDisplayName,
-		
-		// The features that the application will implement
-		features: ['audio', 'video', 'transfer'],
-		
-		// The event handler to fire when connected to the network
-		onConnected: function() {
-			var hasAudio = crocObject.capabilities["sip.audio"];
-			var hasVideo = crocObject.capabilities["sip.video"];
-			var hasDTMF = crocObject.capabilities["croc.dtmf"];
-			
-			// Test for audio capabilities
-			if (!hasAudio) {
-				alert("Unable to detect audio capabilities. Please connect and enable an audio device.");
-			}
-			
-			// Test for video capabilities
-			if (!hasVideo && click2callMediaWidget === "video") {
-				alert("Unable to detect video capabilities. Please connect and enable an imaging device.");
-			}
-			
-			// Test for DTMF capabilities
-			if (!hasDTMF) {
-				$(".croc_btn_keypad").hide();
-			}
-		}
-	};
-	
-	// Instantiation of croc object with non-default configuration
-	crocObject = $.croc(crocConfig);
-}
-
-// The function to set up a click to call tab
-var croc_click2call = function(userConfig) {
-	// Override default configuration with user configuration if present
-	var defaultConfig = $.extend({
-		apiKey: 'FIXME',
-		addressToCall: 'FIXME@crocodilertc.net',
-		appendClick2callTo: 'body',
-		click2callDisplayName: null,
-		click2callMediaWidget: 'audio',
-		click2callOrientation: 'right',
-		click2callPosition: 'fixed',
-		countryRingtoneCode: 'gb'
-	}, userConfig||{});
-	
-	// Check for a display name
-	if (!defaultConfig.click2callDisplayName) {
-		throw new TypeError("Please set a display name");
-	}
-	
-	// Connect to the Network and check capabilities
-	connectCrocObject(defaultConfig.apiKey, defaultConfig.click2callDisplayName, defaultConfig.click2callMediaWidget);
-	
-	/*
-	 * Configure ringtone to use. Can be set using country codes such as 'gb' 
-	 * for Great Britain.
-	 */
-	var getUserDefinedRingtone = defaultConfig.countryRingtoneCode;
-	ringtoneToUse = getUserDefinedRingtone||'gb';
-	
-	// Configure appropriate widget
-	var widgetChoice = defaultConfig.click2callMediaWidget;
-	if (widgetChoice === 'video') {
-		// Setup video widget
-		try {
-			setClick2CallVideoWidget(defaultConfig);
-		} catch(err) {
-			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for video.");
-		}
-	} else {
-		// Setup audio widget
-		try {
-			setClick2CallAudioWidget(defaultConfig);
-		} catch(err) {
-			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for audio.");
-		}
-	}
-};
-
-// Format the timer for widget
-function formatDuration(time1, time2, format) {
-	var duration = ((time1 < time2)?(time2 - time1):(time1 - time2))/1000;
-
-	var hours = parseInt(duration / 3600, 10);
-	var minutes = parseInt(duration / 60, 10);
-	var seconds = parseInt(duration, 10);
-
-	if (minutes >= 1) {
-		seconds -= minutes*60;
-	}
-	
-	if (hours >= 1) {
-		minutes -= hours*60;
-	}
-
-	var string = format.replace('%H', (((""+hours).length > 1)?hours:('0' + hours)));
-	string = string.replace('%i', (((""+minutes).length > 1)?minutes:('0' + minutes)));
-	string = string.replace('%s', (((""+seconds).length > 1)?seconds:('0' + seconds)));
-
-	return string;
-}
-
-// Set a timer to update the length of the call
-function setDuration(callStartDate) {
-	if (setCallDuration !== null) {
-		clearInterval(setCallDuration);
-		setCallDuration = null;
-	}
-	
-	// Start call duration
-	setCallDuration = setInterval(function() {
-		// Set the format to display the length of the call
-		var durationTimerFormat = "%H:%i:%s";
-		
-		// Get the current date in milliseconds
-		var currentDate = new Date().getTime();
-		
-		// Format the date using the method formatDuration
-		var formattedCallDuration = formatDuration(callStartDate, currentDate, durationTimerFormat);
-		
-		// Set the duration element text to the current duration after formatting 
-		$('.croc_ui_duration').html(formattedCallDuration);
-		
-	}, 1000);
-}
+var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
+	'<div class="croc_side-tab croc_rotate-vertical">' +
+		'<img class="croc_tab-logo" src="../images/croc-logo.png"></img>' +
+		'<p>Call Now</p>' +
+		'<div class="croc_warning-light">' +
+			'<div class="croc_warning-light-circle"></div>' +
+		'</div>' +
+	'</div>' +
+	'<div class="croc_side-tab-content">' +
+		'<div class="croc_ui_widget croc_widget_audiocall">' +
+			'<div class="croc_ui_container croc_scheme_widget">' +
+				'<div class="croc_tpl_title">' +
+					'<div class="croc_title_control">' +
+						'<h1 class="croc_ui_title"></h1>' +
+					'</div>' +
+					'<div class="croc_ui_title_toolbar">' +
+						'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
+							'<div class="croc_ui_image"></div>' +
+							'<div class="croc_ui_text"></div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="croc_ui_content">' +
+					'<div class="croc_tpl_content">' +
+						'<div class="croc_tpl_info">' +
+							'<div class="croc_tpl_remoteid">' +
+								'<span class="croc_ui_label croc_scheme_label_1 croc_ui_uri"></span>' +
+							'</div>' +
+							'<div class="croc_tpl_details croc_scheme_label_2">' +
+								'<span class="croc_ui_label croc_tpl_status"></span>' +
+								'<span class="croc_ui_label croc_ui_duration"></span>' +
+							'</div>' +
+						'</div>' +
+						'<div class="croc_tpl_actions">' +
+							'<div class="croc_tpl_group">' +
+								'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
+									'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
+										'<div class="croc_ui_image"></div>' +
+										'<div class="croc_ui_text"></div>' +
+									'</div>' +
+									'<div class="croc_ui_panel croc_tpl_content">' +
+										'<div class="croc_ui_keypad">' +
+											'<table>' +
+												'<tr>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">1</div>' +
+															'<div class="croc_tpl_alternate"></div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">2</div>' +
+															'<div class="croc_tpl_alternate">ABC</div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">3</div>' +
+															'<div class="croc_tpl_alternate">DEF</div>' +
+														'</div>' +
+													'</td>' +
+												'</tr>' +
+												'<tr>' +
+													'<td>' +
+														'<div class="croc_ui_input_button tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">4</div>' +
+															'<div class="croc_tpl_alternate">GHI</div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">5</div>' +
+															'<div class="croc_tpl_alternate">JKL</div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">6</div>' +
+															'<div class="croc_tpl_alternate">MNO</div>' +
+														'</div>' +
+													'</td>' +
+												'</tr>' +
+												'<tr>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">7</div>' +
+															'<div class="croc_tpl_alternate">PQRS</div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">8</div>' +
+															'<div class="croc_tpl_alternate">TUV</div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">9</div>' +
+															'<div class="croc_tpl_alternate">WXYZ</div>' +
+														'</div>' +
+													'</td>' +
+												'</tr>' +
+												'<tr>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">*</div>' +
+															'<div class="croc_tpl_alternate"></div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">0</div>' +
+															'<div class="croc_tpl_alternate">+</div>' +
+														'</div>' +
+													'</td>' +
+													'<td>' +
+														'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+															'<div class="croc_tpl_main">#</div>' +
+															'<div class="croc_tpl_alternate"></div>' +
+														'</div>' +
+													'</td>' +
+												'</tr>' +
+											'</table>' +
+										'</div>' +
+									'</div>' +
+									'<div class="croc_tpl_deco"></div>' +
+								'</div>' +
+								'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_audio">' +
+									'<div class="croc_ui_image"></div>' +
+									'<div class="croc_ui_text"></div>' +
+								'</div>' +
+								'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
+									'<div class="croc_ui_image"></div>' +
+									'<div class="croc_ui_text"></div>' +
+								'</div>' +
+							'</div>' +
+						'</div>' +
+						'<div class="croc_ui_hidden">' +
+							'<audio class="croc_tpl_tpl croc_receive-audio" autoplay="autoplay"></audio>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+			'</div>' +
+		'</div>' +
+		'<div class="croc_powered_by_audio">'+
+			'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
+		'</div>' +
+	'</div>' +
+'</div>';
+var videoWidgetHtml = '<div class="croc_tab-wrapper-video croc_tab-container">' +
+		'<div class="croc_side-tab croc_rotate-vertical">' +
+			'<img class="croc_tab-logo" src="../images/croc-logo.png"></img>' +
+			'<p>Call Now</p>' +
+			'<div class="croc_warning-light">' +
+				'<div class="croc_warning-light-circle"></div>' +
+			'</div>' +
+		'</div>' +
+	'<div class="croc_side-tab-content-video">' +
+		'<div class="croc_ui_widget croc_widget_videocall">' +
+			'<div class="croc_ui_container croc_scheme_widget">' +
+				'<div class="croc_tpl_titlebar">' +
+					'<div class="croc_tpl_title">' +
+						'<div class="croc_title_control">' +
+							'<span class="croc_ui_label croc_ui_uri croc_scheme_label_1"></span> - <span class="croc_ui_label croc_ui_duration croc_scheme_label_1"></span> - <span class="croc_ui_label croc_ui_status croc_scheme_label_1"></span>' +
+						'</div>' +
+						'<div class="croc_ui_title_toolbar">' +
+							'<div class="croc_ui_input_button croc_ui_input croc_btn_fullscreen croc_scheme_button_6">' +
+								'<div class="croc_ui_image"></div>' +
+								'<div class="croc_ui_text"></div>' +
+							'</div>' +
+							'<div class="croc_ui_input_button croc_ui_input croc_btn_close croc_scheme_button_6">' +
+								'<div class="croc_ui_image"></div>' +
+								'<div class="croc_ui_text"></div>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="croc_ui_content">' +
+					'<div class="croc_tpl_content">' +
+						'<video class="croc_tpl_video croc_tpl_remotevideo" autoplay="autoplay"></video>' +
+						'<div class="croc_tpl_controls croc_ui_localvideoshown">' +
+							'<div class="croc_tpl_actions">' +
+								'<div class="croc_tpl_bar">' +
+									'<div class="croc_ui_input_button croc_ui_input croc_btn_localvideo">' +
+										'<div class="croc_ui_image"></div>' +
+										'<div class="croc_ui_text"></div>' +
+									'</div>' +
+									'<div class="croc_tpl_callactions">' +
+										'<div class="croc_ui_popout croc_scheme_popout_1 croc_ui_popout_open">' +
+											'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_keypad" tabindex="0">' +
+												'<div class="croc_ui_image"></div>' +
+												'<div class="croc_ui_text"></div>' +
+											'</div>' +
+											'<div class="croc_ui_panel croc_tpl_content">' +
+												'<div class="croc_ui_keypad">' +
+													'<table>' +
+														'<tr>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">1</div>' +
+																	'<div class="croc_tpl_alternate"></div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">2</div>' +
+																	'<div class="croc_tpl_alternate">ABC</div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">3</div>' +
+																	'<div class="croc_tpl_alternate">DEF</div>' +
+																'</div>' +
+															'</td>' +
+														'</tr>' +
+														'<tr>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">4</div>' +
+																	'<div class="croc_tpl_alternate">GHI</div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">5</div>' +
+																	'<div class="croc_tpl_alternate">JKL</div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">6</div>' +
+																	'<div class="croc_tpl_alternate">MNO</div>' +
+																'</div>' +
+															'</td>' +
+														'</tr>' +
+														'<tr>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">7</div>' +
+																	'<div class="croc_tpl_alternate">PQRS</div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">8</div>' +
+																	'<div class="croc_tpl_alternate">TUV</div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">9</div>' +
+																	'<div class="croc_tpl_alternate">WXYZ</div>' +
+																'</div>' +
+															'</td>' +
+														'</tr>' +
+														'<tr>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">*</div>' +
+																	'<div class="croc_tpl_alternate"></div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">0</div>' +
+																	'<div class="croc_tpl_alternate">+</div>' +
+																'</div>' +
+															'</td>' +
+															'<td>' +
+																'<div class="croc_ui_input_button croc_tpl_key" tabindex="0">' +
+																	'<div class="croc_tpl_main">#</div>' +
+																	'<div class="croc_tpl_alternate"></div>' +
+																'</div>' +
+															'</td>' +
+														'</tr>' +
+													'</table>' +
+												'</div>' +
+											'</div>' +
+											'<div class="croc_tpl_deco"></div>' +
+										'</div>' +
+										'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_mute_s croc_mute_video_audio">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
+										'</div>' +
+										'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_pausevideo_s">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
+										'</div>' +
+										'<div class="croc_ui_input_button croc_ui_input croc_scheme_action_button croc_btn_endcall_s">' +
+											'<div class="croc_ui_image"></div>' +
+											'<div class="croc_ui_text"></div>' +
+										'</div>' +
+									'</div>' +
+								'</div>' +
+							'</div>' +
+							'<div class="croc_tpl_localvideo">' +
+								'<div class="croc_tpl_disabledvideo"></div>' +
+								'<video class="croc_tpl_video croc_receive_localVideo" autoplay="autoplay"></video>' +
+							'</div>' +
+						'</div>' +
+					'</div>' +
+				'</div>' +
+			'</div>' +
+		'</div>' +
+		'<div class="croc_powered_by_video">'+
+			'<p>Powered by <a href="https://www.crocodilertc.net" target="_blank">crocodilertc.net</a></p>'+
+		'</div>' +
+	'</div>' +
+'</div>';
