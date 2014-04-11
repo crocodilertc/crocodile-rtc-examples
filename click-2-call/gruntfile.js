@@ -1,7 +1,13 @@
 'use strict';
 
 module.exports = function(grunt) {
-
+  /** 
+   * String containing the path to dist folder relative to HTML file containing application.
+   * This is so the project can find the image files it uses in the code.
+   * Default is 'dist'.
+   */
+  var pathToDist = grunt.option("pathToDist") || 'dist';
+  
   // Project configuration.
   grunt.initConfig({
     // Metadata.
@@ -149,6 +155,19 @@ module.exports = function(grunt) {
         ],
       },
     },
+    'string-replace': {
+      dist: {
+        files: {
+          'scripts/': 'scripts/*.js'
+        },
+        options: {
+          replacements: [{
+            pattern: /"(.+)?\/?images/,
+            replacement: '"' + pathToDist + '/images'
+          }]
+        }
+      }
+    },
   });
 
   // These plugins provide necessary tasks.
@@ -159,9 +178,11 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-cssmin');
   grunt.loadNpmTasks('grunt-contrib-jshint');
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-string-replace');
 
   // Default Build.
   grunt.registerTask('default', [
+    'string-replace',
     'jshint:gruntfile',
     'jshint:src',
     'clean',

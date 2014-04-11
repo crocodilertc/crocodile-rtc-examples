@@ -53574,7 +53574,7 @@ var crocObject, mediaWidget, orientationOfClick2Call, ringtoneToUse;
 window.onload = function() {
 	if (document.images) {
 		var img1 = new Image();
-		img1.src = "../images/icons.png";
+		img1.src = "dist/images/icons.png";
 	}
 };
  
@@ -56248,7 +56248,7 @@ function setClick2CallVideoWidget(config) {
 }
 var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 	'<div class="croc_side-tab croc_rotate-vertical">' +
-		'<img class="croc_tab-logo" src="../images/croc-logo.png"></img>' +
+		'<img class="dist/images/croc-logo.png"></img>' +
 		'<p>Call Now</p>' +
 		'<div class="croc_warning-light">' +
 			'<div class="croc_warning-light-circle"></div>' +
@@ -56398,7 +56398,7 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 '</div>';
 var videoWidgetHtml = '<div class="croc_tab-wrapper-video croc_tab-container">' +
 		'<div class="croc_side-tab croc_rotate-vertical">' +
-			'<img class="croc_tab-logo" src="../images/croc-logo.png"></img>' +
+			'<img class="dist/images/croc-logo.png"></img>' +
 			'<p>Call Now</p>' +
 			'<div class="croc_warning-light">' +
 				'<div class="croc_warning-light-circle"></div>' +

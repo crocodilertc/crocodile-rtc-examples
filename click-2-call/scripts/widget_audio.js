@@ -3,7 +3,7 @@
  */ 
 var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 	'<div class="croc_side-tab croc_rotate-vertical">' +
-		'<img class="croc_tab-logo" src="../images/croc-logo.png"></img>' +
+		'<img class="dist/images/croc-logo.png"></img>' +
 		'<p>Call Now</p>' +
 		'<div class="croc_warning-light">' +
 			'<div class="croc_warning-light-circle"></div>' +
