@@ -91,14 +91,14 @@ var croc_click2call = function(userConfig) {
 		try {
 			setClick2CallVideoWidget(defaultConfig);
 		} catch(err) {
-			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for video.");
+			throw new TypeError("Cannot build click-2-call tab. Please configure Click-2-Call for video.");
 		}
 	} else {
 		// Setup audio widget
 		try {
 			setClick2CallAudioWidget(defaultConfig);
 		} catch(err) {
-			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for audio.");
+			throw new TypeError("Cannot build click-2-call tab. Please configure Click-2-Call for audio.");
 		}
 	}
 };

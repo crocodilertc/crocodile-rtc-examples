@@ -53656,14 +53656,14 @@ var croc_click2call = function(userConfig) {
 		try {
 			setClick2CallVideoWidget(defaultConfig);
 		} catch(err) {
-			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for video.");
+			throw new TypeError("Cannot build click-2-call tab. Please configure Click-2-Call for video.");
 		}
 	} else {
 		// Setup audio widget
 		try {
 			setClick2CallAudioWidget(defaultConfig);
 		} catch(err) {
-			throw new TypeError("Cannot build click-2-call tab. Please build Click-2-Call configured for audio.");
+			throw new TypeError("Cannot build click-2-call tab. Please configure Click-2-Call for audio.");
 		}
 	}
 };
@@ -56248,7 +56248,7 @@ function setClick2CallVideoWidget(config) {
 }
 var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 	'<div class="croc_side-tab croc_rotate-vertical">' +
-		'<img class="dist/images/croc-logo.png"></img>' +
+		'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
 		'<p>Call Now</p>' +
 		'<div class="croc_warning-light">' +
 			'<div class="croc_warning-light-circle"></div>' +
@@ -56398,7 +56398,7 @@ var audioWidgetHtml = '<div class="croc_tab-wrapper croc_tab-container">' +
 '</div>';
 var videoWidgetHtml = '<div class="croc_tab-wrapper-video croc_tab-container">' +
 		'<div class="croc_side-tab croc_rotate-vertical">' +
-			'<img class="dist/images/croc-logo.png"></img>' +
+			'<img class="croc_tab-logo" src="dist/images/croc-logo.png"></img>' +
 			'<p>Call Now</p>' +
 			'<div class="croc_warning-light">' +
 				'<div class="croc_warning-light-circle"></div>' +

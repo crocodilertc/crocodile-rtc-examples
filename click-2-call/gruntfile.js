@@ -158,12 +158,15 @@ module.exports = function(grunt) {
     'string-replace': {
       dist: {
         files: {
-          'scripts/': 'scripts/*.js'
+          'scripts/': ['scripts/widget_audio.js','scripts/widget_video.js','scripts/click2call.js']
         },
         options: {
           replacements: [{
-            pattern: /"(.+)?\/?images/,
-            replacement: '"' + pathToDist + '/images'
+            pattern: / "(.+)?\/?images/,
+            replacement: ' "' + pathToDist + '/images'
+          }, {
+            pattern: /src="(.+)?\/?images/,
+            replacement: 'src="' + pathToDist + '/images'
           }]
         }
       }
@@ -195,6 +198,7 @@ module.exports = function(grunt) {
   
   // Build Audio only.
   grunt.registerTask('audio', [
+    'string-replace',
     'jshint:audio',
     'clean',
     'concat:audiojs',
@@ -206,6 +210,7 @@ module.exports = function(grunt) {
   
   // Build Video only.
   grunt.registerTask('video', [
+    'string-replace',
     'jshint:video',
     'clean',
     'concat:videojs',
