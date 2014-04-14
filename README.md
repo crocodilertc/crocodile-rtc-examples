@@ -28,6 +28,16 @@ grunt
 Once the command has finished loading, it will re-create the folder labelled _dist_. Add this folder to the same location of the web page you would like to use the example in.
 For example; if the web page called _click2call.html_ is located in the folder _www_. A copy of the _dist_ folder should be placed in the _www_ folder.
 
+If you would like to place the _dist_ folder into a different location from the HTML page that will be using the application, then run the command:
+
+````
+grunt --pathToDist='path/to/dist'
+````
+
+Once the command has finished loading, it will re-create the folder labelled _dist_. Add this folder to the value of the _pathToDist_ option, for example;
+if the web page called _click2call.html_ is located in the folder _www_ and the _pathToDist_ option is set to _path/to/dist_. A copy of the _dist_ folder should be placed
+in the _www/path/to/_ directory therefore the relative path of the _dist_ folder is _www/path/to/dist_.
+
 Now you can use the example in your web page. The example below uses the _click-2-call_ application:
 
 ````html
